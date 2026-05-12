@@ -72,7 +72,7 @@ pnpm dev
 
 ---
 
-### Step 3 — 章節編輯器（乾淨狀態）
+### Step 3 — 章節編輯器（乾淨狀態，單欄）
 
 畫面：`/p/spring-diary/chapters/1`
 
@@ -81,6 +81,22 @@ pnpm dev
 工具列（從左到右）：章節標題 / 儲存狀態 badge ⚪ / 字數 / 儲存 / ✨ AI 撰寫本章 / ⏱ 立刻更新狀態 / ⟲⟳ / 📜 歷史 / ← 返回
 
 主編輯區：宋體 16px，max-width 720px 置中，第 1 章全文。
+
+---
+
+### Step 3b — 章節編輯器（AI 工作區展開 — 三欄）
+
+點「✨ AI 撰寫本章」後展開三欄：
+
+![章節編輯器—三欄](screenshots/03b-chapter-editor-3col-open.png)
+
+| 欄 | 內容 |
+|---|---|
+| **左：主編輯器** | 章節定稿（仍可編輯）|
+| **中：上下文 & 參數** | synopsis / 角色卡 / 上一章結尾 / 故事狀態 / 寫作需求（可改）/ Qwen3 參數 |
+| **右：AI 草稿** | 串流輸出（可直接手改）|
+
+中欄讀取 IDB 的真實 seed 資料（蘇晴角色卡摘要、故事大綱、story_status 前段）。
 
 ---
 
@@ -133,26 +149,58 @@ Quick preset 按鈕（全雲端 / Cloud+地端 fallback / 全地端）一鍵填�
 
 ---
 
-### Step 9 — AI 撰寫本章：串流進行中
+### Step 9 — AI 撰寫：串流進行中（三欄）
 
-畫面：`/p/spring-diary/chapters/2`（點「✨ AI 撰寫本章」後）
+畫面：`/p/spring-diary/chapters/2`
 
-![AI 串流進行中](screenshots/09-chapter-editor-streaming.png)
+![AI 串流進行中—三欄](screenshots/09b-chapter-editor-streaming-3col.png)
 
-- 右側 480px 草稿側欄滑入
-- fake stream 35ms/字，閃爍游標
-- 主編輯區灰色遮罩 + 「AI 撰寫中…」
-- 紅色「中止」按鈕固定在側欄頂部
+- 中欄：synopsis、角色卡、上一章結尾、寫作需求 textarea、Qwen3 參數
+- 右欄：草稿 textarea 逐字串流（35ms/字），badge 藍色 pulse「✨ AI 撰寫中…」
+- 主編輯器（左欄）**不被鎖定**，可同時繼續編輯定稿
+- 串流期間可直接在草稿 textarea 打字插入
 
 ---
 
-### Step 10 — AI 草稿完成：採用 / 丟棄 / 重產出
+### Step 9c — 生成參數面板（Qwen3）
 
-![AI 草稿完成](screenshots/10-chapter-editor-ai-done.png)
+展開中欄「⚙ 生成參數（Qwen3）」accordion：
 
-串流完成（或按「中止」停下）後：
-- 底部出現三按鈕「採用 / 丟棄 / 重產出」
-- 顯示使用模型 + 字數 + 耗時
+![Qwen3 參數面板](screenshots/09c-params-panel-expanded.png)
+
+8 個可調參數，每個附說明文字：
+
+| 參數 | 說明重點 |
+|---|---|
+| temperature | 創意程度，越高越多樣 |
+| top_p | nucleus sampling 範圍 |
+| top_k | 每次候選詞數量 |
+| min_p | 最低機率門檻（Qwen3 特有） |
+| repetition_penalty | 重複懲罰，避免文字打轉 |
+| max_tokens | 最大輸出 token 數 |
+| enable_thinking | Qwen3 思考模式開關 |
+| thinking_budget | 思考 token 預算（thinking=on 才顯示） |
+
+---
+
+### Step 9d — 開啟 Thinking 模式
+
+![Thinking 模式開啟](screenshots/09d-params-thinking-enabled.png)
+
+勾選「enable_thinking」→ 下方動態出現「thinking_budget」input（預設 2000 token）。
+
+---
+
+### Step 10 — 草稿可直接手改（已手動修改 badge）
+
+串流完成或中止後，在右欄草稿 textarea 直接打字：
+
+![草稿手動修改](screenshots/10b-chapter-editor-draft-manually-edited.png)
+
+- badge 切成橘色「AI 草稿（已手動修改）」
+- 字數即時更新
+- 按「採用」時把**手改後的版本**寫回主檔（不管是否還是原始 AI 輸出）
+- 底部顯示使用模型 + 字數 + 耗時
 
 ---
 
@@ -299,7 +347,13 @@ Dark mode 全站一致；切換後 localStorage 持久，F5 重整維持。
 | 18 | [故事狀態](screenshots/18-story-status.png) | 故事狀態編輯器 | `/p/:slug/status/story` | 007, 010 |
 | 19 | [角色狀態](screenshots/19-character-status.png) | 角色狀態編輯器 | `/p/:slug/status/characters/:id` | 007, 010 |
 | 20 | [建立專案](screenshots/20-project-new.png) | 建立新小說表單 | `/projects/new` | 001 |
+| 03b | [三欄展開](screenshots/03b-chapter-editor-3col-open.png) | 章節編輯器 AI 工作區 | `/p/:slug/chapters/:n` | 003, 005 |
+| 09b | [串流—三欄](screenshots/09b-chapter-editor-streaming-3col.png) | AI 串流（三欄） | `/p/:slug/chapters/:n` | 005 |
+| 09c | [Qwen3 參數](screenshots/09c-params-panel-expanded.png) | 生成參數面板 | `/p/:slug/chapters/:n` | 005 |
+| 09d | [Thinking 模式](screenshots/09d-params-thinking-enabled.png) | enable_thinking | `/p/:slug/chapters/:n` | 005 |
+| 10b | [草稿手改](screenshots/10b-chapter-editor-draft-manually-edited.png) | 草稿手動修改 badge | `/p/:slug/chapters/:n` | 005, 006 |
 | 21 | [Dark—章節](screenshots/21-dark-mode-chapter-editor.png) | Dark mode（章節） | `/p/:slug/chapters/:n` | — |
+| 21b | [Dark—三欄](screenshots/21b-dark-mode-3col-chapter.png) | Dark mode（三欄 AI 工作區） | `/p/:slug/chapters/:n` | — |
 | 22 | [Dark—首頁](screenshots/22-dark-mode-home.png) | Dark mode（首頁） | `/` | — |
 
 ---

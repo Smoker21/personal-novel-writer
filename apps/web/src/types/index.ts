@@ -109,6 +109,28 @@ export interface Settings {
 
 export type SaveState = 'clean' | 'dirty' | 'saved';
 
+export interface Qwen3Params {
+  temperature: number;       // 0.0–2.0, default 0.7
+  topP: number;              // 0.0–1.0, default 0.9
+  topK: number;              // 1–200, default 40
+  minP: number;              // 0.0–1.0, default 0.0
+  repetitionPenalty: number; // 1.0–2.0, default 1.1
+  maxTokens: number;         // 256–32768, default 4096
+  enableThinking: boolean;   // default false
+  thinkingBudget: number;    // 500–16000, default 2000
+}
+
+export const DEFAULT_QWEN3_PARAMS: Qwen3Params = {
+  temperature: 0.7,
+  topP: 0.9,
+  topK: 40,
+  minP: 0.0,
+  repetitionPenalty: 1.1,
+  maxTokens: 4096,
+  enableThinking: false,
+  thinkingBudget: 2000,
+};
+
 export interface RecentProjectEntry {
   slug: string;
   name: string;
