@@ -8,7 +8,9 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
-    "dev": "pnpm --filter @novel-writer/api dev & pnpm --filter @novel-writer/web dev",
+    "dev:api": "pnpm --filter @novel-writer/api dev",
+    "dev:web": "pnpm --filter @novel-writer/web dev",
+    "dev": "concurrently -n api,web -c cyan,green \"pnpm run dev:api\" \"pnpm run dev:web\"",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "lint": "biome check .",
@@ -16,7 +18,8 @@
     "format": "biome format --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4"
+    "@biomejs/biome": "^1.9.4",
+    "concurrently": "^9.1.0"
   },
   "pnpm": {
     "packageExtensions": {
