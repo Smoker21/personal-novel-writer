@@ -3,6 +3,7 @@
   "description": "default permissions for Novel Writer",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "dialog:default"
   ]
 }
