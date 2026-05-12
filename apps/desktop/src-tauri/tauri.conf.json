@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Novel Writer",
+  "version": "0.1.0-dev",
+  "identifier": "com.novel-writer.app",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "pnpm --filter @novel-writer/web build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../../apps/web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Novel Writer",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": []
+  }
+}
