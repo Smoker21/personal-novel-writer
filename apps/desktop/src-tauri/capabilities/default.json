@@ -2,8 +2,5 @@
   "identifier": "default",
   "description": "default permissions for Novel Writer",
   "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "dialog:default"
-  ]
+  "permissions": ["core:default", "dialog:default"]
 }
