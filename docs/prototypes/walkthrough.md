@@ -2,6 +2,7 @@
 
 > 版本：Phase B / v0.1 MVP prototype（2026-05-12）
 > 對應 code：`F:\workspace\novel_writer\apps\web\`
+> 截圖：`docs/prototypes/screenshots/`（Playwright 1440×900 自動截圖）
 > 目的：讓使用者走過完整 MVP 主流程、驗收 UX 是否合理，然後回饋「哪裡要改、哪裡 OK」再進入實作軌。
 
 ---
@@ -14,7 +15,7 @@ pnpm install   # 第一次才需要
 pnpm dev
 ```
 
-瀏覽器打開 terminal 顯示的「Local:」網址（這台機器 5173/5174 被佔用，Vite 會走上去找，通常是 **http://localhost:5180/**，每次看 terminal 確認）。
+瀏覽器打開 terminal 顯示的「Local:」網址（這台機器 5173/5174 被佔用，Vite 會走上去找，通常是 **http://localhost:5174/**，每次看 terminal 確認）。
 
 首次載入會把 seed 資料寫進瀏覽器 IndexedDB（`seeded:v2` flag 防重複）。**F5 重整後資料不會不見**。
 
@@ -44,6 +45,8 @@ pnpm dev
 
 畫面：`/`
 
+![首頁](screenshots/01-home.png)
+
 - 左側 App logo + tagline「個人本機小說撰寫助手」
 - 主按鈕「+ 新小說」、次按鈕「📂 開啟既有專案」
 - 右側「最近開啟」清單：春日記事 / 暗河 / 街角咖啡店
@@ -56,12 +59,11 @@ pnpm dev
 
 畫面：`/p/spring-diary`
 
+![Dashboard](screenshots/02-dashboard.png)
+
 - 書名 + synopsis 大綱一段
-- 三張統計卡：
-  - **章節**：3 章 / 上次修改 3 小時前 / 「+ 新章節」按鈕
-  - **角色**：3 位 / 角色名列表（可點）
-  - **故事狀態**：story_status 摘要前三行 / 「展開檢視」
-- 章節清單 / 三個章節 badge 顏色不同：
+- 三張統計卡：章節 / 角色 / 故事狀態
+- 章節清單，三種 badge：
   - 🟣 已採用（第 1 章）
   - 🟢 已儲存（第 2 章）
   - ⚪ 草稿（第 3 章）
@@ -70,221 +72,235 @@ pnpm dev
 
 ---
 
-### Step 3 — 章節編輯器（主畫面）
+### Step 3 — 章節編輯器（乾淨狀態）
 
 畫面：`/p/spring-diary/chapters/1`
 
-工具列（從左到右）：
-- 章節標題 inline input（可直接改）
-- 儲存狀態 badge：⚪ 乾淨
-- 字數計數
-- **「儲存」**（綠色主按鈕）
-- **「✨ AI 撰寫本章」**
-- **「⏱ 立刻更新狀態」**
-- ⟲ ⟳ Undo / Redo（視覺按鈕，textarea 原生 Ctrl+Z 有效）
-- **「📜 歷史」**
+![章節編輯器—乾淨](screenshots/03-chapter-editor-clean.png)
 
-主編輯區：宋體 16px，max-width 720px 置中，內容是第 1 章全文「梅雨季已經連續下了一個禮拜…」
+工具列（從左到右）：章節標題 / 儲存狀態 badge ⚪ / 字數 / 儲存 / ✨ AI 撰寫本章 / ⏱ 立刻更新狀態 / ⟲⟳ / 📜 歷史 / ← 返回
 
-**驗收：在編輯區打幾個字 → 1.5 秒後 badge 變🔵「編輯中」**
-
-**驗收：按「儲存」→ 🟢 閃一秒 → 回⚪，右下角 toast「已儲存到 chapter_0001_梅雨初晴.md」**
+主編輯區：宋體 16px，max-width 720px 置中，第 1 章全文。
 
 ---
 
-### Step 4 — 嘗試 AI 撰寫（觸發「未設定 LLM」引導）
+### Step 4 — 章節編輯器（autosave 觸發 🔵 狀態）
 
-在章節編輯器點「✨ AI 撰寫本章」
+![章節編輯器—編輯中](screenshots/04-chapter-editor-dirty.png)
 
-→ 跳出 modal：「您尚未設定 LLM provider，請先到設定頁啟用一個 provider 並指定 chapter-writer 的預設模型。」
+打字後 1.5 秒 debounce → 寫入 IndexedDB → badge 切成 🔵「編輯中」。
 
-兩個按鈕：「前往設定頁」（主）/ 「稍後再說」（次）
-
-這是**刻意設計**，非 bug（Story 009：首次必須先設定）。
-
-**點「前往設定頁」→ Step 5**
+**驗收：F5 重整後內容還在（IndexedDB 持久化）**
 
 ---
 
-### Step 5 — 設定頁（啟用 Provider）
+### Step 5 — 未設定 LLM 引導 Modal
+
+![未設定 LLM Modal](screenshots/05-llm-not-configured-modal.png)
+
+在任何 AI 按鈕（章節 / 角色卡 / 狀態），若設定頁 provider 全停用，跳此 modal。
+兩按鈕：「前往設定頁」（主）/ 「稍後再說」（次）。
+
+**點「前往設定頁」→ Step 6**
+
+---
+
+### Step 6 — 設定頁：Providers 全停用（初始狀態）
 
 畫面：`/settings`
 
-4 個 tabs：Providers / 預設模型 / 個人偏好 / 關於
+![設定頁—Providers 全停用](screenshots/06-settings-providers-disabled.png)
 
-**Providers tab**：
-
-- 六個 provider 區塊：Anthropic / OpenAI / Gemini / LM Studio / Ollama / RWKV Runner
-- 每個預設「停用」
-- 展開 Anthropic：勾選「啟用」→ 出現 API key 欄位
-- 隨便輸入一個字串（prototype 不驗真實性）
-- 點「測試連線」→ spinner 1 秒 → 綠色勾「連線成功」
-  - （若 key 為空 → 紅叉「API key 不能為空」）
-
-**預設模型 tab**：
-
-- 點「Cloud + 地端 fallback」preset → 四個 Agent routing 自動填入
-- 點「儲存」→ toast「設定已儲存」
-
-**個人偏好 tab**：Dark mode toggle（同 top bar 也有）
-
-**回到章節編輯器：點 top bar「春日記事」麵包屑 / 側邊欄第 1 章 → Step 6**
+所有 provider 預設 disabled（per Story 009 設計，無 wizard）。
 
 ---
 
-### Step 6 — AI 撰寫本章（fake stream）
+### Step 7 — 設定頁：Anthropic 啟用 + 測試連線成功
 
-回到章節編輯器，點「✨ AI 撰寫本章」
+![設定頁—Anthropic 啟用](screenshots/07-settings-providers-enabled.png)
 
-→ 右側 480px **草稿側欄**從右滑入
-
-流程：
-1. 700ms「準備上下文…」delay
-2. 開始 fake stream（35ms/字）：書店場景 1500 字小說，帶閃爍游標
-3. 主編輯區灰色遮罩 + 「AI 撰寫中…」文字
-4. 串流期間**「中止」**紅色按鈕顯示
-
-**驗收：點「中止」→ 串流立刻停，出現三按鈕「採用 / 丟棄 / 重產出」**
-
-**讓串流跑完 → 底部顯示「使用 anthropic:claude-sonnet-4-6 / 約 1,500 字」**
+啟用 → 填入 API key → 測試連線 → 1 秒後綠勾「連線成功」。
+之後 AI 按鈕不再跳「未設定」modal。
 
 ---
 
-### Step 7 — 採用 AI 草稿
+### Step 8 — 設定頁：預設模型 tab
 
-草稿側欄底部點「採用」
+![設定頁—預設模型](screenshots/08-settings-model-routing.png)
 
-→ 確認 modal：「即將以 AI 草稿覆蓋目前章節內容…系統會自動：① 寫入 .md ② git commit ③ 觸發 status-updater。是否繼續？」
-
-點「採用」→ 三連 toast（連續出現）：
-1. ✅ 已採用 AI 草稿
-2. 💾 已儲存到 chapter_0001_梅雨初晴.md
-3. ⏱ 狀態更新中…
-
-主編輯區內容換成草稿內容 / 草稿側欄關閉 / badge 🟣「已採用」
+4 個 Agent 的 primary / fallbacks routing 設定。
+Quick preset 按鈕（全雲端 / Cloud+地端 fallback / 全地端）一鍵填入。
 
 ---
 
-### Step 8 — 章節 git 歷史
+### Step 9 — AI 撰寫本章：串流進行中
 
-章節編輯器 toolbar 點「📜 歷史」
+畫面：`/p/spring-diary/chapters/2`（點「✨ AI 撰寫本章」後）
 
-→ 右側歷史抽屜滑入（480px → 展開至 720px）
+![AI 串流進行中](screenshots/09-chapter-editor-streaming.png)
 
-歷史清單（最新在上）：
-```
-[目前版本]  chapter(1): 採用 AI 草稿     3 小時前   +4,231 字
-           chapter(1): 手動修訂結尾段   4 小時前   +68 字
-           chapter(1): 手動修訂第二段   5 小時前   -120 字
-           chapter(1): 儲存             7 小時前   +250 字
-           chapter(1): 採用 AI 草稿     8 小時前   +4,351 字
-           chapter(1): 初始空白章節     1 天前     0 字
-```
-
-**點任一歷史 commit** → 右側展開 preview：該 commit 當時的章節內容（唯讀）
-
-底部兩按鈕：
-- 「⟲ 還原到此版本」→ 二次確認 → 還原（更新 IndexedDB + 主編輯區刷新）
-- 「⇄ Diff 與當前比較」→ 目前 disabled（stub，見限制說明）
+- 右側 480px 草稿側欄滑入
+- fake stream 35ms/字，閃爍游標
+- 主編輯區灰色遮罩 + 「AI 撰寫中…」
+- 紅色「中止」按鈕固定在側欄頂部
 
 ---
 
-### Step 9 — 角色卡
+### Step 10 — AI 草稿完成：採用 / 丟棄 / 重產出
 
-從 sidebar 點「角色」或 Dashboard 角色卡 → `/p/spring-diary/characters`
+![AI 草稿完成](screenshots/10-chapter-editor-ai-done.png)
 
-角色列表：3 張卡片（蘇晴 / 林書言 / 蘇祖母）
-
-**點「蘇晴」→ 角色卡編輯器 `/p/spring-diary/characters/char-suqing`**
-
-左半：6 個摺疊區塊
-1. **身分基礎**（預設展開）：name / age / gender / 角色定位
-2. **個性參考**：personalityTags（chip 顯示：內向、含蓄、敏感）/ MBTI / 星座 / 血型 / 文化背景
-3. **外貌參考**：身高 / 體型 / 髮型 / 眼睛 / 其他特徵
-4. **對話與寫作**：節奏 / 用詞偏好 / 寫作避免事項
-5. **關係**：「與 [[林書言]] 從陌生到漸近…」
-6. **親密場景描寫參考**（預設摺疊，標題旁有灰色說明文字）
-
-右半：**「敘述」可編輯區**
-- 已有 seed 的 AI 生成 body（「蘇晴是 30 歲的女作家，內向但觀察力極強…」）
-- 下方標：`anthropic:claude-haiku-4-5 @ 5 分鐘前 | 無手動編輯`
-- 右上角「📜 歷史」
-
-**在敘述區修改任何字 → 出現橘色警示「此描寫已手動編輯，重新生成會覆蓋你的修改」**
-
-**點「✨ AI 生成角色描述」→ fake stream 填入（30ms/字）→ 覆蓋成新版 body**
-
-**v0.2 / v0.3 預留位置**：外貌區塊頂部兩個 ghost button「📷 上傳參考圖（v0.2）」「🎨 文字生圖（v0.3）」（disabled，hover tooltip「此功能 v0.2 開放」）
+串流完成（或按「中止」停下）後：
+- 底部出現三按鈕「採用 / 丟棄 / 重產出」
+- 顯示使用模型 + 字數 + 耗時
 
 ---
 
-### Step 10 — 故事狀態編輯器
+### Step 11 — 採用確認 Modal
 
-Sidebar 點「狀態 → 故事狀態」或 Dashboard 展開檢視 → `/p/spring-diary/status/story`
+![採用確認 Modal](screenshots/11-adopt-confirm-modal.png)
 
-頂部：「📘 故事狀態 — story_status.md」
-
-Toolbar：「儲存 / ✨ AI 精簡 / 📜 歷史」
-
-主編輯區（markdown textarea）：
-```markdown
-# 故事狀態
-
-## 主軸進展
-第 1-2 章已完成。蘇晴從台北搬回外婆…
-
-## 角色關係現況
-...
-
-## 場景設定
-...
-
-## 🔖 伏筆
-- 第 1 章：蘇晴祖母留下的書信，內容尚未揭露
-- 第 2 章：書店地下室傳出的舊唱片聲…
-- 第 2 章：蘇晴隨身的綠色舊傘，是祖母的遺物
-
-## ✨ 轉折點
-- 第 1 章末：蘇晴決定每天下午都來書店寫作
-- 第 2 章末：林書言主動端了一杯茶上樓
-```
-
-🔖 / ✨ 段落左側有彩色 bar 區分（視覺上「受保護」）
-
-**點「✨ AI 精簡」→ modal 彈出**：
-- 說明文字「AI 會精簡整體文字，但保留 🔖 伏筆 / ✨ 轉折點 段落不動」
-- 精簡目標 slider（20%–90%，預設 50%）
-- 「執行」/ 「取消」
-- 執行後：本地字串 trim（prototype 無真 LLM）→ 🔖 / ✨ 段保留、其他段縮短
-
-**角色狀態**（蘇晴 / 林書言）：Sidebar → 狀態 → 角色狀態 → 選角色。結構相同，多一個「← 回角色卡」連結。
+明確說明「系統會自動：① 寫入 .md ② git commit ③ 觸發 status-updater」。
+確認後：三連 toast（已採用 → 已儲存 → 狀態更新中）。
 
 ---
 
-### Step 11 — Dark Mode
+### Step 12 — 歷史抽屜（章節）
 
-Top bar 右上角月亮 icon / 設定頁個人偏好 tab → Dark mode toggle
+![歷史抽屜](screenshots/12-history-drawer.png)
 
-切換後整體配色切暗，偏暖底色（編輯區字色 `#e8e6e1`，非純白）。persistent（重整後維持）。
+點任何編輯器的「📜 歷史」 → 右側抽屜滑入。  
+清單顯示：commit message / 相對時間 / 字數變化 / 「目前版本」badge。
+
+---
+
+### Step 13 — 歷史抽屜：Preview 展開
+
+![歷史抽屜—Preview](screenshots/13-history-drawer-preview.png)
+
+點任一歷史 commit → 右側展開（抽屜變寬）→ 顯示該版本內容（唯讀）。  
+底部：「⟲ 還原到此版本」（需二次確認）/ 「⇄ Diff 與當前比較」（stub）。
+
+---
+
+### Step 14 — 角色卡列表
+
+畫面：`/p/spring-diary/characters`
+
+![角色列表](screenshots/14-character-list.png)
+
+3 張角色卡（蘇晴 / 林書言 / 蘇祖母），顯示名稱 / 角色定位 / 個性標籤。
+
+---
+
+### Step 15 — 角色卡編輯（蘇晴）
+
+畫面：`/p/spring-diary/characters/char-suqing`
+
+![角色卡編輯](screenshots/15-character-edit.png)
+
+左半：6 個摺疊欄位區塊（身分基礎預設展開）  
+右半：AI 生成的連貫敘述 textarea，下方標示模型 + 時間 + 手動編輯狀態  
+v0.2 / v0.3 vision ghost button 預留位置（disabled）
+
+---
+
+### Step 16 — 角色卡：AI 生成中
+
+![角色卡—AI 生成中](screenshots/16-character-ai-generating.png)
+
+按「✨ AI 生成角色描述」→ 右側 textarea 逐字串流（30ms/字）。
+生成期間按鈕顯示 spinner「生成中…」。
+
+---
+
+### Step 17 — 角色卡：AI 生成完成
+
+![角色卡—AI 生成完成](screenshots/17-character-ai-done.png)
+
+生成完成後：連貫敘述填入 textarea，下方更新「consolidatedAt / model」資訊。  
+若手動修改任何字 → 橘色警示「此描寫已手動編輯，重新生成會覆蓋」。
+
+---
+
+### Step 18 — 故事狀態編輯器
+
+畫面：`/p/spring-diary/status/story`
+
+![故事狀態](screenshots/18-story-status.png)
+
+`story_status.md` 的 markdown 編輯區。  
+🔖 伏筆 / ✨ 轉折點段落用左側彩色 bar 區分（受 AI 精簡保護）。  
+Toolbar：儲存 / ✨ AI 精簡（slider modal）/ 📜 歷史。
+
+---
+
+### Step 19 — 角色狀態（蘇晴）
+
+畫面：`/p/spring-diary/status/characters/char-suqing`
+
+![角色狀態](screenshots/19-character-status.png)
+
+結構同故事狀態，標題改為「蘇晴 — 角色狀態」。  
+上方「← 回角色卡」連結。
+
+---
+
+### Step 20 — 建立新小說
+
+畫面：`/projects/new`
+
+![建立新小說](screenshots/20-project-new.png)
+
+- 書名（必填）、存放路徑選擇器、故事大綱 textarea
+- 初始角色可新增多個
+- 必填欄缺項時「✨ 建立」disabled
+
+---
+
+### Step 21 — Dark Mode（章節編輯器）
+
+![Dark mode—章節編輯器](screenshots/21-dark-mode-chapter-editor.png)
+
+Top bar 右上「◐」切換 / 設定頁個人偏好 tab 也有。  
+底色偏暖深色（非純黑），章節編輯區字色 `#e8e6e1`（非純白）。
+
+---
+
+### Step 22 — Dark Mode（首頁）
+
+![Dark mode—首頁](screenshots/22-dark-mode-home.png)
+
+Dark mode 全站一致；切換後 localStorage 持久，F5 重整維持。
 
 ---
 
 ## 畫面索引
 
-| 畫面 | Route | 對應 Story |
-|---|---|---|
-| 首頁 | `/` | 001, 008 |
-| 建立新小說 | `/projects/new` | 001 |
-| 專案 Dashboard | `/p/:slug` | 008 |
-| 角色列表 | `/p/:slug/characters` | 002 |
-| 角色卡編輯 | `/p/:slug/characters/:id` | 002 |
-| 章節編輯器 | `/p/:slug/chapters/:n` | 003, 004, 005, 006, 010 |
-| 故事狀態 | `/p/:slug/status/story` | 007, 010 |
-| 角色狀態 | `/p/:slug/status/characters/:id` | 007, 010 |
-| 設定頁 | `/settings` | 009 |
-| 歷史抽屜 | （任何編輯器點「歷史」） | 010 |
-| 採用確認 modal | （草稿側欄點採用） | 006 |
-| 未設定 LLM modal | （AI 按鈕未設定時） | 009 |
+| # | 截圖 | 畫面 | Route | 對應 Story |
+|---|---|---|---|---|
+| 01 | [首頁](screenshots/01-home.png) | 首頁 + 最近專案 | `/` | 001, 008 |
+| 02 | [Dashboard](screenshots/02-dashboard.png) | 專案 Dashboard | `/p/:slug` | 008 |
+| 03 | [編輯器—乾淨](screenshots/03-chapter-editor-clean.png) | 章節編輯器 | `/p/:slug/chapters/:n` | 003, 004 |
+| 04 | [編輯器—編輯中](screenshots/04-chapter-editor-dirty.png) | autosave 🔵 狀態 | `/p/:slug/chapters/:n` | 003 |
+| 05 | [未設定 LLM](screenshots/05-llm-not-configured-modal.png) | 未設定 LLM Modal | （global） | 009 |
+| 06 | [設定—停用](screenshots/06-settings-providers-disabled.png) | 設定頁（初始） | `/settings` | 009 |
+| 07 | [設定—啟用](screenshots/07-settings-providers-enabled.png) | 設定頁（Anthropic 啟用） | `/settings` | 009 |
+| 08 | [設定—模型](screenshots/08-settings-model-routing.png) | 預設模型 tab | `/settings` | 009 |
+| 09 | [AI 串流中](screenshots/09-chapter-editor-streaming.png) | AI 草稿串流 | `/p/:slug/chapters/:n` | 005 |
+| 10 | [AI 完成](screenshots/10-chapter-editor-ai-done.png) | AI 草稿完成 | `/p/:slug/chapters/:n` | 005, 006 |
+| 11 | [採用確認](screenshots/11-adopt-confirm-modal.png) | 採用確認 Modal | （global） | 006 |
+| 12 | [歷史抽屜](screenshots/12-history-drawer.png) | 歷史抽屜（列表） | （drawer） | 010 |
+| 13 | [歷史—Preview](screenshots/13-history-drawer-preview.png) | 歷史抽屜（Preview） | （drawer） | 010 |
+| 14 | [角色列表](screenshots/14-character-list.png) | 角色卡列表 | `/p/:slug/characters` | 002 |
+| 15 | [角色編輯](screenshots/15-character-edit.png) | 角色卡編輯 | `/p/:slug/characters/:id` | 002 |
+| 16 | [AI 生成中](screenshots/16-character-ai-generating.png) | 角色 AI 生成串流 | `/p/:slug/characters/:id` | 002 |
+| 17 | [AI 生成完](screenshots/17-character-ai-done.png) | 角色 AI 生成完成 | `/p/:slug/characters/:id` | 002 |
+| 18 | [故事狀態](screenshots/18-story-status.png) | 故事狀態編輯器 | `/p/:slug/status/story` | 007, 010 |
+| 19 | [角色狀態](screenshots/19-character-status.png) | 角色狀態編輯器 | `/p/:slug/status/characters/:id` | 007, 010 |
+| 20 | [建立專案](screenshots/20-project-new.png) | 建立新小說表單 | `/projects/new` | 001 |
+| 21 | [Dark—章節](screenshots/21-dark-mode-chapter-editor.png) | Dark mode（章節） | `/p/:slug/chapters/:n` | — |
+| 22 | [Dark—首頁](screenshots/22-dark-mode-home.png) | Dark mode（首頁） | `/` | — |
 
 ---
 
