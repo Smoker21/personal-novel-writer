@@ -1,0 +1,34 @@
+{
+  "name": "@novel-writer/eval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI tool to run model-evaluation test cases against a local/remote LLM runtime and write results back to markdown.",
+  "bin": {
+    "eval": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "start": "tsx src/cli.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "cli-progress": "^3.12.0",
+    "commander": "^12.1.0",
+    "consola": "^3.2.3",
+    "gray-matter": "^4.0.3",
+    "ora": "^8.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^22.7.4",
+    "@vitest/coverage-v8": "^2.1.2",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2"
+  }
+}

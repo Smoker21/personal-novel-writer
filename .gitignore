@@ -1,0 +1,45 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code local-only files
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/projects/
+
+# Node
+**/node_modules/
+**/dist/
+**/.next/
+**/coverage/
+**/*.tsbuildinfo
+**/npm-debug.log*
+**/yarn-debug.log*
+**/pnpm-debug.log*
+
+# Python (used by ai-model/RMKV/.venv)
+**/__pycache__/
+*.pyc
+**/.venv/
+**/venv/
+
+# AI model files — 30+ GB of GGUF / pth / RWKV-Runner runtime; NOT for git
+ai-model/
+
+# User local data
+.env
+.env.local
+.env.*.local
+
+# Temp / logs
+*.tmp
+*.bak
+*.log
