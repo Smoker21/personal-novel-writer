@@ -1,0 +1,30 @@
+{
+  "name": "novel-writer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18.17.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @novel-writer/api dev & pnpm --filter @novel-writer/web dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4"
+  },
+  "pnpm": {
+    "packageExtensions": {
+      "rollup": {
+        "optionalDependencies": {
+          "@rollup/rollup-win32-x64-msvc": "4.60.3"
+        }
+      }
+    }
+  }
+}

@@ -39,6 +39,13 @@ ai-model/
 .env.local
 .env.*.local
 
+# Rust / Tauri
+src-tauri/target/
+apps/desktop/src-tauri/target/
+
+# pnpm
+.pnpm-store/
+
 # Temp / logs
 *.tmp
 *.bak
