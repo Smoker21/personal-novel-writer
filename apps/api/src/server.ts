@@ -8,7 +8,7 @@ const app = new Hono().route("/api/health", health);
 
 export type AppType = typeof app;
 
-const port = parseInt(process.env.PORT ?? "0", 10);
+const port = parseInt(process.env["PORT"] ?? "0", 10);
 
 const server = serve(
   { fetch: app.fetch, port, hostname: "127.0.0.1" },
