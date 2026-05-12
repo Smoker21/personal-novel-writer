@@ -8,13 +8,15 @@ const app = new Hono().route("/api/health", health);
 
 export type AppType = typeof app;
 
+const port = parseInt(process.env.PORT ?? "0", 10);
+
 const server = serve(
-  { fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
+  { fetch: app.fetch, port, hostname: "127.0.0.1" },
   (info) => {
-    const port = info.port;
-    logger.info(`Sidecar ready on port ${port}`);
-    process.stdout.write(`READY ${port}\n`);
-    void writeRuntimeInfo({ port, pid: process.pid });
+    const actualPort = info.port;
+    logger.info(`Sidecar ready on port ${actualPort}`);
+    process.stdout.write(`READY ${actualPort}\n`);
+    void writeRuntimeInfo({ port: actualPort, pid: process.pid });
   },
 );
 
