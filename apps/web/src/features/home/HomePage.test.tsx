@@ -22,7 +22,7 @@ describe("HomePage", () => {
     );
     // MSW mockSettings has empty recentProjects by default in fixtures
     await waitFor(() => {
-      expect(screen.getByText(/尚無最近開啟的專案/)).toBeInTheDocument();
+      expect(screen.getByText(/還沒有小說專案|尚無最近開啟/)).toBeInTheDocument();
     });
   });
 });

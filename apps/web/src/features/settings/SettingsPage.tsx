@@ -1,6 +1,7 @@
 import type { AppSettings, LLMProviderId, RoutingPolicy } from "@novel-writer/shared-types";
 import { ALL_PROVIDER_IDS } from "@novel-writer/shared-types";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { AgentRoutingCard } from "./AgentRoutingCard";
 import { PresetButtons } from "./PresetButtons";
 import { ProviderCard } from "./ProviderCard";
@@ -99,7 +100,12 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-8">
-      <h1 className="text-2xl font-semibold mb-4">設定</h1>
+      <div className="flex items-center gap-4">
+        <Link to="/" className="text-sm text-neutral-500 hover:text-neutral-700">
+          ← 首頁
+        </Link>
+        <h1 className="text-2xl font-semibold">設定</h1>
+      </div>
 
       {/* Provider section */}
       <section className="space-y-3">

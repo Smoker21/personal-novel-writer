@@ -1,6 +1,6 @@
 import type { AppSettings, OpenProjectResponse, RecentProject } from "@novel-writer/shared-types";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { pickFolder } from "../../lib/folder-picker";
 import { BrowseFolderButton } from "./BrowseFolderButton";
 import { MissingProjectDialog } from "./MissingProjectDialog";
@@ -52,7 +52,15 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <div className="max-w-4xl mx-auto px-8 py-12">
-        <h1 className="text-3xl font-semibold mb-2">Novel Writer</h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-semibold">Novel Writer</h1>
+          <Link
+            to="/settings"
+            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+          >
+            ⚙️ 設定
+          </Link>
+        </div>
         <p className="text-sm text-gray-500 mb-12">本機小說寫作工具</p>
 
         <div className="grid grid-cols-2 gap-12">
@@ -67,7 +75,15 @@ export function HomePage() {
 
           <section>
             <h2 className="text-lg font-medium mb-4">最近開啟</h2>
-            <RecentProjectsList projects={recents} onMissing={setMissingTarget} />
+            {recents.length === 0 ? (
+              <div className="text-center py-8 space-y-2 text-gray-400">
+                <div className="text-4xl">📖</div>
+                <p className="text-sm">還沒有小說專案</p>
+                <p className="text-xs text-gray-500">點「新小說」開始創作</p>
+              </div>
+            ) : (
+              <RecentProjectsList projects={recents} onMissing={setMissingTarget} />
+            )}
           </section>
         </div>
       </div>
