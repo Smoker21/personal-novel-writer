@@ -17,7 +17,9 @@ export function CharacterPanel({ projectHash, selectedSlug, onSelect, onNew, ref
     setLoading(true);
     fetch(`/api/projects/${projectHash}/characters`)
       .then((r) => r.json())
-      .then((data: { characters: CharacterListItem[] }) => setCharacters(data.characters))
+      .then((data: { characters?: CharacterListItem[] } | null) =>
+        setCharacters(data?.characters ?? []),
+      )
       .catch(() => setCharacters([]))
       .finally(() => setLoading(false));
   }, [projectHash, refreshKey]);

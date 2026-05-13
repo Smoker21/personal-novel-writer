@@ -1,11 +1,16 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { SettingsPage } from "./SettingsPage";
 
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
 describe("SettingsPage", () => {
   it("renders 7 provider cards after MSW load", async () => {
-    render(<SettingsPage />);
+    renderWithRouter(<SettingsPage />);
     await waitFor(() => {
       expect(screen.getByText("Anthropic Claude")).toBeInTheDocument();
     });
@@ -16,7 +21,7 @@ describe("SettingsPage", () => {
 
   it("save button triggers PUT /api/settings and shows confirmation", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderWithRouter(<SettingsPage />);
     await waitFor(() => screen.getByText("Anthropic Claude"));
     const saveBtn = screen.getByRole("button", { name: /^儲存$/ });
     await user.click(saveBtn);

@@ -305,11 +305,17 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
   useEffect(() => {
     async function autoSelectFirstChapter() {
       const res = await fetch(`/api/projects/${projectHash}/chapters/`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        store.markClean("", "", "");
+        return;
+      }
       const data = (await res.json()) as { chapters: Array<{ number: number }> };
       const first = data.chapters[0];
       if (first !== undefined) {
         void loadChapter(first.number);
+      } else {
+        // 沒有章節 → 不顯示「載入中…」，讓使用者建立第一章
+        store.markClean("", "", "");
       }
     }
     void autoSelectFirstChapter();
