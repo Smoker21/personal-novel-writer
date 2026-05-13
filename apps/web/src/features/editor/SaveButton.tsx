@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ApiErrorBody, SaveChapterResponse } from "@novel-writer/shared-types";
 import { deleteDraft } from "../../lib/db.js";
 import { useEditorStore } from "../../stores/editor-store.js";
@@ -14,16 +14,17 @@ export function SaveButton({ getContent, onConflict, onSaveTriggerRef }: Props) 
   const store = useEditorStore();
   const [saving, setSaving] = useState(false);
 
+  // ref 持有最新 performSave，避免 Ctrl+S 閉包捕捉到舊版本
+  const performSaveRef = useRef<(force?: boolean) => Promise<void>>(() => Promise.resolve());
+
   // 把 performSave 暴露給父元件（供 Ctrl+S keymap 呼叫）
+  // 使用 performSaveRef 確保每次呼叫都指向最新的 store 狀態
   useEffect(() => {
-    if (onSaveTriggerRef) {
-      onSaveTriggerRef(() => void performSave(false));
-    }
-    // onSaveTriggerRef 本身在渲染間不會改變，performSave 是 stable closure
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    onSaveTriggerRef?.(() => void performSaveRef.current(false));
+  }, [onSaveTriggerRef]);
 
   async function performSave(force = false): Promise<void> {
+    // performSaveRef.current 在每次 render 後更新（見下方），確保 Ctrl+S 閉包讀最新狀態
     if (!store.projectHash || !store.chapter) return;
     if (store.chapter.title.trim() === "") {
       const t = window.prompt("請輸入章節標題");
@@ -70,6 +71,9 @@ export function SaveButton({ getContent, onConflict, onSaveTriggerRef }: Props) 
       setSaving(false);
     }
   }
+
+  // 每次 render 都更新 ref，讓 useEffect 裡的 trigger closure 拿到最新 performSave
+  performSaveRef.current = performSave;
 
   return (
     <button

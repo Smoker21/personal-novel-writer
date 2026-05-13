@@ -10,7 +10,7 @@
  *   Case D: draft.baseMtime !== .md.mtime（外部修改）→ ConflictDialog
  */
 import type { ChapterFile } from "@novel-writer/shared-types";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { deleteDraft, getDraft } from "../../lib/db.js";
 import { useWindowFocusEffect } from "../../lib/window-focus.js";
@@ -296,30 +296,21 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
 
   // ── 首次自動載入最近章節（首個章節）────────────────────────────────────
 
-  // 用 ChapterList 的 chapters 載完後 callback 觸發 — 由 ChapterList 的
-  // onFirstLoad 呼叫（若它有此 prop）；此處簡化：透過 onSelectChapter 讓
-  // ChapterList 點擊第一個章節，或手動在 ChapterList 掛 useEffect 中選取。
-  // 因為 ChapterList 沒有 onFirstLoad prop，此處由 ChapterEditorPage 自行
-  // 於初始化時抓第一章。
-  const hasAutoSelectedRef = useRef(false);
-
-  async function autoSelectFirstChapter() {
-    if (hasAutoSelectedRef.current) return;
-    hasAutoSelectedRef.current = true;
-    const res = await fetch(`/api/projects/${projectHash}/chapters/`);
-    if (!res.ok) return;
-    const data = (await res.json()) as { chapters: Array<{ number: number }> };
-    const first = data.chapters[0];
-    if (first !== undefined) {
-      void loadChapter(first.number);
+  // 用 useEffect 在 mount 後觸發，避免 render 階段的 side effect
+  useEffect(() => {
+    async function autoSelectFirstChapter() {
+      const res = await fetch(`/api/projects/${projectHash}/chapters/`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { chapters: Array<{ number: number }> };
+      const first = data.chapters[0];
+      if (first !== undefined) {
+        void loadChapter(first.number);
+      }
     }
-  }
-
-  // 在 projectHash 確定後自動選取第一章
-  // 使用 ref 確保只呼叫一次
-  if (!hasAutoSelectedRef.current && projectHash) {
     void autoSelectFirstChapter();
-  }
+    // 只在 projectHash 改變時（即元件掛載後）執行一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectHash]);
 
   // ── 渲染 ────────────────────────────────────────────────────────────────
 
