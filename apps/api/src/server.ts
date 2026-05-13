@@ -3,9 +3,11 @@ import { Hono } from "hono";
 import { logger } from "./lib/logger.js";
 import { writeRuntimeInfo } from "./lib/runtime-info.js";
 import { chapters } from "./routes/chapters.js";
+import { charactersRouter } from "./routes/characters.js";
 import { git } from "./routes/git.js";
 import { health } from "./routes/health.js";
 import { novels } from "./routes/novels.js";
+import { portraitsRouter } from "./routes/portraits.js";
 import { projects } from "./routes/projects.js";
 import { settings } from "./routes/settings.js";
 
@@ -15,7 +17,9 @@ const app = new Hono()
   .route("/api/git", git)
   .route("/api/novels", novels)
   .route("/api/projects", projects)
-  .route("/api/projects/:hash/chapters", chapters);
+  .route("/api/projects/:hash/chapters", chapters)
+  .route("/api/projects/:hash/characters", charactersRouter)
+  .route("/api/projects/:hash/characters/:slug/portraits", portraitsRouter);
 
 export type AppType = typeof app;
 

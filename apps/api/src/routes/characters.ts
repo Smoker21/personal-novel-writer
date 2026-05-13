@@ -1,7 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
+import type { CharacterFields, ConsolidatorOutput } from "@novel-writer/shared-types";
 import { Hono } from "hono";
 import { z } from "zod";
-import { commitIfChanged } from "../services/commit-policy.js";
+import { consolidateCharacter } from "../services/character-consolidate.js";
 import {
   createCharacter,
   deleteCharacter,
@@ -11,9 +12,9 @@ import {
   updateCharacter,
 } from "../services/character-fs.js";
 import { resolveUniqueSlug } from "../services/character-slug.js";
-import { consolidateCharacter } from "../services/character-consolidate.js";
-import { buildRouter, toRouterPolicy } from "../services/router-factory.js";
+import { commitIfChanged } from "../services/commit-policy.js";
 import { resolveProjectPath } from "../services/project-resolver.js";
+import { buildRouter, toRouterPolicy } from "../services/router-factory.js";
 import { readSettings } from "../services/settings-store.js";
 
 const app = new Hono();
@@ -29,10 +30,13 @@ const portraitSchema = z.object({
   byChapter: z.record(z.string()).optional(),
 });
 
-const intimateSchema = z.object({
-  bodyMeasurements: z.string().nullable().optional(),
-  preferences: z.string().nullable().optional(),
-}).nullable().optional();
+const intimateSchema = z
+  .object({
+    bodyMeasurements: z.string().nullable().optional(),
+    preferences: z.string().nullable().optional(),
+  })
+  .nullable()
+  .optional();
 
 const fieldsSchema = z.object({
   name: z.string().min(1),
@@ -84,8 +88,11 @@ const consolidateSchema = z.object({
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function getProjectPath(c: { req: { param: (k: string) => string } }): Promise<string | null> {
-  return resolveProjectPath(c.req.param("projectHash"));
+async function getProjectPath(c: { req: { param: (k: string) => string | undefined } }): Promise<
+  string | null
+> {
+  const hash = c.req.param("hash") ?? "";
+  return resolveProjectPath(hash);
 }
 
 // ---------------------------------------------------------------------------
@@ -141,7 +148,7 @@ app.post("/", zValidator("json", createSchema), async (c) => {
     consolidatedAt: null,
     consolidatedBy: null,
     manuallyEdited: false,
-  } as import("@novel-writer/shared-types").CharacterFields;
+  } as CharacterFields;
 
   let charBody = "(尚未統整)";
   let oneLineSummary = fields.name;
@@ -151,7 +158,13 @@ app.post("/", zValidator("json", createSchema), async (c) => {
       const settings = await readSettings();
       const routingConf = settings.routing.characterCardConsolidator;
       if (!routingConf) {
-        return c.json({ code: "ROUTING_NOT_CONFIGURED", message: "character-card-consolidator routing not configured" }, 400);
+        return c.json(
+          {
+            code: "ROUTING_NOT_CONFIGURED",
+            message: "character-card-consolidator routing not configured",
+          },
+          400,
+        );
       }
       const router = buildRouter(settings);
       const result = await consolidateCharacter({
@@ -174,20 +187,26 @@ app.post("/", zValidator("json", createSchema), async (c) => {
   try {
     slug = await resolveUniqueSlug(body.name, projectPath);
   } catch {
-    return c.json({ code: "INVALID_INPUT", message: "Character name produces an invalid slug" }, 400);
+    return c.json(
+      { code: "INVALID_INPUT", message: "Character name produces an invalid slug" },
+      400,
+    );
   }
 
   const char = await createCharacter(projectPath, { slug, fields, body: charBody, oneLineSummary });
   await commitIfChanged(projectPath, "character", `create ${slug}`);
 
-  return c.json({
-    slug: char.slug,
-    path: `characters/${slug}.md`,
-    fields: char.fields,
-    body: char.body,
-    consolidatedAt: char.fields.consolidatedAt,
-    consolidatedBy: char.fields.consolidatedBy,
-  }, 201);
+  return c.json(
+    {
+      slug: char.slug,
+      path: `characters/${slug}.md`,
+      fields: char.fields,
+      body: char.body,
+      consolidatedAt: char.fields.consolidatedAt,
+      consolidatedBy: char.fields.consolidatedBy,
+    },
+    201,
+  );
 });
 
 // PUT /api/projects/:projectHash/characters/:slug
@@ -212,7 +231,14 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
     if (newSlug !== slug) {
       const existing = await readCharacter(projectPath, newSlug);
       if (existing) {
-        return c.json({ code: "SLUG_CONFLICT", message: `Slug "${newSlug}" already exists`, suggestedSlug: `${newSlug}-2` }, 409);
+        return c.json(
+          {
+            code: "SLUG_CONFLICT",
+            message: `Slug "${newSlug}" already exists`,
+            suggestedSlug: `${newSlug}-2`,
+          },
+          409,
+        );
       }
     }
 
@@ -237,7 +263,9 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
     return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
   }
 
-  let updatedFields = body.fields ? { ...existing.fields, ...body.fields } as import("@novel-writer/shared-types").CharacterFields : existing.fields;
+  let updatedFields: CharacterFields = body.fields
+    ? ({ ...existing.fields, ...body.fields } as CharacterFields)
+    : existing.fields;
   let updatedBody = body.body !== undefined ? body.body : existing.body;
 
   if (body.body !== undefined) {
@@ -251,7 +279,13 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
       const settings = await readSettings();
       const routingConf = settings.routing.characterCardConsolidator;
       if (!routingConf) {
-        return c.json({ code: "ROUTING_NOT_CONFIGURED", message: "character-card-consolidator routing not configured" }, 400);
+        return c.json(
+          {
+            code: "ROUTING_NOT_CONFIGURED",
+            message: "character-card-consolidator routing not configured",
+          },
+          400,
+        );
       }
       const router = buildRouter(settings);
       const result = await consolidateCharacter({
@@ -268,7 +302,10 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
         manuallyEdited: false,
       };
     } catch (err) {
-      return c.json({ code: "LLM_FAILED", message: err instanceof Error ? err.message : "LLM call failed" }, 502);
+      return c.json(
+        { code: "LLM_FAILED", message: err instanceof Error ? err.message : "LLM call failed" },
+        502,
+      );
     }
   }
 
@@ -326,7 +363,13 @@ app.post("/:slug/consolidate", zValidator("json", consolidateSchema), async (c) 
   const settings = await readSettings();
   const routingConf = settings.routing.characterCardConsolidator;
   if (!routingConf) {
-    return c.json({ code: "ROUTING_NOT_CONFIGURED", message: "character-card-consolidator routing not configured" }, 400);
+    return c.json(
+      {
+        code: "ROUTING_NOT_CONFIGURED",
+        message: "character-card-consolidator routing not configured",
+      },
+      400,
+    );
   }
 
   const effectivePolicy = body.modelOverride
@@ -334,7 +377,7 @@ app.post("/:slug/consolidate", zValidator("json", consolidateSchema), async (c) 
     : routingConf;
 
   const router = buildRouter(settings);
-  let result: import("@novel-writer/shared-types").ConsolidatorOutput;
+  let result: ConsolidatorOutput;
   try {
     result = await consolidateCharacter({
       router,
@@ -342,7 +385,10 @@ app.post("/:slug/consolidate", zValidator("json", consolidateSchema), async (c) 
       fields: char.fields,
     });
   } catch (err) {
-    return c.json({ code: "LLM_FAILED", message: err instanceof Error ? err.message : "LLM call failed" }, 502);
+    return c.json(
+      { code: "LLM_FAILED", message: err instanceof Error ? err.message : "LLM call failed" },
+      502,
+    );
   }
 
   return c.json({
@@ -358,7 +404,7 @@ app.post("/:slug/consolidate", zValidator("json", consolidateSchema), async (c) 
 // Helper: build empty CharacterFields
 // ---------------------------------------------------------------------------
 
-function buildEmptyFields(name: string): import("@novel-writer/shared-types").CharacterFields {
+function buildEmptyFields(name: string): CharacterFields {
   return {
     name,
     age: null,

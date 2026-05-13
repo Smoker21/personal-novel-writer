@@ -24,7 +24,7 @@ function parseMd(raw: string): { fields: CharacterFields; body: string } {
   }
   const yamlStr = match[1] ?? "";
   const body = (match[2] ?? "").trim();
-  const parsed = yamlParse(yamlStr) as Record<string, unknown> ?? {};
+  const parsed = (yamlParse(yamlStr) as Record<string, unknown>) ?? {};
   return { fields: yamlToFields(parsed), body };
 }
 
@@ -441,4 +441,34 @@ export async function updatePortraitFields(
   const charPath = join(projectPath, CHARACTERS_DIR, `${slug}.md`);
   await atomicWriteFile(charPath, buildMd(updatedFields, existing.body));
   return { slug, fields: updatedFields, body: existing.body };
+}
+
+// ── lookupAppearance（供 ContextCollector 使用；Spec 002b 算法）─────────────
+
+/**
+ * Resolve the appearance string for a character at a given chapter number.
+ * Uses the largest appearanceByChapter key ≤ currentChapter; falls back to
+ * flat appearance fields when none exist.
+ */
+export function lookupAppearance(fields: CharacterFields, currentChapter: number): string {
+  const chapters = Object.keys(fields.appearanceByChapter)
+    .map(Number)
+    .filter((n) => n <= currentChapter)
+    .sort((a, b) => b - a);
+
+  if (chapters.length > 0) {
+    return fields.appearanceByChapter[chapters[0]!] ?? "";
+  }
+
+  return (
+    [
+      fields.hairAndColor,
+      fields.eyes,
+      fields.bodyType,
+      fields.otherFeatures,
+      fields.clothing && `服裝：${fields.clothing}`,
+    ]
+      .filter(Boolean)
+      .join("\n") || "（無外貌描述）"
+  );
 }
