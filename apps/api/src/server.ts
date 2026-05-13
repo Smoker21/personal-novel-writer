@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "./lib/logger.js";
 import { writeRuntimeInfo } from "./lib/runtime-info.js";
+import { chapters } from "./routes/chapters.js";
 import { git } from "./routes/git.js";
 import { health } from "./routes/health.js";
 import { novels } from "./routes/novels.js";
@@ -13,7 +14,8 @@ const app = new Hono()
   .route("/api/settings", settings)
   .route("/api/git", git)
   .route("/api/novels", novels)
-  .route("/api/projects", projects);
+  .route("/api/projects", projects)
+  .route("/api/projects/:hash/chapters", chapters);
 
 export type AppType = typeof app;
 
