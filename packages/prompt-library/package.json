@@ -15,8 +15,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@novel-writer/llm-adapter": "workspace:*",
     "@novel-writer/shared-types": "workspace:*",
-    "@novel-writer/llm-adapter": "workspace:*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
