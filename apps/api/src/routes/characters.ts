@@ -1,0 +1,392 @@
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { z } from "zod";
+import { commitIfChanged } from "../services/commit-policy.js";
+import {
+  createCharacter,
+  deleteCharacter,
+  listCharacters,
+  readCharacter,
+  renameCharacter,
+  updateCharacter,
+} from "../services/character-fs.js";
+import { resolveUniqueSlug } from "../services/character-slug.js";
+import { consolidateCharacter } from "../services/character-consolidate.js";
+import { buildRouter, toRouterPolicy } from "../services/router-factory.js";
+import { resolveProjectPath } from "../services/project-resolver.js";
+import { readSettings } from "../services/settings-store.js";
+
+const app = new Hono();
+
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
+
+const personalityTagsSchema = z.array(z.string());
+
+const portraitSchema = z.object({
+  default: z.string().nullable().optional(),
+  byChapter: z.record(z.string()).optional(),
+});
+
+const intimateSchema = z.object({
+  bodyMeasurements: z.string().nullable().optional(),
+  preferences: z.string().nullable().optional(),
+}).nullable().optional();
+
+const fieldsSchema = z.object({
+  name: z.string().min(1),
+  age: z.number().nullable().optional(),
+  gender: z.string().nullable().optional(),
+  pronoun: z.string().nullable().optional(),
+  role: z.string().nullable().optional(),
+  personalityTags: personalityTagsSchema.optional(),
+  mbti: z.string().nullable().optional(),
+  zodiac: z.string().nullable().optional(),
+  bloodType: z.string().nullable().optional(),
+  culturalBackground: z.string().nullable().optional(),
+  heightCm: z.number().nullable().optional(),
+  bodyType: z.string().nullable().optional(),
+  hairAndColor: z.string().nullable().optional(),
+  eyes: z.string().nullable().optional(),
+  otherFeatures: z.string().nullable().optional(),
+  clothing: z.string().nullable().optional(),
+  portrait: portraitSchema.optional(),
+  appearanceByChapter: z.record(z.string()).optional(),
+  dialoguePace: z.enum(["快", "穩", "慢"]).nullable().optional(),
+  wordingPreference: z.string().nullable().optional(),
+  writingAvoid: z.string().nullable().optional(),
+  relations: z.string().nullable().optional(),
+  intimateAppendix: intimateSchema,
+  consolidatedAt: z.string().nullable().optional(),
+  consolidatedBy: z.string().nullable().optional(),
+  manuallyEdited: z.boolean().optional(),
+});
+
+const createSchema = z.object({
+  name: z.string().min(1),
+  fields: fieldsSchema,
+  consolidate: z.boolean().optional(),
+});
+
+const updateSchema = z.object({
+  fields: fieldsSchema.partial().optional(),
+  body: z.string().optional(),
+  consolidate: z.boolean().optional(),
+  rename: z.string().optional(),
+});
+
+const consolidateSchema = z.object({
+  modelOverride: z.string().optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function getProjectPath(c: { req: { param: (k: string) => string } }): Promise<string | null> {
+  return resolveProjectPath(c.req.param("projectHash"));
+}
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
+// GET /api/projects/:projectHash/characters
+app.get("/", async (c) => {
+  const projectPath = await getProjectPath(c);
+  if (!projectPath) {
+    return c.json({ code: "PROJECT_NOT_FOUND", message: "Project not found" }, 404);
+  }
+  const characters = await listCharacters(projectPath);
+  return c.json({ characters });
+});
+
+// GET /api/projects/:projectHash/characters/:slug
+app.get("/:slug", async (c) => {
+  const projectPath = await getProjectPath(c);
+  if (!projectPath) {
+    return c.json({ code: "PROJECT_NOT_FOUND", message: "Project not found" }, 404);
+  }
+  const char = await readCharacter(projectPath, c.req.param("slug"));
+  if (!char) {
+    return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
+  }
+  return c.json({
+    slug: char.slug,
+    path: char.path,
+    fields: char.fields,
+    body: char.body,
+    consolidatedAt: char.fields.consolidatedAt,
+    consolidatedBy: char.fields.consolidatedBy,
+  });
+});
+
+// POST /api/projects/:projectHash/characters
+app.post("/", zValidator("json", createSchema), async (c) => {
+  const projectPath = await getProjectPath(c);
+  if (!projectPath) {
+    return c.json({ code: "PROJECT_NOT_FOUND", message: "Project not found" }, 404);
+  }
+  const body = c.req.valid("json");
+
+  // Merge name into fields
+  const fields = {
+    ...buildEmptyFields(body.name),
+    ...body.fields,
+    name: body.name,
+    personalityTags: body.fields.personalityTags ?? [],
+    portrait: { default: null, byChapter: {}, ...(body.fields.portrait ?? {}) },
+    appearanceByChapter: body.fields.appearanceByChapter ?? {},
+    consolidatedAt: null,
+    consolidatedBy: null,
+    manuallyEdited: false,
+  } as import("@novel-writer/shared-types").CharacterFields;
+
+  let charBody = "(尚未統整)";
+  let oneLineSummary = fields.name;
+
+  if (body.consolidate) {
+    try {
+      const settings = await readSettings();
+      const routingConf = settings.routing.characterCardConsolidator;
+      if (!routingConf) {
+        return c.json({ code: "ROUTING_NOT_CONFIGURED", message: "character-card-consolidator routing not configured" }, 400);
+      }
+      const router = buildRouter(settings);
+      const result = await consolidateCharacter({
+        router,
+        policy: toRouterPolicy(routingConf),
+        fields,
+      });
+      charBody = result.body;
+      oneLineSummary = result.oneLineSummary;
+      fields.consolidatedAt = new Date().toISOString();
+      fields.consolidatedBy = routingConf.primary;
+      fields.manuallyEdited = false;
+    } catch (err) {
+      // Consolidate failed — still create the character with placeholder
+      charBody = "(尚未統整)";
+    }
+  }
+
+  let slug: string;
+  try {
+    slug = await resolveUniqueSlug(body.name, projectPath);
+  } catch {
+    return c.json({ code: "INVALID_INPUT", message: "Character name produces an invalid slug" }, 400);
+  }
+
+  const char = await createCharacter(projectPath, { slug, fields, body: charBody, oneLineSummary });
+  await commitIfChanged(projectPath, "character", `create ${slug}`);
+
+  return c.json({
+    slug: char.slug,
+    path: `characters/${slug}.md`,
+    fields: char.fields,
+    body: char.body,
+    consolidatedAt: char.fields.consolidatedAt,
+    consolidatedBy: char.fields.consolidatedBy,
+  }, 201);
+});
+
+// PUT /api/projects/:projectHash/characters/:slug
+app.put("/:slug", zValidator("json", updateSchema), async (c) => {
+  const projectPath = await getProjectPath(c);
+  if (!projectPath) {
+    return c.json({ code: "PROJECT_NOT_FOUND", message: "Project not found" }, 404);
+  }
+  const slug = c.req.param("slug");
+  const body = c.req.valid("json");
+
+  // Handle rename
+  if (body.rename) {
+    const newName = body.rename.trim();
+    let newSlug: string;
+    try {
+      newSlug = await resolveUniqueSlug(newName, projectPath, slug);
+    } catch {
+      return c.json({ code: "INVALID_INPUT", message: "New name produces an invalid slug" }, 400);
+    }
+
+    if (newSlug !== slug) {
+      const existing = await readCharacter(projectPath, newSlug);
+      if (existing) {
+        return c.json({ code: "SLUG_CONFLICT", message: `Slug "${newSlug}" already exists`, suggestedSlug: `${newSlug}-2` }, 409);
+      }
+    }
+
+    const renamed = await renameCharacter(projectPath, slug, newSlug, newName);
+    if (!renamed) {
+      return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
+    }
+    await commitIfChanged(projectPath, "character", `rename ${slug} to ${newSlug}`);
+    return c.json({
+      slug: renamed.slug,
+      path: `characters/${renamed.slug}.md`,
+      fields: renamed.fields,
+      body: renamed.body,
+      consolidatedAt: renamed.fields.consolidatedAt,
+      consolidatedBy: renamed.fields.consolidatedBy,
+    });
+  }
+
+  // Handle field/body update
+  const existing = await readCharacter(projectPath, slug);
+  if (!existing) {
+    return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
+  }
+
+  let updatedFields = body.fields ? { ...existing.fields, ...body.fields } as import("@novel-writer/shared-types").CharacterFields : existing.fields;
+  let updatedBody = body.body !== undefined ? body.body : existing.body;
+
+  if (body.body !== undefined) {
+    updatedFields = { ...updatedFields, manuallyEdited: true };
+  }
+
+  let oneLineSummary: string | undefined;
+
+  if (body.consolidate) {
+    try {
+      const settings = await readSettings();
+      const routingConf = settings.routing.characterCardConsolidator;
+      if (!routingConf) {
+        return c.json({ code: "ROUTING_NOT_CONFIGURED", message: "character-card-consolidator routing not configured" }, 400);
+      }
+      const router = buildRouter(settings);
+      const result = await consolidateCharacter({
+        router,
+        policy: toRouterPolicy(routingConf),
+        fields: updatedFields,
+      });
+      updatedBody = result.body;
+      oneLineSummary = result.oneLineSummary;
+      updatedFields = {
+        ...updatedFields,
+        consolidatedAt: new Date().toISOString(),
+        consolidatedBy: routingConf.primary,
+        manuallyEdited: false,
+      };
+    } catch (err) {
+      return c.json({ code: "LLM_FAILED", message: err instanceof Error ? err.message : "LLM call failed" }, 502);
+    }
+  }
+
+  const updated = await updateCharacter(projectPath, slug, {
+    fields: updatedFields,
+    body: updatedBody,
+    ...(oneLineSummary !== undefined ? { oneLineSummary } : {}),
+  });
+
+  if (!updated) {
+    return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
+  }
+
+  await commitIfChanged(projectPath, "character", `edit ${slug}`);
+
+  return c.json({
+    slug: updated.slug,
+    path: `characters/${slug}.md`,
+    fields: updated.fields,
+    body: updated.body,
+    consolidatedAt: updated.fields.consolidatedAt,
+    consolidatedBy: updated.fields.consolidatedBy,
+  });
+});
+
+// DELETE /api/projects/:projectHash/characters/:slug
+app.delete("/:slug", async (c) => {
+  const projectPath = await getProjectPath(c);
+  if (!projectPath) {
+    return c.json({ code: "PROJECT_NOT_FOUND", message: "Project not found" }, 404);
+  }
+  const slug = c.req.param("slug");
+  const deleted = await deleteCharacter(projectPath, slug);
+  if (!deleted) {
+    return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
+  }
+  await commitIfChanged(projectPath, "character", `delete ${slug}`);
+  return c.json({ deleted: true });
+});
+
+// POST /api/projects/:projectHash/characters/:slug/consolidate
+app.post("/:slug/consolidate", zValidator("json", consolidateSchema), async (c) => {
+  const projectPath = await getProjectPath(c);
+  if (!projectPath) {
+    return c.json({ code: "PROJECT_NOT_FOUND", message: "Project not found" }, 404);
+  }
+  const slug = c.req.param("slug");
+  const body = c.req.valid("json");
+
+  const char = await readCharacter(projectPath, slug);
+  if (!char) {
+    return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
+  }
+
+  const settings = await readSettings();
+  const routingConf = settings.routing.characterCardConsolidator;
+  if (!routingConf) {
+    return c.json({ code: "ROUTING_NOT_CONFIGURED", message: "character-card-consolidator routing not configured" }, 400);
+  }
+
+  const effectivePolicy = body.modelOverride
+    ? { primary: body.modelOverride, fallbacks: routingConf.fallbacks }
+    : routingConf;
+
+  const router = buildRouter(settings);
+  let result: import("@novel-writer/shared-types").ConsolidatorOutput;
+  try {
+    result = await consolidateCharacter({
+      router,
+      policy: toRouterPolicy(effectivePolicy),
+      fields: char.fields,
+    });
+  } catch (err) {
+    return c.json({ code: "LLM_FAILED", message: err instanceof Error ? err.message : "LLM call failed" }, 502);
+  }
+
+  return c.json({
+    body: result.body,
+    oneLineSummary: result.oneLineSummary,
+    consolidatedAt: new Date().toISOString(),
+    consolidatedBy: effectivePolicy.primary,
+    usage: { inputTokens: 0, outputTokens: 0 },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Helper: build empty CharacterFields
+// ---------------------------------------------------------------------------
+
+function buildEmptyFields(name: string): import("@novel-writer/shared-types").CharacterFields {
+  return {
+    name,
+    age: null,
+    gender: null,
+    pronoun: null,
+    role: null,
+    personalityTags: [],
+    mbti: null,
+    zodiac: null,
+    bloodType: null,
+    culturalBackground: null,
+    heightCm: null,
+    bodyType: null,
+    hairAndColor: null,
+    eyes: null,
+    otherFeatures: null,
+    clothing: null,
+    portrait: { default: null, byChapter: {} },
+    appearanceByChapter: {},
+    dialoguePace: null,
+    wordingPreference: null,
+    writingAvoid: null,
+    relations: null,
+    intimateAppendix: null,
+    consolidatedAt: null,
+    consolidatedBy: null,
+    manuallyEdited: false,
+  };
+}
+
+export { app as charactersRouter };

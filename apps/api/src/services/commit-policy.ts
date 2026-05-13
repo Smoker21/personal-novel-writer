@@ -1,11 +1,16 @@
 import { git } from "./git.js";
 
-export type CommitTrigger = "create-project" | "save-chapter" | "rename-chapter";
+export type CommitTrigger =
+  | "create-project"
+  | "save-chapter"
+  | "rename-chapter"
+  | "character";
 
 const PREFIX: Record<CommitTrigger, string> = {
   "create-project": "init",
   "save-chapter": "chapter",
   "rename-chapter": "chapter",
+  character: "character",
 };
 
 /**
