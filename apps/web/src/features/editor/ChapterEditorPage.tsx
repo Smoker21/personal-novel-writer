@@ -332,6 +332,12 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           <Link to="/" className="text-sm text-blue-600 underline shrink-0">
             ← 首頁
           </Link>
+          <Link
+            to={`/editor/${projectHash}/characters`}
+            className="text-xs text-indigo-400 hover:text-indigo-300 shrink-0 border border-indigo-800 rounded px-2 py-1"
+          >
+            角色
+          </Link>
 
           <div className="flex-1">
             <TitleInput value={store.chapter?.title ?? ""} onChange={handleTitleChange} />

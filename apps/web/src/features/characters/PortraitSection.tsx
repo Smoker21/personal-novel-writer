@@ -94,7 +94,7 @@ function PortraitCard({
       {imgPath ? (
         <div className="relative group">
           <img
-            src={`/project-file/${imgPath}`}
+            src={`/api/projects/${projectHash}/file?path=${encodeURIComponent(imgPath ?? "")}`}
             alt={label}
             onClick={() => setLightbox(true)}
             className="rounded w-28 h-28 object-cover cursor-zoom-in"
@@ -139,7 +139,7 @@ function PortraitCard({
           onClick={() => setLightbox(false)}
         >
           <img
-            src={`/project-file/${imgPath}`}
+            src={`/api/projects/${projectHash}/file?path=${encodeURIComponent(imgPath ?? "")}`}
             alt={label}
             className="max-w-full max-h-full rounded shadow-2xl"
             onClick={(e) => e.stopPropagation()}
