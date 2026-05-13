@@ -25,6 +25,9 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.4.2
         version: 0.4.3(hono@4.12.18)(zod@3.25.76)
+      '@novel-writer/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       consola:
         specifier: ^3.3.0
         version: 3.4.2

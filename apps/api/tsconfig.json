@@ -1,11 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "paths": {
-      "@novel-writer/shared-types": ["../../packages/shared-types/src/index.ts"]
-    }
+    "outDir": "dist"
   },
   "include": ["src"]
 }
