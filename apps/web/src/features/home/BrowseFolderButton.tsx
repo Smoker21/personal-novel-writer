@@ -1,6 +1,6 @@
 import type { OpenProjectResponse } from "@novel-writer/shared-types";
 import { useNavigate } from "react-router-dom";
-import { pickFolder } from "../../lib/folder-picker.js";
+import { pickFolder } from "../../lib/folder-picker";
 
 interface Props {
   onError?: (msg: string) => void;

@@ -1,7 +1,7 @@
 import type { LLMProviderId, ProviderConfig, ProviderTestResult } from "@novel-writer/shared-types";
 import { CLOUD_PROVIDERS } from "@novel-writer/shared-types";
 import { useState } from "react";
-import { ApiKeyField } from "./ApiKeyField.js";
+import { ApiKeyField } from "./ApiKeyField";
 
 interface Props {
   providerId: LLMProviderId;

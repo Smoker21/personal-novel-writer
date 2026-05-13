@@ -2,7 +2,7 @@
 // M0 只建立骨架，具體 endpoint 呼叫在 M1 加入
 
 // 型別 import：type-only，不引入 runtime 依賴
-// import type { AppType } from "../../../api/src/server.js";
+// import type { AppType } from "../../../api/src/server";
 
 // Placeholder until apps/api AppType is stable
 export type ApiClient = Record<string, unknown>;

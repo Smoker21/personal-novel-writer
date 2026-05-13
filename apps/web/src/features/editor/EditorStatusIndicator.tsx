@@ -1,4 +1,4 @@
-import type { EditorStateKind } from "../../stores/editor-store.js";
+import type { EditorStateKind } from "../../stores/editor-store";
 
 interface Props {
   state: EditorStateKind;

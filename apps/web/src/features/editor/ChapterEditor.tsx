@@ -14,8 +14,8 @@ import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import { useEffect, useRef } from "react";
-import { draftKey, putDraft } from "../../lib/db.js";
-import { useEditorStore } from "../../stores/editor-store.js";
+import { draftKey, putDraft } from "../../lib/db";
+import { useEditorStore } from "../../stores/editor-store";
 
 interface Props {
   projectHash: string;

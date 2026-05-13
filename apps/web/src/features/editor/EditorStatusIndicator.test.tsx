@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { EditorStatusIndicator } from "./EditorStatusIndicator.js";
+import { EditorStatusIndicator } from "./EditorStatusIndicator";
 
 describe("EditorStatusIndicator", () => {
   it("renders loading", () => {

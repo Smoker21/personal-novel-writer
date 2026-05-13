@@ -1,7 +1,7 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
-import { ChapterEditorPage } from "./features/editor/ChapterEditorPage.js";
-import { HomePage } from "./features/home/HomePage.js";
-import { SettingsPage } from "./features/settings/SettingsPage.js";
+import { ChapterEditorPage } from "./features/editor/ChapterEditorPage";
+import { HomePage } from "./features/home/HomePage";
+import { SettingsPage } from "./features/settings/SettingsPage";
 
 export const router: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   { path: "/", element: <HomePage /> },

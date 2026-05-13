@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { RouterProvider } from "react-router-dom";
-import { FirstLaunchWarningDialog } from "./features/onboarding/FirstLaunchWarningDialog.js";
-import { router } from "./router.js";
+import { FirstLaunchWarningDialog } from "./features/onboarding/FirstLaunchWarningDialog";
+import { router } from "./router";
 
 export function App() {
   const [ready, setReady] = useState(!import.meta.env.DEV || !import.meta.env["VITE_USE_MSW"]);

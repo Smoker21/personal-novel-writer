@@ -1,4 +1,4 @@
-import { tauriInvoke } from "./tauri.js";
+import { tauriInvoke } from "./tauri";
 
 let cachedBase: string | null = null;
 
