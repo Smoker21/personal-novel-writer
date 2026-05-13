@@ -11,13 +11,17 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "hono": "^4.6.0",
     "@hono/node-server": "^1.13.0",
     "@hono/zod-validator": "^0.4.2",
+    "@novel-writer/llm-adapter": "workspace:^",
+    "@novel-writer/prompt-library": "workspace:^",
     "@novel-writer/shared-types": "workspace:*",
     "consola": "^3.3.0",
+    "hono": "^4.6.0",
     "js-yaml": "^4.1.0",
     "p-queue": "^8.0.1",
+    "sharp": "^0.34.5",
+    "yaml": "^2.9.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {

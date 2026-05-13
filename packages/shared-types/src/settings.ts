@@ -39,7 +39,10 @@ export interface AppSettings {
   providers: Record<LLMProviderId, ProviderConfig>;
   routing: {
     chapterWriter?: RoutingPolicy;
+    characterCardConsolidator?: RoutingPolicy;
+    characterImageExtractor?: RoutingPolicy;
     statusUpdater?: RoutingPolicy;
+    statusShortener?: RoutingPolicy;
   };
   recentProjects: RecentProject[];
   meta: {
