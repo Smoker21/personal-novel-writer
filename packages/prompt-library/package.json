@@ -12,6 +12,10 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@novel-writer/shared-types": "workspace:*",
+    "@novel-writer/llm-adapter": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.7.0"
   }
