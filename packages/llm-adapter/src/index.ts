@@ -4,12 +4,17 @@ export type {
   GenerateResponse,
   LLMProvider,
   Message,
+  ChatMessage,
+  Content,
+  TextContent,
+  ImageContent,
+  ImageMimeType,
   ModelCapabilities,
   RoutingPolicy,
   StreamChunk,
   Usage,
 } from "./types.js";
-export { parseModelId } from "./types.js";
+export { parseModelId, contentToArray, hasImageContent } from "./types.js";
 
 export { LLMError } from "./error.js";
 export type { LLMErrorCode } from "./error.js";

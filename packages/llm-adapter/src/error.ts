@@ -5,6 +5,9 @@ export type LLMErrorCode =
   | "network"
   | "content_blocked"
   | "model_not_found"
+  | "model_lacks_capability"
+  | "image_too_large"
+  | "image_format_unsupported"
   | "unknown";
 
 export class LLMError extends Error {

@@ -1,9 +1,36 @@
 export type FinishReason = "end" | "max_tokens" | "stop" | "abort" | "error";
 
+// ── Vision content types（依 ADR-0009） ──────────────────────────────────────
+
+export type ImageMimeType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
+export interface TextContent {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContent {
+  type: "image";
+  source:
+    | { kind: "path"; path: string }
+    | { kind: "base64"; data: string; mimeType: ImageMimeType }
+    | { kind: "url"; url: string };
+}
+
+export type Content = TextContent | ImageContent;
+
+// ── Message（向後相容：content 可為 string 或 Content[]） ──────────────────
+
+/** @alias ChatMessage */
 export interface Message {
   role: "user" | "assistant";
-  content: string;
+  content: string | Content[];
 }
+
+/** Same as Message; use this name in new code. */
+export type ChatMessage = Message;
+
+// ── Request / Response ───────────────────────────────────────────────────────
 
 export interface GenerateRequest {
   modelId: string;
@@ -36,13 +63,10 @@ export type StreamChunk =
 export interface ModelCapabilities {
   contextWindow: number;
   maxOutputTokens: number;
-  /** Always true — adapter guarantees streaming for every provider. */
   supportsStreaming: boolean;
   supportsToolCalls: boolean;
   supportsVision: boolean;
-  /** USD per 1 000 input tokens; undefined for local providers. */
   costPer1kInput?: number;
-  /** USD per 1 000 output tokens; undefined for local providers. */
   costPer1kOutput?: number;
 }
 
@@ -52,7 +76,6 @@ export interface LLMProvider {
 
   generate(request: GenerateRequest): Promise<GenerateResponse>;
   stream(request: GenerateRequest): AsyncIterable<StreamChunk>;
-  /** Returns null when the modelId is not known to this provider. */
   capabilities(modelId: string): ModelCapabilities | null;
   ping(): Promise<{ ok: boolean; latencyMs?: number }>;
 }
@@ -80,4 +103,20 @@ export function parseModelId(modelId: string): { provider: string; model: string
     provider: modelId.slice(0, idx),
     model: modelId.slice(idx + 1),
   };
+}
+
+/** Normalise a message content to Content[] (for providers that require it). */
+export function contentToArray(content: string | Content[]): Content[] {
+  if (typeof content === "string") {
+    return [{ type: "text", text: content }];
+  }
+  return content;
+}
+
+/** True if the message array contains any image content. */
+export function hasImageContent(messages: Message[]): boolean {
+  return messages.some((m) => {
+    if (typeof m.content === "string") return false;
+    return m.content.some((c) => c.type === "image");
+  });
 }
