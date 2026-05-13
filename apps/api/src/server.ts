@@ -10,6 +10,7 @@ import { git } from "./routes/git.js";
 import { health } from "./routes/health.js";
 import { novels } from "./routes/novels.js";
 import { portraitsRouter } from "./routes/portraits.js";
+import { projectFileRouter } from "./routes/project-file.js";
 import { projects } from "./routes/projects.js";
 import { settings } from "./routes/settings.js";
 
@@ -23,7 +24,8 @@ const app = new Hono()
   .route("/api/projects/:hash/characters", charactersRouter)
   .route("/api/projects/:hash/characters/:slug/portraits", portraitsRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/generate", generateRouter)
-  .route("/api/projects/:hash/chapters/:chapterNumber/draft", draftRouter);
+  .route("/api/projects/:hash/chapters/:chapterNumber/draft", draftRouter)
+  .route("/api/projects/:hash/file", projectFileRouter);
 
 export type AppType = typeof app;
 
