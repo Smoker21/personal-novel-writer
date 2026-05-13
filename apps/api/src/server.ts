@@ -2,10 +2,14 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "./lib/logger.js";
 import { writeRuntimeInfo } from "./lib/runtime-info.js";
+import { git } from "./routes/git.js";
 import { health } from "./routes/health.js";
 import { settings } from "./routes/settings.js";
 
-const app = new Hono().route("/api/health", health).route("/api/settings", settings);
+const app = new Hono()
+  .route("/api/health", health)
+  .route("/api/settings", settings)
+  .route("/api/git", git);
 
 export type AppType = typeof app;
 
