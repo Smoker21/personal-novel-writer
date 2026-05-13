@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ApiErrorBody, SaveChapterResponse } from "@novel-writer/shared-types";
 import { deleteDraft } from "../../lib/db.js";
 import { useEditorStore } from "../../stores/editor-store.js";
@@ -6,11 +6,22 @@ import { useEditorStore } from "../../stores/editor-store.js";
 interface Props {
   getContent: () => string;
   onConflict: (serverContent: string) => Promise<void>;
+  /** 父元件可透過此 callback 取得 performSave 函式，用於 Ctrl+S 快捷鍵觸發 */
+  onSaveTriggerRef?: (trigger: () => void) => void;
 }
 
-export function SaveButton({ getContent, onConflict }: Props) {
+export function SaveButton({ getContent, onConflict, onSaveTriggerRef }: Props) {
   const store = useEditorStore();
   const [saving, setSaving] = useState(false);
+
+  // 把 performSave 暴露給父元件（供 Ctrl+S keymap 呼叫）
+  useEffect(() => {
+    if (onSaveTriggerRef) {
+      onSaveTriggerRef(() => void performSave(false));
+    }
+    // onSaveTriggerRef 本身在渲染間不會改變，performSave 是 stable closure
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function performSave(force = false): Promise<void> {
     if (!store.projectHash || !store.chapter) return;
