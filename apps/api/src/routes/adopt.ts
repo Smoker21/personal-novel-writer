@@ -107,8 +107,19 @@ app.post("/", zValidator("json", adoptSchema), async (c) => {
       `adopt AI draft for chapter ${chapterNumber} ${chapter.title}`,
     );
 
-    // 7. Trigger status-updater (fire-and-forget; stubbed until Wave 3)
-    const jobId = "pending-status-job";
+    // 7. Trigger status-updater (fire-and-forget)
+    let jobId = "no-status-job";
+    try {
+      const { triggerStatusUpdate } = await import("../services/status-updater-service.js");
+      jobId = await triggerStatusUpdate(
+        projectHash,
+        projectPath,
+        chapterNumber,
+        "auto-after-adopt",
+      );
+    } catch {
+      // Non-fatal
+    }
 
     // 8. Record undo entry
     const undoEntry = await createUndoEntry({
