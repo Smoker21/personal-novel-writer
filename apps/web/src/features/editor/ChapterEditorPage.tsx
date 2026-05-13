@@ -14,11 +14,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { deleteDraft, getDraft } from "../../lib/db";
 import { useWindowFocusEffect } from "../../lib/window-focus";
+import { useDraftStore } from "../../stores/draft-store";
 import { useEditorStore } from "../../stores/editor-store";
 import { ChapterEditor } from "./ChapterEditor";
 import { ChapterList } from "./ChapterList";
 import { ConflictDialog } from "./ConflictDialog";
+import { DraftPanel } from "./DraftPanel";
 import { EditorStatusIndicator } from "./EditorStatusIndicator";
+import { GenerateButton } from "./GenerateButton";
 import { SaveButton } from "./SaveButton";
 import { TitleInput } from "./TitleInput";
 
@@ -52,6 +55,8 @@ interface InnerProps {
 
 function ChapterEditorPageInner({ projectHash }: InnerProps) {
   const store = useEditorStore();
+  const draftStatus = useDraftStore((s) => s.status);
+  const draftReset = useDraftStore((s) => s.reset);
 
   // 記錄目前選中的章節號
   const [currentChapter, setCurrentChapter] = useState<number | null>(null);
@@ -280,7 +285,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
 
   function handleSelectChapter(n: number) {
     if (n === currentChapter) return;
-    // 立即 flush 前章 draft（ChapterEditor 的 cleanup 會呼叫）
+    draftReset(); // clear any active draft when switching chapters
     setEditorReady(false);
     void loadChapter(n);
   }
@@ -341,35 +346,57 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
               saveTriggerRef.current = fn;
             }}
           />
+
+          {currentChapter !== null && (
+            <GenerateButton projectHash={projectHash} chapterNumber={currentChapter} />
+          )}
         </div>
 
-        {/* 編輯器主體 */}
-        <div className="flex-1 overflow-hidden relative">
-          {store.state.kind === "loading" && !editorReady && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-              載入中…
-            </div>
-          )}
+        {/* 編輯器主體 + 草稿面板並排 */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* 主編輯區 */}
+          <div
+            className={`flex-1 overflow-hidden relative ${draftStatus === "streaming" ? "opacity-60 pointer-events-none" : ""}`}
+          >
+            {store.state.kind === "loading" && !editorReady && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                載入中…
+              </div>
+            )}
 
-          {currentChapter === null && store.state.kind !== "loading" && !editorReady && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-              請從左側選擇或新建章節
-            </div>
-          )}
+            {currentChapter === null && store.state.kind !== "loading" && !editorReady && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                請從左側選擇或新建章節
+              </div>
+            )}
 
-          {editorReady && currentChapter !== null && (
-            <ChapterEditor
-              key={`${projectHash}:${currentChapter}:${editorKey}`}
-              projectHash={projectHash}
-              chapterNumber={currentChapter}
-              initialContent={initialContent}
-              baseMtime={initialBaseMtime}
-              initialTitle={initialTitle}
-              onContentRef={(fn) => {
-                getContentRef.current = fn;
-              }}
-              onSave={handleEditorSave}
-            />
+            {draftStatus === "streaming" && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm z-10 pointer-events-none">
+                AI 撰寫中…
+              </div>
+            )}
+
+            {editorReady && currentChapter !== null && (
+              <ChapterEditor
+                key={`${projectHash}:${currentChapter}:${editorKey}`}
+                projectHash={projectHash}
+                chapterNumber={currentChapter}
+                initialContent={initialContent}
+                baseMtime={initialBaseMtime}
+                initialTitle={initialTitle}
+                onContentRef={(fn) => {
+                  getContentRef.current = fn;
+                }}
+                onSave={handleEditorSave}
+              />
+            )}
+          </div>
+
+          {/* 草稿面板（只在有草稿時顯示；佔一半寬度） */}
+          {currentChapter !== null && draftStatus !== "idle" && (
+            <div className="w-1/2 shrink-0 overflow-hidden">
+              <DraftPanel projectHash={projectHash} chapterNumber={currentChapter} />
+            </div>
           )}
         </div>
       </div>
