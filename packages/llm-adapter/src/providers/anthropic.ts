@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import Anthropic, {
   AuthenticationError,
   RateLimitError,
@@ -10,6 +11,7 @@ import type { MessageStreamEvent } from "@anthropic-ai/sdk/resources/messages.js
 import { LLMError, redactSecrets } from "../error.js";
 import { parseModelId } from "../types.js";
 import type {
+  Content,
   FinishReason,
   GenerateRequest,
   GenerateResponse,
@@ -178,6 +180,70 @@ function mapSdkError(
 }
 
 // ---------------------------------------------------------------------------
+// Helper: build Anthropic content blocks from our Content type
+// ---------------------------------------------------------------------------
+
+async function buildAnthropicContent(
+  content: string | Content[],
+): Promise<Anthropic.MessageParam["content"]> {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  const blocks: Anthropic.ContentBlockParam[] = [];
+  for (const c of content) {
+    if (c.type === "text") {
+      blocks.push({ type: "text", text: c.text });
+    } else {
+      // ImageContent
+      const src = c.source;
+      let data: string;
+      let mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
+      if (src.kind === "path") {
+        const buf = await readFile(src.path);
+        data = buf.toString("base64");
+        // Infer mime from extension
+        const ext = src.path.split(".").pop()?.toLowerCase();
+        mimeType =
+          ext === "jpg" || ext === "jpeg" ? "image/jpeg"
+          : ext === "png" ? "image/png"
+          : ext === "webp" ? "image/webp"
+          : ext === "gif" ? "image/gif"
+          : "image/jpeg";
+      } else if (src.kind === "base64") {
+        data = src.data;
+        mimeType = src.mimeType;
+      } else {
+        // url — Anthropic SDK supports URL sources natively, but we
+        // download-and-base64 to maintain uniformity across providers.
+        const res = await fetch(src.url);
+        const buf = Buffer.from(await res.arrayBuffer());
+        data = buf.toString("base64");
+        const ct = res.headers.get("content-type") ?? "image/jpeg";
+        const ctBase = ct.split(";")[0]?.trim() ?? "image/jpeg";
+        mimeType =
+          ctBase === "image/jpeg" ? "image/jpeg"
+          : ctBase === "image/png" ? "image/png"
+          : ctBase === "image/webp" ? "image/webp"
+          : ctBase === "image/gif" ? "image/gif"
+          : "image/jpeg";
+      }
+
+      blocks.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mimeType,
+          data,
+        },
+      });
+    }
+  }
+  return blocks;
+}
+
+// ---------------------------------------------------------------------------
 // AnthropicProvider
 // ---------------------------------------------------------------------------
 
@@ -199,15 +265,21 @@ export class AnthropicProvider implements LLMProvider {
     const { provider, model } = parseModelId(request.modelId);
     const fullModelId = request.modelId;
 
+    // Build messages before params object — await is not valid inside an
+    // object literal initializer for exactOptionalPropertyTypes.
+    const builtMessages = await Promise.all(
+      request.messages.map(async (m) => ({
+        role: m.role as "user" | "assistant",
+        content: await buildAnthropicContent(m.content),
+      })),
+    );
+
     // Build params carefully — exactOptionalPropertyTypes requires we omit
     // optional fields rather than passing undefined.
     const params: Anthropic.MessageStreamParams = {
       model,
       system: request.systemPrompt,
-      messages: request.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages: builtMessages,
       max_tokens: request.maxOutputTokens ?? 1024,
       stream: true,
       ...(request.temperature !== undefined && { temperature: request.temperature }),
