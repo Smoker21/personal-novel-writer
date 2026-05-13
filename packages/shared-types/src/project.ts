@@ -8,7 +8,8 @@ export interface ProjectMeta {
   defaultModels?: { agent?: string; skill?: string };
 }
 
-export interface CharacterCard {
+/** Minimal character record for initial project creation (pre-M2 schema). */
+export interface InitialCharacterCard {
   slug: string;
   name: string;
   description: string;

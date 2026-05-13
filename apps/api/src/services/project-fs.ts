@@ -1,6 +1,10 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { CharacterCard, CreateNovelRequest, ProjectMeta } from "@novel-writer/shared-types";
+import type {
+  CreateNovelRequest,
+  InitialCharacterCard,
+  ProjectMeta,
+} from "@novel-writer/shared-types";
 import yaml from "js-yaml";
 import { sanitizeSlug } from "./sanitize.js";
 
@@ -10,10 +14,12 @@ export interface CreatedProject {
   firstChapterNumber: 1;
   firstChapterTitle: "未命名";
   meta: ProjectMeta;
-  characters: CharacterCard[];
+  characters: InitialCharacterCard[];
 }
 
-function resolveSlugs(inputs: Array<{ name: string; description: string }>): CharacterCard[] {
+function resolveSlugs(
+  inputs: Array<{ name: string; description: string }>,
+): InitialCharacterCard[] {
   const used = new Set<string>();
   return inputs.map((c) => {
     const base = sanitizeSlug(c.name);
@@ -28,7 +34,7 @@ function resolveSlugs(inputs: Array<{ name: string; description: string }>): Cha
   });
 }
 
-function buildIndexMd(characters: CharacterCard[]): string {
+function buildIndexMd(characters: InitialCharacterCard[]): string {
   const lines = ["# 角色索引", ""];
   for (const c of characters) {
     lines.push(`- [${c.name}](./${c.slug}.md) — ${c.description}`);
@@ -36,7 +42,7 @@ function buildIndexMd(characters: CharacterCard[]): string {
   return `${lines.join("\n")}\n`;
 }
 
-function buildCharacterMd(c: CharacterCard): string {
+function buildCharacterMd(c: InitialCharacterCard): string {
   return `# ${c.name}\n\n## 描寫\n\n${c.description}\n`;
 }
 
