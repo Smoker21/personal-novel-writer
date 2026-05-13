@@ -8,8 +8,7 @@ export interface ProjectMeta {
   defaultModels?: { agent?: string; skill?: string };
 }
 
-/** Seed DTO used only during project creation; not the full character card. */
-export interface ProjectSeedCharacter {
+export interface CharacterCard {
   slug: string;
   name: string;
   description: string;
