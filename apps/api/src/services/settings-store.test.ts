@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock modules before importing the module under test.
 vi.mock("node:fs/promises", () => ({
@@ -24,9 +24,16 @@ vi.mock("./atomic-fs.js", () => ({
 }));
 
 import * as fsp from "node:fs/promises";
+import { defaultSettings } from "@novel-writer/shared-types";
+import type { AppSettings } from "@novel-writer/shared-types";
 import * as yaml from "js-yaml";
-import { readSettings, writeSettings, mergeDefaults, maskApiKey, getApiKey } from "./settings-store.js";
-import type { NovelWriterSettings } from "./settings-store.js";
+import {
+  getApiKey,
+  maskApiKey,
+  maskSettings,
+  readSettings,
+  writeSettings,
+} from "./settings-store.js";
 
 const readFile = vi.mocked(fsp.readFile);
 const yamlLoad = vi.mocked(yaml.load);
@@ -46,23 +53,29 @@ describe("readSettings", () => {
 
     const settings = await readSettings();
 
-    expect(settings.providers).toEqual({});
-    expect(settings.defaults.routing.primary).toBe("anthropic:claude-sonnet-4-6");
-    expect(settings.meta.schemaVersion).toBe(1);
+    expect(settings.schemaVersion).toBe(1);
+    expect(settings.providers.anthropic).toEqual({ enabled: false });
+    expect(settings.providers.ollama.endpoint).toBe("http://localhost:11434");
+    expect(settings.meta.firstLaunchWarningAcknowledged).toBe(false);
   });
 
   it("merges stored settings with defaults", async () => {
-    const stored: Partial<NovelWriterSettings> = {
-      providers: { anthropic: { apiKey: "sk-ant-abc123" } },
+    const stored: Partial<AppSettings> = {
+      providers: {
+        ...defaultSettings().providers,
+        anthropic: { enabled: true, apiKey: "sk-ant-abc123" },
+      },
     };
     readFile.mockResolvedValue("yaml-content" as unknown as string);
     yamlLoad.mockReturnValue(stored);
 
     const settings = await readSettings();
 
-    expect(settings.providers.anthropic?.apiKey).toBe("sk-ant-abc123");
-    // defaults should fill the missing fields
-    expect(settings.defaults.routing.primary).toBe("anthropic:claude-sonnet-4-6");
+    expect(settings.providers.anthropic.apiKey).toBe("sk-ant-abc123");
+    expect(settings.providers.anthropic.enabled).toBe(true);
+    // defaults should fill missing fields
+    expect(settings.providers.openai.enabled).toBe(false);
+    expect(settings.routing).toEqual({});
   });
 
   it("returns defaults when yaml parses to null", async () => {
@@ -70,72 +83,73 @@ describe("readSettings", () => {
     yamlLoad.mockReturnValue(null);
 
     const settings = await readSettings();
-    expect(settings.providers).toEqual({});
+    expect(settings.schemaVersion).toBe(1);
+    expect(settings.providers.anthropic).toEqual({ enabled: false });
+  });
+
+  it("returns defaults when file is empty string", async () => {
+    readFile.mockResolvedValue("   " as unknown as string);
+    // readSettings returns early before calling yaml.load on whitespace-only input
+    const settings = await readSettings();
+    expect(settings.schemaVersion).toBe(1);
   });
 });
 
 // ---------------------------------------------------------------------------
-// maskApiKey
+// maskApiKey (re-exported from shared-types)
 // ---------------------------------------------------------------------------
 
 describe("maskApiKey", () => {
-  it("masks anthropic-style key correctly", () => {
-    expect(maskApiKey("sk-ant-abc123")).toBe("sk-ant-...123");
+  it("masks a key with enough length (shared-types format: first6***last4)", () => {
+    // shared-types maskApiKey: slice(0,6) + "***" + slice(-4)
+    expect(maskApiKey("sk-ant-abc123")).toBe("sk-ant***c123");
   });
 
-  it("masks openai-style key", () => {
-    expect(maskApiKey("sk-proj-longkeyhere")).toBe("sk-proj-...ere");
-  });
-
-  it("returns *** for very short keys", () => {
+  it("returns *** for very short keys (length <= 8)", () => {
     expect(maskApiKey("abc")).toBe("***");
+    expect(maskApiKey("abcdefgh")).toBe("***"); // exactly 8 chars → ***
   });
 
-  it("handles key with no dash", () => {
-    expect(maskApiKey("abc12345678")).toBe("abc...678");
+  it("returns empty string for undefined", () => {
+    expect(maskApiKey(undefined)).toBe("");
   });
 });
 
 // ---------------------------------------------------------------------------
-// mergeDefaults
+// maskSettings
 // ---------------------------------------------------------------------------
 
-describe("mergeDefaults", () => {
-  it("does not overwrite existing fields", () => {
-    const partial: Partial<NovelWriterSettings> = {
-      defaults: {
-        routing: {
-          primary: "openai:gpt-4",
-          fallbacks: ["anthropic:claude-sonnet-4-6"],
-          retryPerModel: 1,
-        },
+describe("maskSettings", () => {
+  it("masks api keys in providers", () => {
+    const settings: AppSettings = {
+      ...defaultSettings(),
+      providers: {
+        ...defaultSettings().providers,
+        anthropic: { enabled: true, apiKey: "sk-ant-realkey" },
       },
     };
-
-    const result = mergeDefaults(partial);
-    expect(result.defaults.routing.primary).toBe("openai:gpt-4");
-    expect(result.defaults.routing.retryPerModel).toBe(1);
-    // unspecified fields stay at defaults
-    expect(result.providers).toEqual({});
-    expect(result.meta.schemaVersion).toBe(1);
+    const masked = maskSettings(settings);
+    expect(masked.providers.anthropic.apiKey).not.toBe("sk-ant-realkey");
+    expect(masked.providers.anthropic.apiKey).toContain("***");
   });
 
-  it("fills missing top-level keys from defaults", () => {
-    const result = mergeDefaults({ recentProjects: [] });
-    expect(result.defaults.routing.fallbacks).toEqual([]);
-    expect(result.meta.firstLaunchWarningAcknowledged).toBe(false);
+  it("does not modify providers without apiKey", () => {
+    const settings = defaultSettings();
+    const masked = maskSettings(settings);
+    expect(masked.providers.ollama.apiKey).toBeUndefined();
+    expect(masked.providers.anthropic.apiKey).toBeUndefined();
   });
 
-  it("deep-merges nested objects without losing sibling fields", () => {
-    const partial: Partial<NovelWriterSettings> = {
-      meta: {
-        firstLaunchWarningAcknowledged: true,
-        schemaVersion: 1,
+  it("does not mutate original settings", () => {
+    const settings: AppSettings = {
+      ...defaultSettings(),
+      providers: {
+        ...defaultSettings().providers,
+        openai: { enabled: true, apiKey: "sk-openai-real" },
       },
     };
-    const result = mergeDefaults(partial);
-    expect(result.meta.firstLaunchWarningAcknowledged).toBe(true);
-    expect(result.meta.schemaVersion).toBe(1);
+    maskSettings(settings);
+    expect(settings.providers.openai.apiKey).toBe("sk-openai-real");
   });
 });
 
@@ -144,16 +158,13 @@ describe("mergeDefaults", () => {
 // ---------------------------------------------------------------------------
 
 describe("getApiKey", () => {
-  const baseSettings: NovelWriterSettings = {
+  const baseSettings: AppSettings = {
+    ...defaultSettings(),
     providers: {
-      anthropic: { apiKey: "sk-ant-secret" },
-      openai: { apiKey: "sk-openai-secret" },
+      ...defaultSettings().providers,
+      anthropic: { enabled: true, apiKey: "sk-ant-secret" },
+      openai: { enabled: true, apiKey: "sk-openai-secret" },
     },
-    defaults: {
-      routing: { primary: "anthropic:claude-sonnet-4-6", fallbacks: [], retryPerModel: 3 },
-    },
-    recentProjects: [],
-    meta: { firstLaunchWarningAcknowledged: false, schemaVersion: 1 },
   };
 
   it("returns the api key for a configured provider", () => {
@@ -161,16 +172,19 @@ describe("getApiKey", () => {
     expect(getApiKey(baseSettings, "openai")).toBe("sk-openai-secret");
   });
 
-  it("returns undefined for an unknown provider", () => {
-    expect(getApiKey(baseSettings, "unknown-provider")).toBeUndefined();
+  it("returns empty string for a provider with no apiKey set", () => {
+    expect(getApiKey(baseSettings, "ollama")).toBe("");
   });
 
-  it("returns undefined for a provider with no apiKey set", () => {
-    const noKey: NovelWriterSettings = {
+  it("returns empty string for a provider that is enabled but has no key", () => {
+    const noKey: AppSettings = {
       ...baseSettings,
-      providers: { anthropic: {} },
+      providers: {
+        ...baseSettings.providers,
+        google: { enabled: true },
+      },
     };
-    expect(getApiKey(noKey, "anthropic")).toBeUndefined();
+    expect(getApiKey(noKey, "google")).toBe("");
   });
 });
 
@@ -180,7 +194,7 @@ describe("getApiKey", () => {
 
 describe("writeSettings", () => {
   it("does not throw for a valid settings object", async () => {
-    const settings = mergeDefaults({});
+    const settings = defaultSettings();
     await expect(writeSettings(settings)).resolves.toBeUndefined();
   });
 });

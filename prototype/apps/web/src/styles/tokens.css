@@ -1,0 +1,13 @@
+@theme {
+  --color-paper: #faf9f7;
+  --color-ink: #1a1918;
+  --color-brand-500: #2d6a4f;
+  --color-brand-50: #f0faf5;
+  --font-ui: "Inter", "Noto Sans TC", system-ui, sans-serif;
+  --font-prose: "Noto Serif TC", "Georgia", serif;
+}
+
+:root {
+  font-family: var(--font-ui);
+  color-scheme: light dark;
+}

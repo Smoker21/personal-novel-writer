@@ -61,12 +61,7 @@ function getQueue(projectPath: string): PQueue {
 /**
  * Fixed author identity for all commits (M0 decision — no user accounts).
  */
-const AUTHOR_ARGS = [
-  "-c",
-  "user.name=novel-writer-app",
-  "-c",
-  "user.email=noreply@local",
-];
+const AUTHOR_ARGS = ["-c", "user.name=novel-writer-app", "-c", "user.email=noreply@local"];
 
 interface SpawnResult {
   stdout: string;
@@ -78,10 +73,7 @@ interface SpawnResult {
  * Run a git subcommand. Uses spawn (not exec) to avoid shell injection.
  * The `command` field in the returned error is a human-readable description.
  */
-function runGit(
-  projectPath: string,
-  args: string[],
-): Promise<GitResult<SpawnResult>> {
+function runGit(projectPath: string, args: string[]): Promise<GitResult<SpawnResult>> {
   return new Promise((resolve) => {
     let proc: ReturnType<typeof spawn>;
 
@@ -150,10 +142,7 @@ function runGit(
 /**
  * Run a git command through the per-project queue to ensure serial execution.
  */
-async function queuedGit(
-  projectPath: string,
-  args: string[],
-): Promise<GitResult<SpawnResult>> {
+async function queuedGit(projectPath: string, args: string[]): Promise<GitResult<SpawnResult>> {
   const q = getQueue(projectPath);
   return q.add(() => runGit(projectPath, args)) as Promise<GitResult<SpawnResult>>;
 }
@@ -204,16 +193,16 @@ function parseLogLine(line: string): GitCommit | null {
 export const git: GitWrapper = {
   async init(projectPath) {
     const q = getQueue(projectPath);
-    const result = await q.add(() => runGit(projectPath, ["init"])) as GitResult<SpawnResult>;
+    const result = (await q.add(() => runGit(projectPath, ["init"]))) as GitResult<SpawnResult>;
     if (!result.ok) return result;
     return { ok: true, value: undefined };
   },
 
   async add(projectPath, files) {
     const q = getQueue(projectPath);
-    const result = await q.add(() =>
+    const result = (await q.add(() =>
       runGit(projectPath, ["add", "--", ...files]),
-    ) as GitResult<SpawnResult>;
+    )) as GitResult<SpawnResult>;
     if (!result.ok) return result;
     return { ok: true, value: undefined };
   },
@@ -241,7 +230,7 @@ export const git: GitWrapper = {
 
   async log(projectPath, opts = {}) {
     const args = ["log", "--format=%H|%h|%ai|%s"];
-    if (opts.limit !== undefined) args.push(`-n`, String(opts.limit));
+    if (opts.limit !== undefined) args.push("-n", String(opts.limit));
     if (opts.file !== undefined) args.push("--follow", "--", opts.file);
 
     const result = await queuedGit(projectPath, args);
