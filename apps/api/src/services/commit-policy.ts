@@ -4,13 +4,17 @@ export type CommitTrigger =
   | "create-project"
   | "save-chapter"
   | "rename-chapter"
-  | "character";
+  | "character"
+  | "adopt"
+  | "status";
 
 const PREFIX: Record<CommitTrigger, string> = {
   "create-project": "init",
   "save-chapter": "chapter",
   "rename-chapter": "chapter",
   character: "character",
+  adopt: "chapter",
+  status: "status",
 };
 
 /**
