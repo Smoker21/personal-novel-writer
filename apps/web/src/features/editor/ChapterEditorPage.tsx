@@ -16,6 +16,7 @@ import { deleteDraft, getDraft } from "../../lib/db";
 import { useWindowFocusEffect } from "../../lib/window-focus";
 import { useDraftStore } from "../../stores/draft-store";
 import { useEditorStore } from "../../stores/editor-store";
+import { UpdateStatusButton } from "../status/UpdateStatusButton";
 import { ChapterEditor } from "./ChapterEditor";
 import { ChapterList } from "./ChapterList";
 import { ConflictDialog } from "./ConflictDialog";
@@ -23,6 +24,7 @@ import { DraftPanel } from "./DraftPanel";
 import { EditorStatusIndicator } from "./EditorStatusIndicator";
 import { GenerateButton } from "./GenerateButton";
 import { SaveButton } from "./SaveButton";
+import { StatusUpdateIndicator } from "./StatusUpdateIndicator";
 import { TitleInput } from "./TitleInput";
 
 // ── 型別 ────────────────────────────────────────────────────────────────────
@@ -356,6 +358,9 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           {currentChapter !== null && (
             <GenerateButton projectHash={projectHash} chapterNumber={currentChapter} />
           )}
+          {currentChapter !== null && (
+            <UpdateStatusButton projectHash={projectHash} chapterNumber={currentChapter} />
+          )}
         </div>
 
         {/* 編輯器主體 + 草稿面板並排 */}
@@ -425,6 +430,9 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           onCancel={handleCancelConflict}
         />
       )}
+
+      {/* status-updater 進度指示 */}
+      <StatusUpdateIndicator projectHash={projectHash} />
     </div>
   );
 }
