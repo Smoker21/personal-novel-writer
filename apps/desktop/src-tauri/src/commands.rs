@@ -80,7 +80,7 @@ pub async fn detect_git() -> Result<GitInfo, String> {
 pub async fn open_directory_dialog(app: tauri::AppHandle) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
     let result = app.dialog().file().blocking_pick_folder();
-    Ok(result.map(|p| p.to_string_lossy().into_owned()))
+    Ok(result.map(|p| p.to_string()))
 }
 
 #[cfg(test)]
