@@ -1,6 +1,6 @@
 # M1 — 寫作骨架（無 AI 寫作流）
 
-> Status: **未開工**
+> Status: **完成（2026-05-13，拆 M1-A/B/C 三段循環，PR #3 / #4 / #5）**
 > 預估規模：30-40 PR
 > 對應 spec：[001](../specs/001-create-novel-project.md)、[003](../specs/003-edit-chapter-basic.md)、[008](../specs/008-open-existing-project.md)、[009](../specs/009-settings-page.md)（部分）、[010](../specs/010-git-version-control.md)（部分）
 > 對應 story：[004 Undo/Redo](../../requirements/stories/004-undo-redo-chapter.md)、[032 首次警語](../../requirements/stories/032-first-launch-warning.md)
@@ -295,11 +295,27 @@
 
 ## 完成紀錄
 
-> dev 在 milestone 完成時填這裡
-
-- 實際開工時間：
-- 實際完成時間：
-- 實際 PR 數：
+- 實際開工時間：2026-05-13
+- 實際完成時間：2026-05-13
+- 實際 PR 數：3 個（M1-A foundation #3、M1-B project lifecycle #4、M1-C chapter editor #5），合計約 35 個 commits
 - 偏離 plan 的範圍：
+  - **fs_watcher 改用 window focus 重檢**（M0 骨架在，notify 真實整合留 M3）
+  - **多 tab 偵測 Case D** → BroadcastChannel 骨架，未啟用（Tauri 主要單視窗）
+  - **三方 diff UI** → ConflictDialog 提供「載入伺服器 / 強制本機」兩動作，diff UI 留 M3
+  - **DELETE UI 不暴露** → 後端 endpoint 仍實作，UI 待 M3 補（Chapter 列表的「⋯」選單）
+  - **status-updater 觸發** → PUT 結尾 log placeholder，M3 補 LLM 呼叫
+  - **prototype archive** → Phase B 舊 prototype 遷移到 `prototype/apps/web/` 保留參考（PR #2）
 - 踩雷 / 教訓：
+  1. **CM6 + jsdom 測試環境**：CM6 內部依賴 contenteditable，jsdom 不完全支援；元件層級測試只能驗證「能 render」，行為測試留 manual / 未來 Playwright E2E
+  2. **TS strict `noPropertyAccessFromIndexSignature` vs Biome `useLiteralKeys`**：M1-A 衝突；專案層級關閉 `useLiteralKeys`（biome.json）
+  3. **Cargo + `vswhom-sys`**：需從 VS Developer Command Prompt 跑 cargo（M0 修復；M1 沿用）
+  4. **tauri-build 需要 icons/icon.ico**：M0 用 Node.js 生 16×16 透明 ICO 佔位（M4 換真實圖示）
+  5. **prototype code 與 M1 spec 不符**：直接遷移到 `prototype/apps/web/` 而非改造，從零按 features/ 結構重建
+  6. **Hono RPC type-only AppType**：跨 package 用 `workspace:*` 而非 `paths` mapping，避免 rootDir 限制
+  7. **useExhaustiveDependencies (Biome)**：CM6 一次性 init + 故意省略 deps 的情境用 `biome-ignore` 注釋
 - 移交給 M2 的注意事項：
+  - chapter-writer Agent 寫作流程：UI 入口已有編輯器，從 ChapterEditorPage 工具列加「AI 撰寫」按鈕即可
+  - status-updater 觸發點在 `apps/api/src/routes/chapters.ts` PUT 結尾 log，M3 用 M2 已啟用的 LLM adapter 直接接
+  - settings 頁的 per-Agent routing UI 還缺（M2 補 dropdown + fallback 編輯器）
+  - 005 / 007 對「routing 未設定」的引導 UI（M2 加，當 chapter-writer 找不到模型時顯示 LlmNotConfiguredModal）
+  - prototype/apps/web/ 內有 ContextPanel、DraftPanel、HistoryDrawer 等元件作為 M2 設計參考
