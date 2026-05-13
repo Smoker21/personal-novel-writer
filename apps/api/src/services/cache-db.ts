@@ -41,6 +41,19 @@ export async function getDb(projectHash: string): Promise<Database.Database> {
     );
     CREATE INDEX IF NOT EXISTS idx_drafts_project_chapter
       ON drafts(project_hash, chapter_number);
+
+    CREATE TABLE IF NOT EXISTS undo_entries (
+      id             TEXT PRIMARY KEY,
+      type           TEXT NOT NULL,
+      project_hash   TEXT NOT NULL,
+      chapter_number INTEGER NOT NULL,
+      draft_id       TEXT,
+      target_main_path TEXT NOT NULL,
+      prompt_marker_start_offset INTEGER,
+      label          TEXT NOT NULL,
+      created_at     TEXT NOT NULL,
+      undone         INTEGER NOT NULL DEFAULT 0
+    );
   `);
 
   DBS.set(projectHash, db);
