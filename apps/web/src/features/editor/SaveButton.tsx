@@ -1,7 +1,7 @@
 import type { ApiErrorBody, SaveChapterResponse } from "@novel-writer/shared-types";
 import { useEffect, useRef, useState } from "react";
-import { deleteDraft } from "../../lib/db.js";
-import { useEditorStore } from "../../stores/editor-store.js";
+import { deleteDraft } from "../../lib/db";
+import { useEditorStore } from "../../stores/editor-store";
 
 interface Props {
   getContent: () => string;

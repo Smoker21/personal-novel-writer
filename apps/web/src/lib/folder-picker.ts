@@ -1,4 +1,4 @@
-import { tauriInvoke } from "./tauri.js";
+import { tauriInvoke } from "./tauri";
 
 export async function pickFolder(): Promise<string | null> {
   if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {

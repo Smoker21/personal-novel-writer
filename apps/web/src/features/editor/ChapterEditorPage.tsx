@@ -12,15 +12,15 @@
 import type { ChapterFile } from "@novel-writer/shared-types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { deleteDraft, getDraft } from "../../lib/db.js";
-import { useWindowFocusEffect } from "../../lib/window-focus.js";
-import { useEditorStore } from "../../stores/editor-store.js";
-import { ChapterEditor } from "./ChapterEditor.js";
-import { ChapterList } from "./ChapterList.js";
-import { ConflictDialog } from "./ConflictDialog.js";
-import { EditorStatusIndicator } from "./EditorStatusIndicator.js";
-import { SaveButton } from "./SaveButton.js";
-import { TitleInput } from "./TitleInput.js";
+import { deleteDraft, getDraft } from "../../lib/db";
+import { useWindowFocusEffect } from "../../lib/window-focus";
+import { useEditorStore } from "../../stores/editor-store";
+import { ChapterEditor } from "./ChapterEditor";
+import { ChapterList } from "./ChapterList";
+import { ConflictDialog } from "./ConflictDialog";
+import { EditorStatusIndicator } from "./EditorStatusIndicator";
+import { SaveButton } from "./SaveButton";
+import { TitleInput } from "./TitleInput";
 
 // ── 型別 ────────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useGlobalKey } from "../../lib/keyboard.js";
-import { NewProjectDialog } from "../new-project/NewProjectDialog.js";
+import { useGlobalKey } from "../../lib/keyboard";
+import { NewProjectDialog } from "../new-project/NewProjectDialog";
 
 export function NewProjectButton() {
   const [open, setOpen] = useState(false);

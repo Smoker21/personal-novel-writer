@@ -4,10 +4,10 @@ import {
   mockChapterList,
   mockCreateChapterResponse,
   mockSaveChapterResponse,
-} from "./fixtures/chapters.js";
-import { mockCleanStatus, mockGitBinaryInstalled } from "./fixtures/git-status.js";
-import { mockCreateNovelResponse, mockOpenProjectResponse } from "./fixtures/projects.js";
-import { mockSettings } from "./fixtures/settings.js";
+} from "./fixtures/chapters";
+import { mockCleanStatus, mockGitBinaryInstalled } from "./fixtures/git-status";
+import { mockCreateNovelResponse, mockOpenProjectResponse } from "./fixtures/projects";
+import { mockSettings } from "./fixtures/settings";
 
 export const handlers = [
   http.get("/api/settings", () => HttpResponse.json(mockSettings)),

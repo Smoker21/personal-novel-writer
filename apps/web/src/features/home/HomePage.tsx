@@ -1,11 +1,11 @@
 import type { AppSettings, OpenProjectResponse, RecentProject } from "@novel-writer/shared-types";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { pickFolder } from "../../lib/folder-picker.js";
-import { BrowseFolderButton } from "./BrowseFolderButton.js";
-import { MissingProjectDialog } from "./MissingProjectDialog.js";
-import { NewProjectButton } from "./NewProjectButton.js";
-import { RecentProjectsList } from "./RecentProjectsList.js";
+import { pickFolder } from "../../lib/folder-picker";
+import { BrowseFolderButton } from "./BrowseFolderButton";
+import { MissingProjectDialog } from "./MissingProjectDialog";
+import { NewProjectButton } from "./NewProjectButton";
+import { RecentProjectsList } from "./RecentProjectsList";
 
 export function HomePage() {
   const [recents, setRecents] = useState<RecentProject[]>([]);

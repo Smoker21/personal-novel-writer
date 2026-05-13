@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { HomePage } from "./HomePage.js";
+import { HomePage } from "./HomePage";
 
 describe("HomePage", () => {
   it("renders 新小說 and 瀏覽資料夾 buttons", async () => {
