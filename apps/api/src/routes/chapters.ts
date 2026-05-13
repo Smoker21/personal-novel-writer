@@ -102,15 +102,21 @@ export const chapters = new Hono()
     } catch (err) {
       console.warn(`commit-policy failed: ${String(err)}`);
     }
-    // M3 placeholder
-    console.log(`[status-updater] skipped for chapter ${n} (not implemented yet)`);
+    // Trigger status-updater asynchronously (auto-after-save)
+    let statusUpdateJobId: string | null = null;
+    try {
+      const { triggerStatusUpdate } = await import("../services/status-updater-service.js");
+      statusUpdateJobId = await triggerStatusUpdate(hash, projectPath, n, "auto-after-save");
+    } catch {
+      // Non-fatal: status-updater failure doesn't block save
+    }
 
     const body: SaveChapterResponse = {
       path: result.path,
       mtime: result.mtime,
       size: result.size,
       commitSha,
-      statusUpdateJobId: null,
+      statusUpdateJobId,
     };
     return c.json(body);
   })

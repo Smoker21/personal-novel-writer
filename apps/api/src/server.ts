@@ -9,11 +9,13 @@ import { draftRouter } from "./routes/draft.js";
 import { generateRouter } from "./routes/generate.js";
 import { git } from "./routes/git.js";
 import { health } from "./routes/health.js";
+import { jobsRouter } from "./routes/jobs.js";
 import { novels } from "./routes/novels.js";
 import { portraitsRouter } from "./routes/portraits.js";
 import { projectFileRouter } from "./routes/project-file.js";
 import { projects } from "./routes/projects.js";
 import { settings } from "./routes/settings.js";
+import { statusRouter } from "./routes/status.js";
 import { unadoptRouter } from "./routes/unadopt.js";
 
 const app = new Hono()
@@ -29,7 +31,9 @@ const app = new Hono()
   .route("/api/projects/:hash/chapters/:chapterNumber/draft", draftRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/adopt", adoptRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/unadopt", unadoptRouter)
-  .route("/api/projects/:hash/file", projectFileRouter);
+  .route("/api/projects/:hash/file", projectFileRouter)
+  .route("/api/projects/:hash/status", statusRouter)
+  .route("/api/projects/:hash/jobs", jobsRouter);
 
 export type AppType = typeof app;
 
