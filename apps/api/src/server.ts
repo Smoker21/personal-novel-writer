@@ -3,8 +3,9 @@ import { Hono } from "hono";
 import { logger } from "./lib/logger.js";
 import { writeRuntimeInfo } from "./lib/runtime-info.js";
 import { health } from "./routes/health.js";
+import { settings } from "./routes/settings.js";
 
-const app = new Hono().route("/api/health", health);
+const app = new Hono().route("/api/health", health).route("/api/settings", settings);
 
 export type AppType = typeof app;
 

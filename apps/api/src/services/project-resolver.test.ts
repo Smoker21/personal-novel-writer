@@ -9,26 +9,14 @@ vi.mock("./settings-store.js", () => ({
 
 import * as settingsStore from "./settings-store.js";
 import { hashProjectPath, resolveProjectPath, touchProject } from "./project-resolver.js";
-import type { NovelWriterSettings } from "./settings-store.js";
+import { defaultSettings } from "@novel-writer/shared-types";
+import type { AppSettings, RecentProject } from "@novel-writer/shared-types";
 
 const readSettings = vi.mocked(settingsStore.readSettings);
 const writeSettings = vi.mocked(settingsStore.writeSettings);
 
-function makeSettings(
-  recentProjects: NovelWriterSettings["recentProjects"] = [],
-): NovelWriterSettings {
-  return {
-    providers: {},
-    defaults: {
-      routing: {
-        primary: "anthropic:claude-sonnet-4-6",
-        fallbacks: [],
-        retryPerModel: 3,
-      },
-    },
-    recentProjects,
-    meta: { firstLaunchWarningAcknowledged: false, schemaVersion: 1 },
-  };
+function makeSettings(recentProjects: RecentProject[] = []): AppSettings {
+  return { ...defaultSettings(), recentProjects };
 }
 
 beforeEach(() => {
@@ -66,7 +54,15 @@ describe("resolveProjectPath", () => {
     const hash = hashProjectPath(projectPath);
 
     readSettings.mockResolvedValue(
-      makeSettings([{ path: projectPath, name: "My Novel", lastOpenedAt: "2026-01-01T00:00:00Z" }]),
+      makeSettings([
+        {
+          hash,
+          path: projectPath,
+          title: "My Novel",
+          lastOpenedAt: "2026-01-01T00:00:00Z",
+          pinned: false,
+        },
+      ]),
     );
 
     const result = await resolveProjectPath(hash);
@@ -76,7 +72,13 @@ describe("resolveProjectPath", () => {
   it("returns null when no project matches the hash", async () => {
     readSettings.mockResolvedValue(
       makeSettings([
-        { path: "/other/project", name: "Other", lastOpenedAt: "2026-01-01T00:00:00Z" },
+        {
+          hash: "aabbccdd",
+          path: "/other/project",
+          title: "Other",
+          lastOpenedAt: "2026-01-01T00:00:00Z",
+          pinned: false,
+        },
       ]),
     );
 
@@ -105,14 +107,16 @@ describe("touchProject", () => {
     expect(writeSettings).toHaveBeenCalledOnce();
     const saved = writeSettings.mock.calls[0]?.[0];
     expect(saved?.recentProjects).toHaveLength(1);
-    expect(saved?.recentProjects[0]?.name).toBe("New Novel");
+    expect(saved?.recentProjects[0]?.title).toBe("New Novel");
+    expect(saved?.recentProjects[0]?.pinned).toBe(false);
   });
 
   it("updates lastOpenedAt for an existing project", async () => {
     const existing = normalize("/my/novel");
+    const hash = hashProjectPath(existing);
     readSettings.mockResolvedValue(
       makeSettings([
-        { path: existing, name: "My Novel", lastOpenedAt: "2020-01-01T00:00:00Z" },
+        { hash, path: existing, title: "My Novel", lastOpenedAt: "2020-01-01T00:00:00Z", pinned: false },
       ]),
     );
 
@@ -131,12 +135,15 @@ describe("touchProject", () => {
 
   it("does not duplicate a project when touched twice", async () => {
     const projectPath = normalize("/my/novel");
+    const hash = hashProjectPath(projectPath);
 
     // First call: no projects
     readSettings
       .mockResolvedValueOnce(makeSettings([]))
       .mockResolvedValueOnce(
-        makeSettings([{ path: projectPath, name: "My Novel", lastOpenedAt: "2026-01-01T00:00:00Z" }]),
+        makeSettings([
+          { hash, path: projectPath, title: "My Novel", lastOpenedAt: "2026-01-01T00:00:00Z", pinned: false },
+        ]),
       );
 
     await touchProject(projectPath, "My Novel");

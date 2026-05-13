@@ -46,20 +46,21 @@ export async function resolveProjectPath(projectHash: string): Promise<string | 
  * Add a project to recentProjects (or update its lastOpenedAt timestamp).
  * Persists the updated settings.
  */
-export async function touchProject(projectPath: string, name: string): Promise<void> {
+export async function touchProject(projectPath: string, title: string): Promise<void> {
   const settings = await readSettings();
   const normalised = normalize(projectPath);
+  const hash = hashProjectPath(normalised);
   const lastOpenedAt = new Date().toISOString();
 
-  const existing = settings.recentProjects.findIndex((p) => normalize(p.path) === normalised);
+  const existingIdx = settings.recentProjects.findIndex((p) => normalize(p.path) === normalised);
 
-  if (existing >= 0) {
-    const entry = settings.recentProjects[existing];
+  if (existingIdx >= 0) {
+    const entry = settings.recentProjects[existingIdx];
     if (entry !== undefined) {
-      settings.recentProjects[existing] = { ...entry, lastOpenedAt };
+      settings.recentProjects[existingIdx] = { ...entry, lastOpenedAt };
     }
   } else {
-    settings.recentProjects.push({ path: normalised, name, lastOpenedAt });
+    settings.recentProjects.push({ hash, path: normalised, title, lastOpenedAt, pinned: false });
   }
 
   await writeSettings(settings);
