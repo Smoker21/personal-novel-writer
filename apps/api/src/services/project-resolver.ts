@@ -11,10 +11,7 @@ import { readSettings, writeSettings } from "./settings-store.js";
  * The path is normalised before hashing so equivalent paths produce the same hash.
  */
 export function hashProjectPath(projectPath: string): string {
-  return createHash("sha256")
-    .update(normalize(projectPath))
-    .digest("hex")
-    .slice(0, 8);
+  return createHash("sha256").update(normalize(projectPath)).digest("hex").slice(0, 8);
 }
 
 // ---------------------------------------------------------------------------

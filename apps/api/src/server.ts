@@ -13,7 +13,6 @@ const app = new Hono()
 
 export type AppType = typeof app;
 
-// biome-ignore lint/complexity/useLiteralKeys: noPropertyAccessFromIndexSignature requires bracket notation
 const port = Number.parseInt(process.env["PORT"] ?? "0", 10);
 
 const server = serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, (info) => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock modules before importing the module under test.
 vi.mock("node:fs/promises", () => ({
@@ -24,10 +24,16 @@ vi.mock("./atomic-fs.js", () => ({
 }));
 
 import * as fsp from "node:fs/promises";
-import * as yaml from "js-yaml";
-import { readSettings, writeSettings, maskSettings, maskApiKey, getApiKey } from "./settings-store.js";
 import { defaultSettings } from "@novel-writer/shared-types";
 import type { AppSettings } from "@novel-writer/shared-types";
+import * as yaml from "js-yaml";
+import {
+  getApiKey,
+  maskApiKey,
+  maskSettings,
+  readSettings,
+  writeSettings,
+} from "./settings-store.js";
 
 const readFile = vi.mocked(fsp.readFile);
 const yamlLoad = vi.mocked(yaml.load);

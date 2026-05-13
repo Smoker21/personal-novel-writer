@@ -1,10 +1,10 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import type { AppSettings, LLMProviderId, ProviderConfig } from "@novel-writer/shared-types";
 import { ALL_PROVIDER_IDS, defaultSettings } from "@novel-writer/shared-types";
-import { maskSettings, readSettings, writeSettings } from "../services/settings-store.js";
+import { Hono } from "hono";
+import { z } from "zod";
 import { testProvider } from "../services/provider-tester.js";
+import { maskSettings, readSettings, writeSettings } from "../services/settings-store.js";
 
 const providerConfigSchema = z.object({
   enabled: z.boolean(),
@@ -44,7 +44,7 @@ export const settings = new Hono()
     // If apiKey contains "***", the frontend sent back a masked value — restore the real key.
     for (const id of ALL_PROVIDER_IDS) {
       const newKey = incoming.providers[id]?.apiKey;
-      if (newKey && newKey.includes("***")) {
+      if (newKey?.includes("***")) {
         const realKey = current.providers[id]?.apiKey;
         const existing = incoming.providers[id] ?? { enabled: false };
         if (realKey !== undefined) {
@@ -64,8 +64,8 @@ export const settings = new Hono()
     const current = await readSettings();
     // Cast through ProviderConfig: zod schema mirrors the interface but exactOptionalPropertyTypes
     // means we must assert — the schema guarantees shape correctness at runtime.
-    const effectiveConfig: ProviderConfig =
-      (config as ProviderConfig | undefined) ?? current.providers[providerId] ?? { enabled: false };
+    const effectiveConfig: ProviderConfig = (config as ProviderConfig | undefined) ??
+      current.providers[providerId] ?? { enabled: false };
     const result = await testProvider(providerId, effectiveConfig);
     return c.json(result);
   })

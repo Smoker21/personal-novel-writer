@@ -91,9 +91,7 @@ export async function testProvider(
     }
     const json = (await res.json()) as unknown;
     const modelCount = ep.parseCount(json);
-    return modelCount !== undefined
-      ? { ok: true, latencyMs, modelCount }
-      : { ok: true, latencyMs };
+    return modelCount !== undefined ? { ok: true, latencyMs, modelCount } : { ok: true, latencyMs };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {

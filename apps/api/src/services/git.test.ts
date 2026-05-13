@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "node:events";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mock node:child_process before importing the module under test.
@@ -116,9 +116,7 @@ describe("git.commit", () => {
 
   it("propagates commit failure", async () => {
     const proj = uniqueProject();
-    spawnMock.mockReturnValue(
-      makeFakeProcess({ exitCode: 1, stderr: "nothing to commit" }),
-    );
+    spawnMock.mockReturnValue(makeFakeProcess({ exitCode: 1, stderr: "nothing to commit" }));
 
     const result = await git.commit(proj, "empty");
 

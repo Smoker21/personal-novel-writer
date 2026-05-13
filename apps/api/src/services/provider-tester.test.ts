@@ -18,9 +18,7 @@ describe("testProvider", () => {
   });
 
   it("anthropic — calls /v1/models with x-api-key header", async () => {
-    fetchSpy.mockResolvedValue(
-      new Response(JSON.stringify({ data: [{}, {}] }), { status: 200 }),
-    );
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ data: [{}, {}] }), { status: 200 }));
     const result = await testProvider("anthropic", { enabled: true, apiKey: "sk-ant-xxx" });
     expect(result.ok).toBe(true);
     const call = fetchSpy.mock.calls[0];

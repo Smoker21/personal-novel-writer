@@ -23,9 +23,9 @@ describe("settings routes", () => {
   afterEach(() => {
     rmSync(tmpHome, { recursive: true, force: true });
     if (originalHome !== undefined) process.env["HOME"] = originalHome;
-    else delete process.env["HOME"];
+    else process.env["HOME"] = undefined;
     if (originalUserprofile !== undefined) process.env["USERPROFILE"] = originalUserprofile;
-    else delete process.env["USERPROFILE"];
+    else process.env["USERPROFILE"] = undefined;
     vi.restoreAllMocks();
   });
 

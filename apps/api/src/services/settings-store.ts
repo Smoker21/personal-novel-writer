@@ -1,16 +1,15 @@
 import { mkdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { load as yamlLoad, dump as yamlDump } from "js-yaml";
 import type { AppSettings, LLMProviderId } from "@novel-writer/shared-types";
 import { ALL_PROVIDER_IDS, defaultSettings, maskApiKey } from "@novel-writer/shared-types";
+import { dump as yamlDump, load as yamlLoad } from "js-yaml";
 import { atomicWriteFile } from "./atomic-fs.js";
 
 function settingsFilePath(): string {
   return join(homedir(), ".novel-writer", "settings.yaml");
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: deepMerge needs unconstrained generics
 function deepMerge<T>(base: T, override: Partial<T>): T {
   const result = { ...(base as Record<string, unknown>) } as Record<string, unknown>;
   const src = override as Record<string, unknown>;

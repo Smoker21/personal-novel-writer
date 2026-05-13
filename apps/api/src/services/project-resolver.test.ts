@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { normalize } from "node:path";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock settings-store so we don't touch the filesystem.
 vi.mock("./settings-store.js", () => ({
@@ -7,10 +7,10 @@ vi.mock("./settings-store.js", () => ({
   writeSettings: vi.fn().mockResolvedValue(undefined),
 }));
 
-import * as settingsStore from "./settings-store.js";
-import { hashProjectPath, resolveProjectPath, touchProject } from "./project-resolver.js";
 import { defaultSettings } from "@novel-writer/shared-types";
 import type { AppSettings, RecentProject } from "@novel-writer/shared-types";
+import { hashProjectPath, resolveProjectPath, touchProject } from "./project-resolver.js";
+import * as settingsStore from "./settings-store.js";
 
 const readSettings = vi.mocked(settingsStore.readSettings);
 const writeSettings = vi.mocked(settingsStore.writeSettings);
@@ -116,7 +116,13 @@ describe("touchProject", () => {
     const hash = hashProjectPath(existing);
     readSettings.mockResolvedValue(
       makeSettings([
-        { hash, path: existing, title: "My Novel", lastOpenedAt: "2020-01-01T00:00:00Z", pinned: false },
+        {
+          hash,
+          path: existing,
+          title: "My Novel",
+          lastOpenedAt: "2020-01-01T00:00:00Z",
+          pinned: false,
+        },
       ]),
     );
 
@@ -138,13 +144,17 @@ describe("touchProject", () => {
     const hash = hashProjectPath(projectPath);
 
     // First call: no projects
-    readSettings
-      .mockResolvedValueOnce(makeSettings([]))
-      .mockResolvedValueOnce(
-        makeSettings([
-          { hash, path: projectPath, title: "My Novel", lastOpenedAt: "2026-01-01T00:00:00Z", pinned: false },
-        ]),
-      );
+    readSettings.mockResolvedValueOnce(makeSettings([])).mockResolvedValueOnce(
+      makeSettings([
+        {
+          hash,
+          path: projectPath,
+          title: "My Novel",
+          lastOpenedAt: "2026-01-01T00:00:00Z",
+          pinned: false,
+        },
+      ]),
+    );
 
     await touchProject(projectPath, "My Novel");
     await touchProject(projectPath, "My Novel");

@@ -62,7 +62,6 @@ export function parseStatus(stdout: string): GitStatus {
 
     if (line.startsWith("? ")) {
       changes.push({ path: line.slice(2), status: "untracked" });
-      continue;
     }
   }
 

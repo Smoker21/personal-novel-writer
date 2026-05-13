@@ -1,6 +1,6 @@
+import type { GitStatus } from "@novel-writer/shared-types";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { GitStatus } from "@novel-writer/shared-types";
 import { ConflictBanner } from "./ConflictBanner.js";
 
 const cleanStatus: GitStatus = {

@@ -1,23 +1,17 @@
 import { execSync, spawn } from "node:child_process";
-import { Hono } from "hono";
 import type { GitBinaryInfo, GitStatus } from "@novel-writer/shared-types";
+import { Hono } from "hono";
 import { parseStatus } from "../services/git-status-parser.js";
 import { resolveProjectPath } from "../services/project-resolver.js";
 
 function checkGitBinary(): GitBinaryInfo {
   try {
     const which = process.platform === "win32" ? "where" : "which";
-    const path =
-      execSync(`${which} git`)
-        .toString()
-        .trim()
-        .split(/\r?\n/)[0] ?? "";
+    const path = execSync(`${which} git`).toString().trim().split(/\r?\n/)[0] ?? "";
     const versionOut = execSync("git --version").toString();
     const m = versionOut.match(/\d+\.\d+\.\d+/);
     const version = m?.[0];
-    return version !== undefined
-      ? { installed: true, path, version }
-      : { installed: true, path };
+    return version !== undefined ? { installed: true, path, version } : { installed: true, path };
   } catch {
     return { installed: false };
   }
@@ -59,9 +53,6 @@ export const git = new Hono()
       const status: GitStatus = parseStatus(stdout);
       return c.json(status);
     } catch (err) {
-      return c.json(
-        { error: err instanceof Error ? err.message : String(err) },
-        500,
-      );
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
     }
   });
