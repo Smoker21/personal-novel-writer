@@ -11,7 +11,7 @@ describe("SettingsPage", () => {
     });
     expect(screen.getByText(/Ollama/)).toBeInTheDocument();
     expect(screen.getByText(/xAI/)).toBeInTheDocument();
-    expect(screen.getByText(/RWKV/)).toBeInTheDocument();
+    expect(screen.getByText(/RWKV Runner/)).toBeInTheDocument();
   });
 
   it("save button triggers PUT /api/settings and shows confirmation", async () => {
