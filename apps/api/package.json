@@ -16,6 +16,7 @@
     "@novel-writer/llm-adapter": "workspace:^",
     "@novel-writer/prompt-library": "workspace:^",
     "@novel-writer/shared-types": "workspace:*",
+    "better-sqlite3": "^12.10.0",
     "consola": "^3.3.0",
     "hono": "^4.6.0",
     "js-yaml": "^4.1.0",
@@ -25,6 +26,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "cross-env": "^7.0.3",

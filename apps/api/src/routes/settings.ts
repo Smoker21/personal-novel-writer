@@ -56,6 +56,31 @@ export const settings = new Hono()
         }
       }
     }
+    // INVALID_ROUTING: block save if routing primary provider is not enabled
+    const agentRoutingKeys = [
+      "chapterWriter",
+      "characterCardConsolidator",
+      "characterImageExtractor",
+      "statusUpdater",
+    ] as const;
+    for (const key of agentRoutingKeys) {
+      const policy = incoming.routing[key];
+      if (!policy?.primary) continue;
+      const colonIdx = policy.primary.indexOf(":");
+      const providerId = colonIdx >= 0 ? policy.primary.slice(0, colonIdx) : policy.primary;
+      const provConfig = incoming.providers[providerId as LLMProviderId];
+      if (provConfig && !provConfig.enabled) {
+        return c.json(
+          {
+            code: "INVALID_ROUTING",
+            message: `Provider "${providerId}" for ${key} is not enabled. Enable it first.`,
+            field: key,
+          },
+          400,
+        );
+      }
+    }
+
     await writeSettings(incoming);
     return c.json({ ok: true });
   })
