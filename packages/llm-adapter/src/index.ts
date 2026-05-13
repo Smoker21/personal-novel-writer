@@ -22,3 +22,7 @@ export { redactSecrets } from "./error.js";
 
 export { LLMRouter } from "./router.js";
 export { AnthropicProvider } from "./providers/anthropic.js";
+export { OpenAiCompatProvider } from "./providers/openai-compat.js";
+export { OpenAiProvider } from "./providers/openai.js";
+export { XaiProvider } from "./providers/xai.js";
+export { LmStudioProvider } from "./providers/lmstudio.js";
