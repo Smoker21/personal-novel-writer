@@ -91,3 +91,35 @@ export interface ApiErrorBody {
   message: string;
   fieldErrors?: Record<string, string>;
 }
+
+// ── M3 採用流程 ───────────────────────────────────────────────────────────
+
+export interface UndoEntry {
+  id: string;
+  type: "adopt-draft" | "apply-skill";
+  projectHash: string;
+  chapterNumber: number;
+  draftId?: string;
+  targetMainPath: string;
+  promptMarkerStartOffset: number | null;
+  label: string;
+  createdAt: string;
+  undone: boolean;
+}
+
+export interface AdoptRequest {
+  draftId: string;
+  confirmed: true;
+  force?: boolean;
+}
+
+export interface AdoptResponse {
+  mainPath: string;
+  promptPath: string;
+  statusUpdateJobId: string;
+  undoEntry: { id: string; label: string };
+}
+
+export interface UnadoptRequest {
+  undoEntryId: string;
+}

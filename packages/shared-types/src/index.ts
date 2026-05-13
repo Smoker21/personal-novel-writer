@@ -6,3 +6,4 @@ export * from "./character.js";
 export * from "./character-vision.js";
 export * from "./llm.js";
 export * from "./sse.js";
+export * from "./status-update.js";
