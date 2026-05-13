@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { mockCleanStatus, mockGitBinaryInstalled } from "./fixtures/git-status.js";
+import { mockCreateNovelResponse, mockOpenProjectResponse } from "./fixtures/projects.js";
 import { mockSettings } from "./fixtures/settings.js";
 
 export const handlers = [
@@ -14,4 +15,12 @@ export const handlers = [
   ),
   http.get("/api/git/check-binary", () => HttpResponse.json(mockGitBinaryInstalled)),
   http.get("/api/git/projects/:hash/status", () => HttpResponse.json(mockCleanStatus)),
+  http.post("/api/novels", () => HttpResponse.json(mockCreateNovelResponse)),
+  http.post("/api/projects/open", () => HttpResponse.json(mockOpenProjectResponse)),
+  http.post("/api/projects/recent/remove", () => HttpResponse.json({ removed: true })),
+  http.post("/api/projects/recent/clear", () =>
+    HttpResponse.json({ cleared: true, removedCount: 0 }),
+  ),
+  http.post("/api/projects/recent/relocate", () => HttpResponse.json(mockOpenProjectResponse)),
+  http.post("/api/projects/init-git", () => HttpResponse.json({ initialCommitSha: "abc123def" })),
 ];
