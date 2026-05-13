@@ -4,9 +4,10 @@
 > BDD: `docs/requirements/features/002-edit-character-card.feature`
 > Status: `Ready`
 > Owner: `spec-architect`
-> Last updated: `2026-05-12`
+> Last updated: `2026-05-13`
 > Depends on ADR: 0001（儲存）、0002（命名）、0003（技術棧）、0004（LLM adapter）、0007（git）、0008（前端架構）
 > Depends on spec: 009（設定頁 LLM routing）、010（git）
+> 修訂：`2026-05-13` — schema 加 `portrait` 與 `appearanceByChapter`（章節敏感外貌）；檔案佈局加 `characters/_assets/<slug>/`；圖片上傳與 vision 解析的具體 API 移到 [Spec 002b](./002b-character-card-from-image.md)；本 spec 只負責 schema 與「文字 + 統整」這條路徑
 
 ## 摘要
 
@@ -159,12 +160,22 @@ export interface CharacterFields {
   bloodType: "A" | "B" | "O" | "AB" | null;
   culturalBackground: string | null;
 
-  // 3. 外貌參考
+  // 3. 外貌參考（預設 / 基準）
   heightCm: number | null;
   bodyType: string | null;       // tag 或自由文字
   hairAndColor: string | null;
   eyes: string | null;
   otherFeatures: string | null;
+  clothing: string | null;       // 預設服裝風格（2026-05-13 新增）
+
+  // 3b. 圖片（path 相對於專案根；Story 002b）
+  portrait: {
+    default: string | null;                // 例：characters/_assets/蘇晴/default.jpg
+    byChapter: Record<number, string>;     // 例：{ 1: ".../chapter_0001.jpg", 5: ".../chapter_0005.jpg" }
+  };
+
+  // 3c. 章節外貌演進（optional；Story 002b 解析後或使用者手填；2026-05-13 新增）
+  appearanceByChapter: Record<number, string>;  // 章節編號 → markdown 段落
 
   // 4. 對話與寫作（此角色獨有；整體文風在 style.md）
   dialoguePace: "快" | "穩" | "慢" | null;
@@ -479,6 +490,41 @@ consolidator skill
 - [ ] **qa-3**: rename 流程的檔案 / git commit 完整性測試
 - [ ] **qa-4**: consolidate 失敗的 fallback 路徑測試
 
+## 與 Spec 002b 的分工
+
+| 議題 | Spec 002（本檔） | [Spec 002b](./002b-character-card-from-image.md) |
+|---|---|---|
+| CharacterFields schema | 定義（含 portrait / appearanceByChapter） | 引用 |
+| Frontmatter 序列化 / 解析 | 實作 | 引用 |
+| _index.md 維護 | 實作 | — |
+| AI 統整（character-card-consolidator） | 觸發合約 | — |
+| 角色 CRUD（新增 / 編輯文字欄位 / 刪除） | 完整 API | — |
+| **圖片上傳 / 儲存 / 解析** | — | 完整 API + Skill 觸發 |
+| Rename 時 _assets/ 跟著搬 | 邏輯（fs 操作） | 引用 |
+| Delete 時 _assets/ 跟著刪 | 邏輯（fs 操作） | 引用 |
+
+## 檔案系統佈局（修訂）
+
+```
+<project>/
+└── characters/
+    ├── _index.md
+    ├── _assets/                         # 圖片資產（Story 002b；2026-05-13 新增）
+    │   ├── 蘇晴/
+    │   │   ├── default.jpg              # portrait.default
+    │   │   ├── chapter_0001.jpg          # portrait.byChapter[1]
+    │   │   └── chapter_0005.jpg
+    │   └── 林書言/
+    │       └── default.png
+    ├── 蘇晴.md
+    ├── 蘇晴_status.md
+    ├── 林書言.md
+    └── 林書言_status.md
+```
+
+`_assets/` 進 git（無 .gitignore 排除）；MVP 接受 git repo 因圖片略增大。Rename / Delete 角色時 `_assets/<slug>/` 跟著搬 / 刪。
+
 ## 變更紀錄
 
 - `2026-05-12`: 初版 Ready
+- `2026-05-13`: schema 加 `portrait` 與 `appearanceByChapter` + clothing 欄位；檔案佈局加 `characters/_assets/<slug>/`；明列與 Spec 002b 的分工

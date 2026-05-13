@@ -41,7 +41,7 @@ interface ChapterWriterInput {
   writingStyle: string;                          // <project>/style.md；可為空
   storyStatus: string;                           // status/story_status.md
   characterStatuses: Record<string, string>;     // slug → <slug>_status.md 內容（一人一檔）
-  characters: CharacterCard[];                   // 該章涉及角色（依篩選規則）
+  characters: CharacterCardInContext[];          // 該章涉及角色（依篩選規則）；每個 character 含 currentAppearance（依 Spec 002b 章節敏感 lookup，2026-05-13）
   currentOutline: string | null;                 // 該章 outline（可選，沒則由 LLM 自由發揮但需符合 status）
   previousChapterFullText: string | null;        // 上一章主檔完整內容（依 Story 007 修訂；非 200 字摘要）
   userIntent?: string;                           // 使用者額外指示（短，optional）
@@ -57,6 +57,7 @@ interface ChapterWriterInput {
 - 其他章節的 outline / draft / prompt 歷史
 - 全部角色卡（只取該章涉及）
 - 全部 character_<slug>_status.md（只取該章涉及）
+- **角色 portrait 圖片本身**（chapter-writer 是純文字 Agent；圖片只給 character-image-extractor 用，解析後才以文字（`currentAppearance`）餵進此 Agent）
 - 模型 routing 政策（那是 LLMRouter 的事）
 
 ## 4. 輸出合約
@@ -92,7 +93,8 @@ interface ChapterWriterOutput {
 5. 銜接「上一章完整內容」的結尾，不要重新介紹人物或重複情節。
 6. 若提供「本章大綱」，嚴格依其情節走向；不可跑去寫不在大綱中的劇情。
 7. 第三人稱限制視角；不直接描寫主視角角色視野外的事，除非大綱明確要求。
-8. **只輸出章節正文**。不要：
+8. **角色當前外貌**：以「出場角色清單」中每個角色的 `currentAppearance` 欄位為準（已依本章編號 lookup 出對應版本）。涉及角色外貌、髮型、服裝細節時必須與 `currentAppearance` 一致；不可寫成早期 / 後期版本的樣子。例：若 `currentAppearance` 是「深藍色套裝」，本章該角色就是深藍色套裝，不是「米白色棉麻長裙」。
+9. **只輸出章節正文**。不要：
    - 加 Author's note、摘要、解釋
    - 加章節標題（# 標題）
    - 加 frontmatter（--- ... ---）
@@ -183,3 +185,4 @@ MVP 不做。
 ## 版本紀錄
 
 - `v0.1` (2026-05-12): 初版設計；依 Spec 005 與 model-evaluation 2026-05-12 qwen3-vl 結果擬定
+- `v0.2` (2026-05-13): 輸入合約改 `characters: CharacterCard[]` → `CharacterCardInContext[]`（含 currentAppearance）；system prompt 加規則 #8「角色當前外貌依 currentAppearance」；對應 Spec 002b 升 MVP（章節敏感外貌）

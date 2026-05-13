@@ -41,8 +41,9 @@ requirements/
 
 | ID | Story | Priority | Size | Status |
 |----|-------|----------|------|--------|
-| 002 | 新增 / 編輯角色卡（手動屬性） | P0 | M | ✏️ |
-| 011 | 從圖片產生角色外貌（VL） | P1 | M | 📋 |
+| 002 | 新增 / 編輯角色卡（欄位 + AI 統整 + portrait/appearanceByChapter schema） | P0 | M | ✅ Ready |
+| **002b** | **角色卡：上傳參考圖 → vision 解析（含章節敏感版本）** | **P0**（2026-05-13 升） | **M** | **✅ Ready** |
+| 002c | 文字 → AI 生圖 → vision 回寫 | P2 | L | 📋 v0.3+ |
 | 012 | AI 輔助產生角色個性（基於 MBTI + 設定） | P1 | M | 📋 |
 | 013 | 角色關係圖 / 索引維護 | P2 | M | 📋 |
 

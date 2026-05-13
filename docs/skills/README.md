@@ -51,16 +51,25 @@
 
 `docs/skills/` 中的設計即為應用內建 default，會在打包時複製到 `~/.novel-writer/skills/`。
 
-## 規劃中的 Skill（建議起點）
+## 已設計的 Skill（Designed）
 
-> 實際以 stories 與 PM 排序為準。
+| Slug | Status | 規格 | 受 style.md 影響 |
+|---|---|---|---|
+| [status-updater](./status-updater.md) | Designed | docs/skills/status-updater.md | ❌（結構化資料） |
+| [status-shortener](./status-updater.md#附錄status-shortener-skill) | Designed | 附於 status-updater 檔末 | ❌ |
+| [character-card-consolidator](./character-card-consolidator.md) | Designed | docs/skills/character-card-consolidator.md | ❌（設定文件） |
+| **[character-image-extractor](./character-image-extractor.md)** | **Designed 2026-05-13** | docs/skills/character-image-extractor.md | ❌（vision 解析→設定欄位） |
 
-- **polish-prose** — 潤飾選取段落，禁止改變角色名與情節
-- **shorten** — 在保留資訊量的前提下精簡選取段落
-- **expand** — 擴展選取段落，補齊細節
-- **make-dialogue-natural** — 把對白改得更口語化、更符合該角色設定
-- **add-sensory-details** — 補感官描寫（視 / 聽 / 嗅 / 觸 / 味）
-- **rewrite-as-style** — 改寫為指定寫作風格
+## 規劃中的 Skill（v0.2+，未設計）
+
+| Slug | 用途 | 受 style.md 影響 | 對應 Story |
+|---|---|---|---|
+| polish-prose | 潤飾選取段落 | ✅ | 021 |
+| shorten | 精簡段落 | ✅ | 021 |
+| expand | 擴展段落 | ✅ | 021 |
+| make-dialogue-natural | 對白口語化 | ✅ | 021 |
+| add-sensory-details | 補感官描寫 | ✅ | 021 |
+| rewrite-as-style | 改寫為指定風格 | ✅ | 021 |
 
 ## 設計原則
 

@@ -8,6 +8,7 @@
 > Status: `Ready`
 > Depends on: `001`、`009`（設定頁；AI 統整步驟需要已設定的 LLM provider）
 > 修訂：`2026-05-12` — 從「純樣板彙整」改為「結構化欄位 → AI 統整成連貫文字」；移除 weight、加入個性標籤 / 文化背景；vision 路徑明確切到 002b/002c。
+> 修訂：`2026-05-13` — 加 `portrait` 與 `appearanceByChapter` schema（外貌可隨章節演進）；圖片上傳與 vision 解析的具體流程在 [Story 002b](002b-character-card-from-image.md)；本 story 只負責 schema 與「文字 + 統整」這條路徑。
 
 ## 使用者故事
 
@@ -30,20 +31,21 @@ vision-based 角色卡（上傳照片或文字生圖 → 自動填外貌欄位�
 
 **包含：**
 - 在專案內新增、編輯、刪除角色卡
-- 結構化欄位輸入（六個區塊；見「資料模型」）
+- 結構化欄位輸入（六個區塊；見「資料模型」）+ `portrait` 與 `appearanceByChapter` schema
 - 「**AI 生成角色描述**」按鈕：把欄位送給外部 LLM（用 009 設定的預設模型）→ 產出連貫的角色敘述文字（200~500 字），填入「敘述」可編輯區
 - 使用者可手動微調 AI 生成的敘述
+- **章節外貌演進**：使用者可在角色卡編輯器為任意章節新增 / 編輯外貌描述（`appearanceByChapter[N]`），用以反映「該章節時角色穿什麼 / 看起來如何」；不提供時 fallback default
 - 角色卡儲存為 `characters/<slug>.md`：frontmatter 保留全部結構欄位（讓使用者下次回頭可改欄位 → re-generate）；body 為 AI 生成 / 使用者編輯的連貫敘述
 - **新增角色時同步建立** `characters/<slug>_status.md` 空骨架（依 Story 007）
-- **刪除角色時同步刪除** 對應的 `<slug>_status.md`
+- **刪除角色時同步刪除** 對應的 `<slug>_status.md` 與 `characters/_assets/<slug>/`（含所有圖檔）
 - 維護 `characters/_index.md`（角色列表 + 一句話描述）
 - 角色 slug 規則沿用 spec 001
 - 親密場景描寫參考區段獨立摺疊（避免一般場景被誤帶入；題材不適用時不擾人）
-- 所有角色相關的檔案動作（建立 / 編輯 / 刪除 / status 同步建立）都進 git commit（Story 010）
+- 所有角色相關的檔案動作（建立 / 編輯 / 刪除 / status 同步建立 / 圖片管理）都進 git commit（Story 010）
 
-**不包含（明確 defer）：**
-- 上傳參考圖 → vision 自動填外貌欄位 → [Story 002b](002b-character-card-from-image.md)，雲端 vision LLM（Gemini / Grok）
-- 文字描述 → AI 生圖 → vision 回寫描述 → [Story 002c](002c-character-card-from-text-to-image.md)，需要 image-gen 模型
+**不包含（移交其他 story）：**
+- **上傳圖片 + vision LLM 解析外貌** → [Story 002b](002b-character-card-from-image.md)（本 story 只負責 schema 的 `portrait` 與 `appearanceByChapter` 結構；不負責上傳 UI 與解析流程；**002b 2026-05-13 升 MVP**）
+- 文字描述 → AI 生圖 → vision 回寫描述 → [Story 002c](002c-character-card-from-text-to-image.md)，**v0.3+**
 - 角色關係圖（圖形化） → Story 013
 - 跨專案共用角色「角色資料庫」 → 不在此版本
 - 角色卡內嵌引用其他章節（ref / mentions）→ 不在此版本
@@ -74,15 +76,31 @@ culturalBackground: |       # 自由文字
   台灣台北出生長大，大學文學系，畢業後進出版社做編輯。
   童年喪母，由祖母帶大。
 
-# 3. 外貌參考（給 AI 推導視覺；皆選填）
+# 3. 外貌參考（預設 / 角色基準；給 AI 推導視覺；皆選填）
 heightCm: 165
 bodyType: 中等偏瘦           # tag：偏瘦 / 中等 / 微胖 / 結實 / 壯碩 / 自由文字
-hairAndColor: |             # 自由文字
+hairAndColor: |             # 自由文字（章節未 override 時的預設）
   黑色長髮，平日綁低馬尾。
 eyes: |
   雙眼皮，眼尾微下垂。
 otherFeatures: |
   鵝蛋臉，膚色偏白。指甲剪短沒擦顏色。
+clothing: |                  # 預設服裝風格（不指定章節時的「平常打扮」）
+  偏好素色棉麻，極少配戴飾品。
+
+# 3b. 圖片（path 相對於專案根；MVP 單張為主，schema 預留 array）— Story 002b
+portrait:
+  default: characters/_assets/蘇晴/default.jpg     # 預設 / 基準外貌圖（optional）
+  byChapter:
+    1: characters/_assets/蘇晴/chapter_0001.jpg     # 第 1 章版本圖（optional）
+    5: characters/_assets/蘇晴/chapter_0005.jpg
+
+# 3c. 章節外貌演進（optional；每章可 override 預設）— 新 2026-05-13
+appearanceByChapter:
+  1: |
+    雨夜走來；淺灰色棉麻長裙、米白色細針織背心、深咖啡色薄外套。長髮放下。
+  5: |
+    深藍色套裝，短瀏海剪了；指甲塗淡粉色。
 
 # 4. 對話與寫作（給 AI 推導口吻；皆選填）
 dialoguePace: 慢            # 快 / 穩 / 慢
