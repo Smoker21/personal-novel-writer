@@ -38,8 +38,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
 
   setProjectHash: (hash) => set({ projectHash: hash }),
   setChapter: (ctx) => set({ chapter: ctx }),
-  setTitle: (title) =>
-    set((s) => (s.chapter ? { chapter: { ...s.chapter, title } } : {})),
+  setTitle: (title) => set((s) => (s.chapter ? { chapter: { ...s.chapter, title } } : {})),
   markLoading: () => set({ state: { kind: "loading" } }),
   markClean: (newMtime, newContent, newFileTitle) =>
     set((s) => ({

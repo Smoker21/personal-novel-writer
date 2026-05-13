@@ -26,9 +26,7 @@ export function TitleInput({ value, onChange }: Props) {
         onBlur={() => setTouched(true)}
       />
       {hasUnsafe && (
-        <span className="text-xs text-amber-600 mt-1">
-          將會自動移除：/ \ : * ? " &lt; &gt; |
-        </span>
+        <span className="text-xs text-amber-600 mt-1">將會自動移除：/ \ : * ? " &lt; &gt; |</span>
       )}
       {touched && isEmpty && <span className="text-xs text-red-600 mt-1">標題不可為空</span>}
     </div>

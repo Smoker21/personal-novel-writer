@@ -9,7 +9,7 @@
  * - onContentRef 讓父元件取得 getContent 函式
  * - 父元件應以 key={`${projectHash}:${chapterNumber}`} 強制重建
  */
-import { defaultKeymap, history, historyKeymap, undo, redo } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, redo, undo } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
@@ -68,6 +68,7 @@ export function ChapterEditor({
     isDirtyRef.current = false;
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one-shot CM6 init; deps intentionally empty
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -193,10 +194,6 @@ export function ChapterEditor({
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 h-full overflow-hidden"
-      aria-label="章節內容編輯區"
-    />
+    <div ref={containerRef} className="flex-1 h-full overflow-hidden" aria-label="章節內容編輯區" />
   );
 }

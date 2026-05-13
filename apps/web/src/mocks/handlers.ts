@@ -29,9 +29,7 @@ export const handlers = [
   ),
   http.post("/api/projects/recent/relocate", () => HttpResponse.json(mockOpenProjectResponse)),
   http.post("/api/projects/init-git", () => HttpResponse.json({ initialCommitSha: "abc123def" })),
-  http.get("/api/projects/:hash/chapters/", () =>
-    HttpResponse.json({ chapters: mockChapterList }),
-  ),
+  http.get("/api/projects/:hash/chapters/", () => HttpResponse.json({ chapters: mockChapterList })),
   http.post("/api/projects/:hash/chapters/", () =>
     HttpResponse.json(mockCreateChapterResponse, { status: 201 }),
   ),

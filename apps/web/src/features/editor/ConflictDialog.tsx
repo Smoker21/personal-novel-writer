@@ -25,9 +25,7 @@ export function ConflictDialog({
         <h2 className="text-lg font-semibold">
           {kind === "open" ? "外部變更已偵測（開啟時）" : "儲存衝突（外部已修改）"}
         </h2>
-        <p className="text-sm text-gray-600">
-          .md 檔案在 app 外被修改過。請選擇要保留哪個版本：
-        </p>
+        <p className="text-sm text-gray-600">.md 檔案在 app 外被修改過。請選擇要保留哪個版本：</p>
 
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="border rounded p-2 space-y-1">
@@ -59,11 +57,7 @@ export function ConflictDialog({
           >
             強制儲存我的版本（覆寫伺服器）
           </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-500 text-sm"
-          >
+          <button type="button" onClick={onCancel} className="px-4 py-2 text-gray-500 text-sm">
             取消
           </button>
         </div>

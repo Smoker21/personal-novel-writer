@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { AppSettings } from "@novel-writer/shared-types";
+import { useEffect, useState } from "react";
 
 export function FirstLaunchWarningDialog() {
   const [acknowledged, setAcknowledged] = useState<boolean | null>(null);
@@ -47,7 +47,9 @@ export function FirstLaunchWarningDialog() {
         <ul className="text-sm space-y-2 list-disc ml-5">
           <li>Novel Writer 是個人本機工具，無雲端帳號，無資料同步服務。</li>
           <li>你的小說內容存在你選擇的資料夾，包含 git 版本歷史。</li>
-          <li>請定期備份：git push 到遠端、Google Drive / iCloud / OneDrive 同步該資料夾，或外接硬碟。</li>
+          <li>
+            請定期備份：git push 到遠端、Google Drive / iCloud / OneDrive 同步該資料夾，或外接硬碟。
+          </li>
           <li>如資料夾遺失，本應用無法復原。</li>
         </ul>
         <div className="flex flex-col gap-2 pt-3 border-t">
@@ -58,11 +60,7 @@ export function FirstLaunchWarningDialog() {
           >
             我已了解，不再顯示
           </button>
-          <button
-            type="button"
-            onClick={handleQuit}
-            className="px-4 py-2 border rounded text-sm"
-          >
+          <button type="button" onClick={handleQuit} className="px-4 py-2 border rounded text-sm">
             離開應用
           </button>
         </div>

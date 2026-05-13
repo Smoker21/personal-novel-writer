@@ -179,9 +179,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
 
       setInitialContent(contentToLoad);
       setInitialBaseMtime(serverChapter.mtime);
-      setInitialTitle(
-        caseLabel === "C" && draft ? draft.title : serverChapter.title,
-      );
+      setInitialTitle(caseLabel === "C" && draft ? draft.title : serverChapter.title);
       setCurrentChapter(n);
       // 用新 key 強制 ChapterEditor 重建（換章節時確保新 doc）
       setEditorKey((k) => k + 1);
@@ -239,10 +237,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
     setConflict(null);
     setEditorKey((k) => k + 1);
     setEditorReady(true);
-    store.markDirty(
-      conflict.localContent.replace(/\s/g, "").length,
-      Date.now(),
-    );
+    store.markDirty(conflict.localContent.replace(/\s/g, "").length, Date.now());
     showToast("保留本地草稿，請按儲存覆寫伺服器版本");
   }
 
@@ -297,6 +292,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
   // ── 首次自動載入最近章節（首個章節）────────────────────────────────────
 
   // 用 useEffect 在 mount 後觸發，避免 render 階段的 side effect
+  // biome-ignore lint/correctness/useExhaustiveDependencies: autoSelectFirstChapter 內已用 projectHash；只要 hash 變動才重做
   useEffect(() => {
     async function autoSelectFirstChapter() {
       const res = await fetch(`/api/projects/${projectHash}/chapters/`);
@@ -333,10 +329,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           </Link>
 
           <div className="flex-1">
-            <TitleInput
-              value={store.chapter?.title ?? ""}
-              onChange={handleTitleChange}
-            />
+            <TitleInput value={store.chapter?.title ?? ""} onChange={handleTitleChange} />
           </div>
 
           <EditorStatusIndicator state={store.state} />

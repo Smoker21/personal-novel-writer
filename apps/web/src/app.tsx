@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { RouterProvider } from "react-router-dom";
+import { FirstLaunchWarningDialog } from "./features/onboarding/FirstLaunchWarningDialog.js";
 import { router } from "./router.js";
 
 export function App() {
@@ -14,5 +15,10 @@ export function App() {
   }, [ready]);
 
   if (!ready) return null;
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <FirstLaunchWarningDialog />
+      <RouterProvider router={router} />
+    </>
+  );
 }

@@ -1,4 +1,4 @@
-import { readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { countChars } from "@novel-writer/shared-types";
 import { sanitizeSlug } from "./sanitize.js";
@@ -56,10 +56,7 @@ async function findChapterFile(
   return null;
 }
 
-export async function readChapter(
-  projectPath: string,
-  n: number,
-): Promise<ChapterFile | null> {
+export async function readChapter(projectPath: string, n: number): Promise<ChapterFile | null> {
   const loc = await findChapterFile(projectPath, n);
   if (!loc) return null;
   const content = await readFile(loc.fullPath, "utf-8");
@@ -91,10 +88,7 @@ export async function listChapters(projectPath: string): Promise<ChapterListEntr
     if (seenNumbers.has(num)) continue;
     seenNumbers.add(num);
     const fullPath = join(chaptersDir, file);
-    const [content, s] = await Promise.all([
-      readFile(fullPath, "utf-8"),
-      stat(fullPath),
-    ]);
+    const [content, s] = await Promise.all([readFile(fullPath, "utf-8"), stat(fullPath)]);
     const promptFile = `chapter_${match[1]}_prompt.md`;
     const hasPromptFile = files.includes(promptFile);
     entries.push({
@@ -110,10 +104,7 @@ export async function listChapters(projectPath: string): Promise<ChapterListEntr
   return entries;
 }
 
-export async function createChapter(
-  projectPath: string,
-  title?: string,
-): Promise<ChapterFile> {
+export async function createChapter(projectPath: string, title?: string): Promise<ChapterFile> {
   const existing = await listChapters(projectPath);
   const nextNum = existing.length > 0 ? Math.max(...existing.map((c) => c.number)) + 1 : 1;
   const finalTitle = title?.trim() || "未命名";

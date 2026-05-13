@@ -8,7 +8,6 @@ import type {
 } from "@novel-writer/shared-types";
 import { Hono } from "hono";
 import { z } from "zod";
-import { commitIfChanged } from "../services/commit-policy.js";
 import {
   createChapter,
   deleteChapter,
@@ -17,6 +16,7 @@ import {
   renameChapter,
   saveChapter,
 } from "../services/chapter-fs.js";
+import { commitIfChanged } from "../services/commit-policy.js";
 import { resolveProjectPath } from "../services/project-resolver.js";
 
 const saveSchema = z.object({

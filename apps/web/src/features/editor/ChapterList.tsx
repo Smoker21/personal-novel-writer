@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { ChapterListItem } from "@novel-writer/shared-types";
+import { useEffect, useState } from "react";
 
 interface Props {
   projectHash: string;
@@ -8,7 +8,12 @@ interface Props {
   onCreateChapter: () => void;
 }
 
-export function ChapterList({ projectHash, currentChapter, onSelectChapter, onCreateChapter }: Props) {
+export function ChapterList({
+  projectHash,
+  currentChapter,
+  onSelectChapter,
+  onCreateChapter,
+}: Props) {
   const [chapters, setChapters] = useState<ChapterListItem[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -19,6 +24,7 @@ export function ChapterList({ projectHash, currentChapter, onSelectChapter, onCr
     setChapters(data.chapters);
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh closes over projectHash; intentional
   useEffect(() => {
     void refresh();
   }, [projectHash]);
