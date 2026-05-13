@@ -1,11 +1,7 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { CharacterCard, CreateNovelRequest, ProjectMeta } from "@novel-writer/shared-types";
 import yaml from "js-yaml";
-import type {
-  CharacterCard,
-  CreateNovelRequest,
-  ProjectMeta,
-} from "@novel-writer/shared-types";
 import { sanitizeSlug } from "./sanitize.js";
 
 export interface CreatedProject {
@@ -17,9 +13,7 @@ export interface CreatedProject {
   characters: CharacterCard[];
 }
 
-function resolveSlugs(
-  inputs: Array<{ name: string; description: string }>,
-): CharacterCard[] {
+function resolveSlugs(inputs: Array<{ name: string; description: string }>): CharacterCard[] {
   const used = new Set<string>();
   return inputs.map((c) => {
     const base = sanitizeSlug(c.name);
@@ -39,7 +33,7 @@ function buildIndexMd(characters: CharacterCard[]): string {
   for (const c of characters) {
     lines.push(`- [${c.name}](./${c.slug}.md) — ${c.description}`);
   }
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 function buildCharacterMd(c: CharacterCard): string {
@@ -69,31 +63,15 @@ export async function createProjectFiles(
     const firstChapterPath = join(projectPath, "chapters", firstChapterFile);
 
     await Promise.all([
-      writeFile(
-        join(projectPath, "project.yaml"),
-        yaml.dump(meta, { lineWidth: -1 }),
-        "utf-8",
-      ),
+      writeFile(join(projectPath, "project.yaml"), yaml.dump(meta, { lineWidth: -1 }), "utf-8"),
       writeFile(join(projectPath, "synopsis.md"), `${req.synopsis}\n`, "utf-8"),
-      writeFile(
-        join(projectPath, "characters", "_index.md"),
-        buildIndexMd(characters),
-        "utf-8",
-      ),
+      writeFile(join(projectPath, "characters", "_index.md"), buildIndexMd(characters), "utf-8"),
       ...characters.map((c) =>
-        writeFile(
-          join(projectPath, "characters", `${c.slug}.md`),
-          buildCharacterMd(c),
-          "utf-8",
-        ),
+        writeFile(join(projectPath, "characters", `${c.slug}.md`), buildCharacterMd(c), "utf-8"),
       ),
       writeFile(firstChapterPath, "", "utf-8"),
       writeFile(join(projectPath, "status", "story_status.md"), "", "utf-8"),
-      writeFile(
-        join(projectPath, "status", "character_status.md"),
-        "",
-        "utf-8",
-      ),
+      writeFile(join(projectPath, "status", "character_status.md"), "", "utf-8"),
     ]);
 
     return {

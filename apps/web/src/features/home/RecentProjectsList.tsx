@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
 import type { OpenProjectResponse, RecentProject } from "@novel-writer/shared-types";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   projects: RecentProject[];

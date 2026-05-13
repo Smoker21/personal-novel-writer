@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
 import type { OpenProjectResponse } from "@novel-writer/shared-types";
+import { useNavigate } from "react-router-dom";
 import { pickFolder } from "../../lib/folder-picker.js";
 
 interface Props {
@@ -27,11 +27,7 @@ export function BrowseFolderButton({ onError }: Props) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="px-4 py-2 border rounded text-sm"
-    >
+    <button type="button" onClick={handleClick} className="px-4 py-2 border rounded text-sm">
       瀏覽資料夾…
     </button>
   );

@@ -25,7 +25,8 @@ export function CharacterListInput({ value, onChange }: Props) {
   return (
     <div className="space-y-3">
       {value.map((c, idx) => (
-        <div key={idx} className="border rounded p-3 space-y-2">
+        // biome-ignore lint/suspicious/noArrayIndexKey: 表單項目，順序穩定，無 reorder
+        <div key={`char-${idx}`} className="border rounded p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500">角色 {idx + 1}</span>
             {value.length > 1 && (

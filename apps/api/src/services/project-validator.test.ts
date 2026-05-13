@@ -1,13 +1,8 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { validateProject } from "./project-validator.js";
 
 describe("validateProject", () => {
@@ -36,16 +31,8 @@ describe("validateProject", () => {
       "utf-8",
     );
     writeFileSync(join(projectPath, "synopsis.md"), "", "utf-8");
-    writeFileSync(
-      join(projectPath, "characters", "_index.md"),
-      "",
-      "utf-8",
-    );
-    writeFileSync(
-      join(projectPath, "status", "story_status.md"),
-      "",
-      "utf-8",
-    );
+    writeFileSync(join(projectPath, "characters", "_index.md"), "", "utf-8");
+    writeFileSync(join(projectPath, "status", "story_status.md"), "", "utf-8");
     return projectPath;
   }
 
@@ -109,9 +96,7 @@ describe("validateProject", () => {
     const result = await validateProject(path, false);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(
-        result.data.warnings.find((w) => w.code === "no_git_repo"),
-      ).toBeDefined();
+      expect(result.data.warnings.find((w) => w.code === "no_git_repo")).toBeDefined();
     }
   });
 
@@ -121,9 +106,7 @@ describe("validateProject", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       const w = result.data.warnings.find(
-        (w) =>
-          w.code === "missing_optional_file" &&
-          w.message.includes("style.md"),
+        (w) => w.code === "missing_optional_file" && w.message.includes("style.md"),
       );
       expect(w).toBeDefined();
     }

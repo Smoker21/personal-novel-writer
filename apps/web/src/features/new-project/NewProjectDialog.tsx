@@ -1,6 +1,6 @@
+import type { ApiErrorBody, CreateNovelResponse } from "@novel-writer/shared-types";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { ApiErrorBody, CreateNovelResponse } from "@novel-writer/shared-types";
 import { pickFolder } from "../../lib/folder-picker.js";
 import { CharacterListInput } from "./CharacterListInput.js";
 import { useNewProjectForm } from "./useNewProjectForm.js";

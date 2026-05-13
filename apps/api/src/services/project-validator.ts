@@ -1,7 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import yaml from "js-yaml";
 import type { ProjectMeta, ProjectOpenWarning } from "@novel-writer/shared-types";
+import yaml from "js-yaml";
 
 const APP_SUPPORTED_SCHEMA = 1;
 
@@ -43,8 +43,7 @@ export async function validateProject(
   path: string,
   forceOpen: boolean,
 ): Promise<
-  | { ok: true; data: ValidationOk }
-  | { ok: false; error: ValidationError; message: string }
+  { ok: true; data: ValidationOk } | { ok: false; error: ValidationError; message: string }
 > {
   if (!isAbsolute(path) || path.includes("..")) {
     return {
@@ -78,11 +77,7 @@ export async function validateProject(
   try {
     const raw = await readFile(yamlPath, "utf-8");
     const parsed = yaml.load(raw) as Partial<ProjectMeta> | null;
-    if (
-      !parsed ||
-      typeof parsed.title !== "string" ||
-      typeof parsed.schemaVersion !== "number"
-    ) {
+    if (!parsed || typeof parsed.title !== "string" || typeof parsed.schemaVersion !== "number") {
       throw new Error("missing required fields");
     }
     meta = {
@@ -97,8 +92,7 @@ export async function validateProject(
         code: "CORRUPTED_PROJECT_YAML",
         status: STATUS_MAP["CORRUPTED_PROJECT_YAML"],
       },
-      message:
-        err instanceof Error ? err.message : "yaml parse failed",
+      message: err instanceof Error ? err.message : "yaml parse failed",
     };
   }
 

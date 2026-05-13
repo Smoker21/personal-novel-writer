@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
 import type { CreateNovelRequest } from "@novel-writer/shared-types";
+import { useCallback, useState } from "react";
 
 export interface FormState {
   step: 1 | 2 | 3;
@@ -34,9 +34,7 @@ export function useNewProjectForm() {
     if (state.step === 1) return state.title.trim() !== "" && state.parentFolder.trim() !== "";
     if (state.step === 2) return state.synopsis.trim().length >= 10;
     if (state.step === 3) {
-      return state.characters.every(
-        (c) => c.name.trim() !== "" && c.description.trim() !== "",
-      );
+      return state.characters.every((c) => c.name.trim() !== "" && c.description.trim() !== "");
     }
     return false;
   }, [state]);

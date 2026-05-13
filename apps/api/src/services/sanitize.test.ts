@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeSlug, sanitizeTitle, isWindowsReservedName } from "./sanitize.js";
+import { isWindowsReservedName, sanitizeSlug, sanitizeTitle } from "./sanitize.js";
 
 describe("sanitizeSlug", () => {
   it("keeps CJK characters", () => {

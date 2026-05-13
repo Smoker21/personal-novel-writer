@@ -8,9 +8,7 @@ export interface ProjectStats {
   lastChapter: number | null;
 }
 
-export async function summarizeProject(
-  projectPath: string,
-): Promise<ProjectStats> {
+export async function summarizeProject(projectPath: string): Promise<ProjectStats> {
   const chaptersDir = join(projectPath, "chapters");
   let files: string[];
   try {
@@ -29,7 +27,6 @@ export async function summarizeProject(
 
   return {
     chapterCount: chapterNumbers.length,
-    lastChapter:
-      chapterNumbers.length > 0 ? Math.max(...chapterNumbers) : null,
+    lastChapter: chapterNumbers.length > 0 ? Math.max(...chapterNumbers) : null,
   };
 }

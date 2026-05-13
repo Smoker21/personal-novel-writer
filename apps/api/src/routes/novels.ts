@@ -1,9 +1,9 @@
-import { access, constants } from "node:fs/promises";
+import { constants, access } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import type { ApiErrorBody, CreateNovelResponse } from "@novel-writer/shared-types";
+import { Hono } from "hono";
+import { z } from "zod";
 import { commitIfChanged } from "../services/commit-policy.js";
 import { git } from "../services/git.js";
 import { createProjectFiles } from "../services/project-fs.js";
@@ -89,7 +89,7 @@ export const novels = new Hono().post(
       );
     }
 
-    let created;
+    let created: Awaited<ReturnType<typeof createProjectFiles>>;
     try {
       created = await createProjectFiles(req, projectPath);
     } catch (err) {

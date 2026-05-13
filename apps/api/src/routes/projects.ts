@@ -1,12 +1,13 @@
 import { spawn } from "node:child_process";
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import type { ApiErrorBody, OpenProjectResponse } from "@novel-writer/shared-types";
+import { Hono } from "hono";
+import { z } from "zod";
 import { commitIfChanged } from "../services/commit-policy.js";
+import { parseStatus } from "../services/git-status-parser.js";
 import { git } from "../services/git.js";
-import { validateProject } from "../services/project-validator.js";
 import { summarizeProject } from "../services/project-summary.js";
+import { validateProject } from "../services/project-validator.js";
 import {
   addRecentProject,
   clearRecentProjects,
@@ -15,7 +16,6 @@ import {
   removeRecentProject,
   updateRecentProjectMeta,
 } from "../services/recent-projects-store.js";
-import { parseStatus } from "../services/git-status-parser.js";
 
 const openSchema = z.object({
   path: z.string().min(1),
@@ -33,11 +33,13 @@ function runGitStatus(projectPath: string): Promise<string> {
     const proc = spawn("git", ["status", "--porcelain=v2", "--branch"], { cwd: projectPath });
     let stdout = "";
     let stderr = "";
-    proc.stdout?.on("data", (c: Buffer) => (stdout += String(c)));
-    proc.stderr?.on("data", (c: Buffer) => (stderr += String(c)));
-    proc.on("close", (code) =>
-      code === 0 ? resolve(stdout) : reject(new Error(stderr)),
-    );
+    proc.stdout?.on("data", (c: Buffer) => {
+      stdout += String(c);
+    });
+    proc.stderr?.on("data", (c: Buffer) => {
+      stderr += String(c);
+    });
+    proc.on("close", (code) => (code === 0 ? resolve(stdout) : reject(new Error(stderr))));
     proc.on("error", reject);
   });
 }

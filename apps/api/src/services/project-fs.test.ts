@@ -1,8 +1,8 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createProjectFiles } from "./project-fs.js";
 
 describe("createProjectFiles", () => {
@@ -36,15 +36,9 @@ describe("createProjectFiles", () => {
     expect(existsSync(join(projectPath, "synopsis.md"))).toBe(true);
     expect(existsSync(join(projectPath, "characters", "_index.md"))).toBe(true);
     expect(existsSync(join(projectPath, "characters", "林川.md"))).toBe(true);
-    expect(
-      existsSync(join(projectPath, "chapters", "chapter_0001_未命名.md")),
-    ).toBe(true);
-    expect(existsSync(join(projectPath, "status", "story_status.md"))).toBe(
-      true,
-    );
-    expect(
-      existsSync(join(projectPath, "status", "character_status.md")),
-    ).toBe(true);
+    expect(existsSync(join(projectPath, "chapters", "chapter_0001_未命名.md"))).toBe(true);
+    expect(existsSync(join(projectPath, "status", "story_status.md"))).toBe(true);
+    expect(existsSync(join(projectPath, "status", "character_status.md"))).toBe(true);
     expect(existsSync(join(projectPath, "agents"))).toBe(true);
     expect(existsSync(join(projectPath, "skills"))).toBe(true);
   });
@@ -60,10 +54,7 @@ describe("createProjectFiles", () => {
       },
       projectPath,
     );
-    const yamlContent = readFileSync(
-      join(projectPath, "project.yaml"),
-      "utf-8",
-    );
+    const yamlContent = readFileSync(join(projectPath, "project.yaml"), "utf-8");
     const parsed = yaml.load(yamlContent) as {
       title: string;
       schemaVersion: number;
@@ -133,10 +124,7 @@ describe("createProjectFiles", () => {
       },
       projectPath,
     );
-    const index = readFileSync(
-      join(projectPath, "characters", "_index.md"),
-      "utf-8",
-    );
+    const index = readFileSync(join(projectPath, "characters", "_index.md"), "utf-8");
     expect(index).toContain("Bob");
     expect(index).toContain("tall guy");
   });
