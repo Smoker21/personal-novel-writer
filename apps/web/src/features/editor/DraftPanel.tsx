@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useDraftStore } from "../../stores/draft-store";
+import { AdoptButton } from "./AdoptButton";
 
 interface Props {
   projectHash: string;
@@ -7,8 +8,18 @@ interface Props {
 }
 
 export function DraftPanel({ projectHash, chapterNumber }: Props) {
-  const { status, text, modelId, degradedTo, abort, reset, setText, setStatus, setDraftId } =
-    useDraftStore();
+  const {
+    status,
+    text,
+    draftId,
+    modelId,
+    degradedTo,
+    abort,
+    reset,
+    setText,
+    setStatus,
+    setDraftId,
+  } = useDraftStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll as text streams in
@@ -110,14 +121,13 @@ export function DraftPanel({ projectHash, chapterNumber }: Props) {
             >
               重產出
             </button>
-            <button
-              type="button"
-              disabled
-              title="採用功能將在下一版啟用"
-              className="rounded bg-indigo-800 px-3 py-1.5 text-xs text-indigo-300 opacity-50 cursor-not-allowed"
-            >
-              採用（下版啟用）
-            </button>
+            {draftId && (
+              <AdoptButton
+                projectHash={projectHash}
+                chapterNumber={chapterNumber}
+                draftId={draftId}
+              />
+            )}
           </>
         )}
       </div>
