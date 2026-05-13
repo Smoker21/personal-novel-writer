@@ -1,6 +1,6 @@
 # MVP Scope（v0.1）
 
-> 作者：PM + 使用者共議，2026-05-12
+> 作者：PM + 使用者共議，2026-05-12 初版；2026-05-13 修訂（升 002b + 章節敏感外貌）
 > Status: `Draft`（最後一輪確認後升 Ready）
 > 適用範圍：Novel Writer 應用程式 v0.1 — 第一個可用的個人本機小說撰寫工具
 
@@ -13,7 +13,9 @@
 - 章節定稿後 AI 自動更新故事與人物的長期記憶（可手動 / 可精簡）
 - 所有內容透過 git 版本控制保存
 
-…的最小可用工具。**不**做：協作、雲端帳號、影像、生圖、章節大綱 AI、續寫、審稿、潤飾 Skill、模型選擇器 UI 等。
+…**以及上傳角色參考圖讓 vision LLM 解析外貌 / 髮型 / 服裝（含章節敏感的外貌演進）**…
+
+…的最小可用工具。**不**做：協作、雲端帳號、生圖、章節大綱 AI、續寫、審稿、潤飾 Skill、模型選擇器 UI 等。
 
 ## Personas 對應
 
@@ -21,7 +23,7 @@
 |---|---|---|
 | `hobbyist-author` | ✅ 是 | 全流程可用：手寫 / AI 寫 / 採用 / 狀態自動延續 |
 | `serial-author` | ✅ 是（核心） | status-updater 解決連載失憶問題；多章歷程 git 可追 |
-| `worldbuilder-author` | ⚠️ 部分 | 角色卡 MVP 有了（含 AI 統整），但場景庫只能手寫進 story_status.md（依 Story 007）；vision 角色卡延後 |
+| `worldbuilder-author` | ✅ 是 | 角色卡 MVP 含 AI 統整 + vision 圖片解析（含章節敏感外貌）；場景庫仍手寫進 story_status.md（依 Story 007） |
 
 ## MVP scope 表
 
@@ -31,7 +33,7 @@
 |---|---|---|---|---|---|
 | **001** | 建立新小說專案 | **M** | M | none | 根 story；其他 story 全依賴 |
 | **002** | 角色卡編輯（欄位輸入 + AI 統整） | **M** | M | 001、009 | worldbuilder persona 核心；AI 統整為新 MVP 能力 |
-| 002b | 角色卡：上傳參考圖 → vision | **D** | M | 002、009 | 雲端 vision 多模態 adapter 路徑 v0.2 才做 |
+| **002b**（**升級 2026-05-13**） | 角色卡：上傳參考圖 → vision 解析外貌；含章節敏感版本 | **M** | M | 002、009、ADR-0009 | 章節敏感外貌（每章可上傳當章版本）；vision LLM adapter 同步擴充 |
 | 002c | 角色卡：文字 → 生圖 → vision | **D** | L | 002、002b | image-gen + vision 雙依賴；v0.3+ |
 | **003** | 章節編輯器 + autosave（兩層儲存）| **M** | M | 001 | autosave→browser，「儲存」按鈕→.md（觸發 git/status）|
 | **004** | Undo / Redo（用 lib 內建）| **M** | S | 003、005、006、010 | 簡化版：用 web editor lib 內建即可 |
@@ -48,13 +50,13 @@
 | 015 | 刪除 / 重新命名專案 | **D** | S | 008 | 邊緣，使用者手動改資料夾也行 |
 | 016 | 推到雲端 git remote | **D** | M | 010 | Drive 同步 .git/ 已給備份；GitHub push v0.2 加 |
 
-### MVP 共 11 個 story
+### MVP 共 12 個 story（2026-05-13 升 002b）
 
-001 / 002 / 003 / 004 / 005 / 006 / 007 / 008 / 009 / 010 + Story 002 隱含的 Skill `character-card-consolidator`（在 002 內處理）
+001 / 002 / **002b** / 003 / 004 / 005 / 006 / 007 / 008 / 009 / 010 + Story 002 隱含的 Skill `character-card-consolidator`（在 002 內處理） + Story 002b 對應的 Skill `character-image-extractor`
 
-### Defer 共 6 個 story
+### Defer 共 5 個 story
 
-002b / 002c / 011 / 012 / 013 / 014 / 015 / 016（v0.2 / v0.3）
+002c / 011 / 012 / 013 / 014 / 015 / 016（v0.2 / v0.3）
 
 ### Cut 項目
 
@@ -137,21 +139,25 @@
 - **Quick preset 按鈕**：全雲端 / Cloud+地端 / 全地端 / 測試版（依 model-evaluation 結果）
 - **API key 明文存** `~/.novel-writer/settings.yaml`（個人本機應用，不加密）
 
-### Vision 與 image-gen（defer）
-- 002b：上傳參考圖 → vision LLM 寫外貌（雲端 Gemini / Grok 為主，地端 qwen3-vl 為 fallback）
-- 002c：文字 → image-gen → vision 回寫（cloud DALL-E / Imagen 為主）
-- 都 v0.2+
+### Vision（MVP）與 image-gen（defer）
+- **002b：上傳參考圖 → vision LLM 解析外貌**（雲端 Gemini / Grok / Claude 為主，地端 qwen3-vl 為 fallback）— **2026-05-13 升 MVP**
+  - 圖片按章節 + 預設命名（`characters/_assets/<slug>/default.jpg` / `chapter_<NNNN>.jpg`）
+  - 角色卡 frontmatter 加 `portrait` 與 `appearanceByChapter` 結構
+  - chapter-writer 在寫第 N 章時：依 `appearanceByChapter` 找 ≤ N 的最大者 fallback default 作 currentAppearance
+  - 對應 LLM adapter 擴充見 [ADR-0009](../architecture/adr/0009-llm-adapter-vision.md)
+- 002c：文字 → image-gen → vision 回寫（cloud DALL-E / Imagen 為主）— **v0.3+**
 
-## MVP Skill / Agent 清單（待 ai-agent-designer 撰寫）
+## MVP Skill / Agent 清單
 
-| Skill / Agent 名 | 類型 | 用途 | 對應 Story |
-|---|---|---|---|
-| `chapter-writer` | Agent（多步） | 寫整章草稿 | 005 |
-| `status-updater` | Skill | 章節後更新 status | 007 |
-| `status-shortener` | Skill | AI 精簡 status 檔 | 007 |
-| `character-card-consolidator` | Skill | 欄位 → 連貫角色描述 | 002 |
+| Skill / Agent 名 | 類型 | 用途 | 對應 Story | Status |
+|---|---|---|---|---|
+| `chapter-writer` | Agent（多步） | 寫整章草稿 | 005 | Designed |
+| `status-updater` | Skill | 章節後更新 status | 007 | Designed |
+| `status-shortener` | Skill | AI 精簡 status 檔 | 007 | Designed（附於 status-updater 末） |
+| `character-card-consolidator` | Skill | 欄位 → 連貫角色描述 | 002 | Designed |
+| **`character-image-extractor`** | **Skill（vision）** | **角色圖 → 結構化外貌 JSON（含章節脈絡）** | **002b** | **Designed 2026-05-13** |
 
-未來 v0.2+ Agent / Skill：`chapter-titler`、`continuity-checker`、`outline-generator`、`polish-prose`、`scene-builder`、`character-vision-extractor` 等
+未來 v0.2+ Agent / Skill：`chapter-titler`、`continuity-checker`、`outline-generator`、`polish-prose`、`scene-builder`、`character-image-gen` 等
 
 ## 不保證 / 已知 trade-off
 

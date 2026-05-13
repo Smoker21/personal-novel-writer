@@ -102,12 +102,45 @@ server 端的 `ContextCollector`（`apps/api/src/services/context-collector.ts`�
 ```ts
 interface ChapterContext {
   synopsis: string;
+  writingStyle: string;                  // <project>/style.md 完整內容；不存在或空時為空字串
   storyStatus: string;
-  characterStatus: string;
-  characters: CharacterCard[];           // 從 characters/*.md 解析
+  characterStatuses: Record<string, string>;  // 一人一檔（依 Story 007 修訂）：slug → <slug>_status.md 內容
+  characters: CharacterCardInContext[];  // 含 currentAppearance（依 Spec 002b 2026-05-13）
   currentOutline: string | null;
-  previousChapterSummary: string | null; // 取 chapter_<N-1>_summary 或從前章主檔末段截 200 字
-  contextHash: string;                   // sha256 of all of the above（含角色卡的 frontmatter）
+  previousChapterFullText: string | null; // 依 Story 005 修訂：上一章完整內容（不再 200 字摘要）
+  contextHash: string;                   // sha256 of all of the above（含 currentAppearance、writingStyle）
+}
+
+interface CharacterCardInContext {
+  slug: string;
+  name: string;
+  fields: CharacterFields;               // 完整 frontmatter（含 personality / culturalBackground / dialogue 等）
+  body: string;                          // characters/<slug>.md 的連貫敘述段
+
+  /**
+   * 依當前章節 N 解出的「該章該角色外貌」：
+   *   1. 若 fields.appearanceByChapter[K] 存在且 K ≤ N，取最大的 K
+   *   2. 否則拼接 fields 中扁平外貌欄位（hairAndColor / eyes / bodyType / otherFeatures / clothing）
+   *
+   * chapter-writer 看到的「該角色當前長相」就是這個欄位。
+   * 注意：角色 portrait 圖片**不直接餵給 chapter-writer**（純文字 Agent）；
+   * vision 圖僅供 character-image-extractor 解析後寫進 appearanceByChapter / 扁平欄位。
+   */
+  currentAppearance: string;
+}
+```
+
+`lookupAppearance` 實作（依 [Spec 002b](./002b-character-card-from-image.md) 規範）：
+
+```ts
+function lookupAppearance(fields: CharacterFields, currentChapter: number): string {
+  const chapters = Object.keys(fields.appearanceByChapter)
+    .map(Number).filter(n => n <= currentChapter).sort((a, b) => b - a);
+  if (chapters.length > 0) return fields.appearanceByChapter[chapters[0]];
+  return [
+    fields.hairAndColor, fields.eyes, fields.bodyType, fields.otherFeatures,
+    fields.clothing && `服裝：${fields.clothing}`,
+  ].filter(Boolean).join("\n");
 }
 ```
 
@@ -120,7 +153,8 @@ interface ChapterContext {
 | characterStatus | 否 | 完整 | 視為空字串 |
 | characters | 是（≥1） | 全選或子集（見下） | 400 `MISSING_CONTEXT` |
 | currentOutline | 否 | 完整 | 視為 null（提示詞中告知 LLM「無 outline，自由發揮但需符合 status」） |
-| previousChapterSummary | 否 | 200 字 | 第一章為 null |
+| previousChapterFullText | 否 | 上一章完整內容（依 Story 005 修訂） | 第一章為 null |
+| characters[i].currentAppearance | 是（每個 character） | 依 lookupAppearance 解出 | 完全沒外貌欄位時用 placeholder「（無外貌描述）」 |
 
 **「該章相關角色」的選取**（Story 005 開放問題）：
 
@@ -133,7 +167,7 @@ interface ChapterContext {
 蒐集完先估算 token（用 `js-tiktoken` cl100k_base 粗估）。若超過 model 的 `contextWindow * 0.75`：
 
 1. 嘗試把 `characters` 從全選縮為「前 5 名按 outline 排序」
-2. 若仍超 → 把 `previousChapterSummary` 進一步縮到 100 字
+2. 若仍超 → 把 `previousChapterFullText` 改取末尾 1000 字
 3. 若仍超 → 回 400 `CONTEXT_TOO_LARGE`，前端引導使用者到狀態 / 角色卡精簡
 
 ## 資料模型
@@ -170,7 +204,8 @@ export interface PromptSnapshot {
     characterStatusHash: string;
     characterHashes: Record<string, string>;
     outlineHash: string | null;
-    previousChapterSummaryHash: string | null;
+    previousChapterFullTextHash: string | null;
+    currentAppearanceHashes: Record<string, string>;  // slug → sha256(currentAppearance)；2026-05-13 加
   };
   generatedAt: string;
   durationMs: number;
@@ -293,3 +328,9 @@ client                 apps/api                  ContextCollector  LLMRouter   C
 ## 變更紀錄
 
 - `2026-05-10`: 初版 Ready
+- `2026-05-13`: ChapterContext 對齊 Story 005/007 修訂版 + Spec 002b 升 MVP：
+  - 加 `writingStyle: string`（讀 `<project>/style.md`；依 style.md 邊界規則）
+  - `characterStatus: string` → `characterStatuses: Record<slug, string>`（一人一檔，對齊 Spec 007）
+  - `previousChapterSummary` → `previousChapterFullText`（完整內容，對齊 Story 005）
+  - `characters: CharacterCard[]` → `characters: CharacterCardInContext[]`（含 `currentAppearance` 動態 lookup，依 Spec 002b 升 MVP）
+  - PromptSnapshot.context 加 `writingStyleHash` / `characterStatusHashes` / `currentAppearanceHashes` / `previousChapterFullTextHash`
