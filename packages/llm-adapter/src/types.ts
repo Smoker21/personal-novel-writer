@@ -58,7 +58,8 @@ export interface GenerateResponse {
 export type StreamChunk =
   | { type: "text"; text: string }
   | { type: "usage"; usage: Usage }
-  | { type: "finish"; finishReason: FinishReason; modelId: string };
+  | { type: "finish"; finishReason: FinishReason; modelId: string }
+  | { type: "degraded"; fromModel: string; toModel: string };
 
 export interface ModelCapabilities {
   contextWindow: number;
@@ -95,9 +96,7 @@ export interface RoutingPolicy {
 export function parseModelId(modelId: string): { provider: string; model: string } {
   const idx = modelId.indexOf(":");
   if (idx === -1) {
-    throw new Error(
-      `Invalid modelId "${modelId}": expected format "<provider>:<model>"`,
-    );
+    throw new Error(`Invalid modelId "${modelId}": expected format "<provider>:<model>"`);
   }
   return {
     provider: modelId.slice(0, idx),
