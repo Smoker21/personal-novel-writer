@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "./lib/logger.js";
 import { writeRuntimeInfo } from "./lib/runtime-info.js";
+import { adoptRouter } from "./routes/adopt.js";
 import { chapters } from "./routes/chapters.js";
 import { charactersRouter } from "./routes/characters.js";
 import { draftRouter } from "./routes/draft.js";
@@ -13,6 +14,7 @@ import { portraitsRouter } from "./routes/portraits.js";
 import { projectFileRouter } from "./routes/project-file.js";
 import { projects } from "./routes/projects.js";
 import { settings } from "./routes/settings.js";
+import { unadoptRouter } from "./routes/unadopt.js";
 
 const app = new Hono()
   .route("/api/health", health)
@@ -25,6 +27,8 @@ const app = new Hono()
   .route("/api/projects/:hash/characters/:slug/portraits", portraitsRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/generate", generateRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/draft", draftRouter)
+  .route("/api/projects/:hash/chapters/:chapterNumber/adopt", adoptRouter)
+  .route("/api/projects/:hash/chapters/:chapterNumber/unadopt", unadoptRouter)
   .route("/api/projects/:hash/file", projectFileRouter);
 
 export type AppType = typeof app;
