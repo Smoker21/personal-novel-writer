@@ -1,4 +1,10 @@
 import { http, HttpResponse } from "msw";
+import {
+  mockChapterFile,
+  mockChapterList,
+  mockCreateChapterResponse,
+  mockSaveChapterResponse,
+} from "./fixtures/chapters.js";
 import { mockCleanStatus, mockGitBinaryInstalled } from "./fixtures/git-status.js";
 import { mockCreateNovelResponse, mockOpenProjectResponse } from "./fixtures/projects.js";
 import { mockSettings } from "./fixtures/settings.js";
@@ -23,4 +29,15 @@ export const handlers = [
   ),
   http.post("/api/projects/recent/relocate", () => HttpResponse.json(mockOpenProjectResponse)),
   http.post("/api/projects/init-git", () => HttpResponse.json({ initialCommitSha: "abc123def" })),
+  http.get("/api/projects/:hash/chapters/", () =>
+    HttpResponse.json({ chapters: mockChapterList }),
+  ),
+  http.post("/api/projects/:hash/chapters/", () =>
+    HttpResponse.json(mockCreateChapterResponse, { status: 201 }),
+  ),
+  http.get("/api/projects/:hash/chapters/:n", () => HttpResponse.json(mockChapterFile)),
+  http.put("/api/projects/:hash/chapters/:n", () => HttpResponse.json(mockSaveChapterResponse)),
+  http.post("/api/projects/:hash/chapters/:n/rename", () =>
+    HttpResponse.json({ oldPath: "old", newPath: "new", commitSha: "x" }),
+  ),
 ];
