@@ -16,6 +16,7 @@ import { deleteDraft, getDraft } from "../../lib/db";
 import { useWindowFocusEffect } from "../../lib/window-focus";
 import { useDraftStore } from "../../stores/draft-store";
 import { useEditorStore } from "../../stores/editor-store";
+import { HistoryPanel } from "../git/HistoryPanel";
 import { UpdateStatusButton } from "../status/UpdateStatusButton";
 import { ChapterEditor } from "./ChapterEditor";
 import { ChapterList } from "./ChapterList";
@@ -66,6 +67,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
   // 已完成載入（章節讀取 + draft 比對完成）後才顯示編輯器
   const [editorReady, setEditorReady] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // 載入後給 ChapterEditor 的初始值
   const [initialContent, setInitialContent] = useState("");
@@ -361,6 +363,15 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           {currentChapter !== null && (
             <UpdateStatusButton projectHash={projectHash} chapterNumber={currentChapter} />
           )}
+          {currentChapter !== null && (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              className="text-xs text-neutral-400 hover:text-neutral-200 border border-neutral-700 rounded px-2 py-1 transition-colors"
+            >
+              歷史
+            </button>
+          )}
         </div>
 
         {/* 編輯器主體 + 草稿面板並排 */}
@@ -433,6 +444,24 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
 
       {/* status-updater 進度指示 */}
       <StatusUpdateIndicator projectHash={projectHash} />
+
+      {/* git 歷史面板 */}
+      <HistoryPanel
+        projectHash={projectHash}
+        file={
+          currentChapter !== null && store.chapter
+            ? `chapters/chapter_${String(currentChapter).padStart(4, "0")}_${store.chapter.title}.md`
+            : undefined
+        }
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onReverted={() => {
+          if (currentChapter !== null) {
+            setEditorReady(false);
+            void loadChapter(currentChapter);
+          }
+        }}
+      />
     </div>
   );
 }

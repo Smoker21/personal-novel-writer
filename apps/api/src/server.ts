@@ -7,7 +7,7 @@ import { chapters } from "./routes/chapters.js";
 import { charactersRouter } from "./routes/characters.js";
 import { draftRouter } from "./routes/draft.js";
 import { generateRouter } from "./routes/generate.js";
-import { git } from "./routes/git.js";
+import { git, gitProjectRouter } from "./routes/git.js";
 import { health } from "./routes/health.js";
 import { jobsRouter } from "./routes/jobs.js";
 import { novels } from "./routes/novels.js";
@@ -32,6 +32,7 @@ const app = new Hono()
   .route("/api/projects/:hash/chapters/:chapterNumber/adopt", adoptRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/unadopt", unadoptRouter)
   .route("/api/projects/:hash/file", projectFileRouter)
+  .route("/api/projects/:hash/git", gitProjectRouter)
   .route("/api/projects/:hash/status", statusRouter)
   .route("/api/projects/:hash/jobs", jobsRouter);
 

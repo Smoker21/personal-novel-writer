@@ -40,6 +40,7 @@ export interface GitWrapper {
     opts?: { limit?: number; file?: string },
   ): Promise<GitResult<GitCommit[]>>;
   show(projectPath: string, sha: string, file: string): Promise<GitResult<string>>;
+  diff(projectPath: string, args: string[]): Promise<GitResult<string>>;
   checkoutFile(projectPath: string, sha: string, file: string): Promise<GitResult<void>>;
 }
 
@@ -248,6 +249,12 @@ export const git: GitWrapper = {
 
   async show(projectPath, sha, file) {
     const result = await queuedGit(projectPath, ["show", `${sha}:${file}`]);
+    if (!result.ok) return result;
+    return { ok: true, value: result.value.stdout };
+  },
+
+  async diff(projectPath, args) {
+    const result = await queuedGit(projectPath, ["diff", "--no-color", ...args]);
     if (!result.ok) return result;
     return { ok: true, value: result.value.stdout };
   },
