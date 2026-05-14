@@ -1,7 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
-import * as path from "node:path";
-import * as os from "node:os";
 import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { type Page, expect, test } from "@playwright/test";
 
 // 每個 test 用獨立的臨時目錄
 let tmpDir: string;
@@ -15,6 +15,7 @@ test.afterEach(async () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
+// biome-ignore lint/correctness/noUnusedVariables: utility function for future tests
 async function createProject(page: Page, title: string, synopsis: string) {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
@@ -54,7 +55,11 @@ test.describe("新建專案", () => {
     await page.waitForTimeout(1000);
     await page.screenshot({ path: "test-results/after-new-btn-click.png" });
     // 期望有某種對話框或表單出現
-    const hasForm = await page.locator('input[type="text"], textarea, [role="dialog"]').first().isVisible().catch(() => false);
+    const hasForm = await page
+      .locator('input[type="text"], textarea, [role="dialog"]')
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(hasForm).toBeTruthy();
   });
 });

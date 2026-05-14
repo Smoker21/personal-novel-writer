@@ -53,14 +53,14 @@ export async function savePortrait(
   }
 
   let outBuffer = await img.toBuffer();
+  let effectiveMimeType = mimeType;
   if (outBuffer.length > MAX_BYTES) {
     outBuffer = await sharp(outBuffer).jpeg({ quality: 85 }).toBuffer();
-    mimeType = "image/jpeg";
+    effectiveMimeType = "image/jpeg";
     resized = true;
   }
-
   const finalMeta = await sharp(outBuffer).metadata();
-  const ext = mimeToExt(mimeType);
+  const ext = mimeToExt(effectiveMimeType);
   const prefix = scopePrefix(scope, chapterNumber);
   const dir = assetDir(projectPath, slug);
 

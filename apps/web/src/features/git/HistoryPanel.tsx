@@ -159,6 +159,7 @@ function DiffView({ unifiedDiff }: { unifiedDiff: string }) {
     <>
       {unifiedDiff.split("\n").map((line, i) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: diff lines are positional, index is the stable key
           key={i}
           className={
             line.startsWith("+") && !line.startsWith("+++")

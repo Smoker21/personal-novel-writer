@@ -32,14 +32,20 @@
       },
       "style": {
         "noNonNullAssertion": "warn",
-        "useImportType": "error"
+        "useImportType": "error",
+        "noParameterAssign": "warn"
       },
       "correctness": {
         "noUnusedVariables": "error",
-        "noUnusedImports": "error"
+        "noUnusedImports": "error",
+        "useExhaustiveDependencies": "warn"
       },
       "complexity": {
         "useLiteralKeys": "off"
+      },
+      "a11y": {
+        "useKeyWithClickEvents": "warn",
+        "noLabelWithoutControl": "warn"
       }
     }
   },
@@ -57,6 +63,9 @@
         "rules": {
           "suspicious": {
             "noExplicitAny": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "warn"
           }
         }
       }

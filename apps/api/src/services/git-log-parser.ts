@@ -18,7 +18,7 @@ export async function parseGitLog(
 
   const args = [
     "log",
-    `--format=%H%x1f%h%x1f%an%x1f%aI%x1f%s`,
+    "--format=%H%x1f%h%x1f%an%x1f%aI%x1f%s",
     "--numstat",
     `--max-count=${limit + 1}`,
   ];
@@ -38,6 +38,7 @@ export async function parseGitLog(
   const commits: GitCommit[] = [];
 
   // Each commit block is separated by blank line (from numstat format)
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: \x1f is the unit separator used in git --format
   const blocks = raw.trim().split(/\n(?=[0-9a-f]{40}\x1f)/);
 
   for (const block of blocks) {
