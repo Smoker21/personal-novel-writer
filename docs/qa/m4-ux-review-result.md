@@ -1,28 +1,45 @@
-# M4 UX Review — 自動截圖報告
+# M4 UX Review — 自動截圖報告（v2）
 
-> 審查者：Claude Code（自動 Playwright 截圖 + 分析）
-> 日期：2026-05-14
-> 環境：Windows 11 / dev mode（http://localhost:5173）/ 測試專案「校園奇遇」
-> 截圖目錄：`apps/e2e/ux-screenshots/`
-> 方法：Playwright 自動導覽 + 截圖 + 視覺分析
+> **本次更新**：使用 Playwright MCP 在 Chrome 中實際點擊互動，截圖共 16 張。
+> **環境**：Windows 11 + Node v26.1.0 + dev mode（API 3001 / Web 5173）
+> **截圖位置**：`docs/qa/ux-screenshots/`（同目錄，markdown preview 可正常顯示）
+> **日期**：2026-05-14
+> **如何使用**：每個 UI 表面下都有「**👤 你的 review**」區，請直接編輯填入意見。
 
 ---
 
-## 最重要的跨頁問題（先看這裡）
+## 🔴 本次新發現的嚴重 Bugs（先看）
 
-### 🔴 P0：深淺模式不一致（最大問題）
+### BUG-A：章節編輯器完全壞掉（P0）
+
+從首頁點任何「最近開啟」進入編輯器後：
+- 章節清單**永遠空白**（即使檔案系統有章節）
+- 點「+ 新章節」**沒反應**
+- Console 持續出現：`Failed to load resource: 404 (Not Found) /api/projects/c4609c4e10072ee5/chapters/`
+
+**根因**：前端呼叫 `/chapters/`（帶 trailing slash）→ 後端 Hono route 不接受 trailing slash → 404
+**影響**：**整個 web 端的章節編輯流程完全無法使用**
+**對應**：M3 BDD 測試已發現的 BUG-01（trailing slash），實際影響超出預期
+
+### BUG-B：LM Studio 測試連線錯誤訊息粗糙（P1）
+
+連不到 LM Studio 時顯示「✗ fetch failed」（純技術訊息），對使用者沒有任何幫助。
+
+**改善**：應顯示「無法連線到 http://localhost:1234，請確認 LM Studio Server 已啟動」
+
+### BUG-C：表單欄位驗證沒有提示（P1）
+
+NewProjectDialog 步驟 1 「下一步」disabled 但沒有 inline 錯誤訊息說明為什麼。使用者要靠猜。
+
+---
+
+## 跨頁觀察：Light/Dark 模式分裂（沿用上次發現，未修）
 
 | 頁面 | 背景 |
 |---|---|
-| HomePage | 白底（Light） |
-| SettingsPage | 白底（Light） |
-| NewProjectDialog | 白底（Light） |
-| ChapterEditorPage | 白底（Light）|
-| CharactersPage | 黑底（Dark）|
-| CharacterEditor | 黑底（Dark）|
-| StatusEditorPage | 黑底（Dark）|
+| HomePage / SettingsPage / NewProjectDialog / ChapterEditorPage | **Light**（白底）|
+| CharactersPage / CharacterEditor / StatusEditorPage | **Dark**（黑底）|
 
-**同一應用竟有兩套配色，進入角色管理或 Status 頁面會有明顯視覺跳切感。**  
 → 對應 M4 任務：`pol-1`（design token 統一）
 
 ---
@@ -31,285 +48,282 @@
 
 ### A1. HomePage
 
-**截圖：** `A1-HomePage.png`
-
-![A1](../../../apps/e2e/ux-screenshots/A1-HomePage.png)
+![A1](./ux-screenshots/A1-HomePage.png)
 
 | 維度 | 評分 | 說明 |
 |---|---|---|
-| 功能性 | ✅ | 標題、新小說、瀏覽資料夾、最近開啟清單全部正常 |
-| 視覺 | ⚠️ | 頁面下方大面積空白，沒有利用空間；「⚙️ 設定」文字小且灰色，不夠顯眼 |
-| 互動 | ⚠️ | 最近清單的卡片 hover 效果不明顯；沒有鍵盤 focus 樣式 |
-| 錯誤處理 | ✅ | 有最近專案記錄 |
+| 功能性 | ✅ | Novel Writer 標題、新小說按鈕、瀏覽資料夾、最近開啟清單 |
+| 視覺 | ⚠️ | Light 模式；「⚙️ 設定」在右上角，字小且灰色；最近清單卡片有 3 個重複（多角色測試 + 兩個梅雨 v2 因 path 斜線方向差異）|
+| 互動 | ⚠️ | 卡片 hover 沒有明顯反饋 |
+| 錯誤處理 | ✅ | 有空狀態提示 |
 
-**改善意見：**
-- 「設定」連結改為更明顯的按鈕樣式（加 icon 邊框）
-- 頁面下方空白可放版本號、快速說明文字或使用提示
-- 深淺模式統一（此頁是 light，進編輯器是 mixed）
+**Claude 改善建議**：
+- 「設定」連結改更明顯（icon button）
+- 處理重複專案問題（path normalize 不一致）
+- 卡片 hover 加陰影/背景色
 
-對應 M4 任務：`pol-1`、`pol-5`（整體視覺一致性）
+**👤 你的 review**：
+> （請在此填寫你的意見，例如：是否同意這些建議？有沒有遺漏？優先序？）
 
 ---
 
-### A2. ChapterEditorPage
+### A2. ChapterEditorPage（無章節時）
 
-**截圖：** `A2-ChapterEditorPage-empty.png`
-
-![A2](../../../apps/e2e/ux-screenshots/A2-ChapterEditorPage-empty.png)
+![A2](./ux-screenshots/A2-ChapterEditorPage.png)
 
 | 維度 | 評分 | 說明 |
 |---|---|---|
-| 功能性 | ✅ | 工具列完整（← 首頁、角色、章節標題、狀態指示、儲存） |
-| 視覺 | ⚠️ | 中央提示「請從左側選擇或新建章節」文字顏色極淡（幾乎消失在白底中）；整體頁面是 light 底，但 dark 元素（黑色按鈕）夾雜其中 |
-| 互動 | ⚠️ | 工具列的 AI 撰寫 / 歷史 / 立刻更新狀態按鈕只有選中章節後才出現，新使用者看到空工具列會困惑 |
-| 錯誤處理 | ✅ | 有「請從左側選擇或新建章節」提示（但字色太淡） |
+| 功能性 | ⚠️ | 工具列正常（← 首頁、角色、章節標題、儲存）但只有空殼 |
+| 視覺 | ⚠️ | Light 模式；「請從左側選擇或新建章節」中央提示文字顏色淡 |
+| 互動 | ❌ | **新建專案後進入 = 永遠空白**（見 BUG-A）|
 
-**改善意見：**
-- 中央空狀態提示加大字體、加圖示（📝），更像 onboarding 引導
-- 工具列 AI / 歷史按鈕可改為 disabled + tooltip 說明「請先選取章節」
-- 考慮在首次進入時自動 focus 到「+ 新章節」
-
-對應 M4 任務：`pol-5`、`pol-6`、`on-2`
+**👤 你的 review**：
+> 
 
 ---
 
-### A3. CharactersPage
+### A2b. ChapterEditorPage — BUG-A 實證
 
-**截圖：** `A3-CharactersPage.png`
+![A2b](./ux-screenshots/A2b-ChapterEditor-bug-state.png)
 
-![A3](../../../apps/e2e/ux-screenshots/A3-CharactersPage.png)
+導入 `校園奇遇` 專案（檔案系統實際有 1 章），但 web 端章節清單仍**空白**。Console 5 個 404 錯誤。
 
-| 維度 | 評分 | 說明 |
-|---|---|---|
-| 功能性 | ✅ | 雙欄版面（角色列表 + 右側提示），導覽麵包屑（← 編輯器）正確 |
-| 視覺 | ⚠️ | **Dark mode**（黑底），與 HomePage、SettingsPage Light mode 不一致；空狀態左欄文字「尚無角色。點「新增」建立第一個角色。」排版擠壓 |
-| 互動 | ✅ | + 新增按鈕在右上角，可點擊 |
-| 錯誤處理 | ✅ | 空狀態有雙重提示（左欄 + 右欄中央） |
-
-**改善意見：**
-- 統一配色（full dark 或 full light，不要混）
-- 左欄空狀態文字改成更清晰的 onboarding 樣式（加 👤 圖示）
-
-對應 M4 任務：`pol-1`、`pol-5`
+**👤 你的 review**：
+> 
 
 ---
 
-### A4. SettingsPage
+### A2c. 點「+ 新章節」也失敗
 
-**截圖（上半）：** `A4-SettingsPage-top.png`
+![A2c](./ux-screenshots/A2c-Editor-NewChapter-fails.png)
 
-![A4](../../../apps/e2e/ux-screenshots/A4-SettingsPage-top.png)
+點「+ 新章節」沒任何反應，沒有錯誤訊息、沒有 toast、沒有新章節出現。**靜默失敗**最糟糕的 UX。
 
-**截圖（下半 Agent routing）：** `A4b-SettingsPage-routing.png`
+**👤 你的 review**：
+> 
 
-![A4b](../../../apps/e2e/ux-screenshots/A4b-SettingsPage-routing.png)
+---
+
+### A3. CharactersPage（無角色）
+
+![A3](./ux-screenshots/A3-CharactersPage.png)
 
 | 維度 | 評分 | 說明 |
 |---|---|---|
-| 功能性 | ✅ | 7 個 Provider 卡片全部顯示；Agent 預設模型 4 個下拉選單；Preset 按鈕 |
-| 視覺 | ⚠️ | Provider 卡片折疊狀態（只顯示名稱 + 啟用 checkbox）→ 不清楚可以點開填 API key；Agent routing dropdown 是深色底（夾在白底頁面中很突兀）；Preset 按鈕樣式較弱（邊框細，不明顯是按鈕） |
-| 互動 | ⚠️ | Provider 卡片折疊後沒有 ">" 或 "▼" 展開指示；未設定 routing 時沒有紅色警示 |
-| 錯誤處理 | ⚠️ | 所有 Agent routing 顯示「未設定」但沒有警示說明這會導致 AI 功能無法使用 |
+| 功能性 | ✅ | 左欄角色清單、右欄空狀態提示 |
+| 視覺 | ⚠️ | Dark 模式（與 HomePage Light 不一致）；左欄「尚無角色」文字擠在兩行 |
+| 互動 | ✅ | 「+ 新增」可點 |
 
-**改善意見：**
-- Provider 卡片加展開/折疊 indicator（▶ 符號）
-- Agent routing「未設定」改用橘色文字或警告 icon 標示
-- Preset 按鈕改為填色樣式（更像按鈕）
-- routing 下拉選單配色統一（不要深底 + 白底混）
+**Claude 改善建議**：
+- 模式統一
+- 左欄空狀態文字加大字級、加圖示
 
-對應 M4 任務：`pol-1`、`on-4`
+**👤 你的 review**：
+> 
+
+---
+
+### A4. SettingsPage（折疊預設）
+
+![A4](./ux-screenshots/A4-SettingsPage-full.png)
+
+整頁完整截圖（fullPage）。
+
+**👤 你的 review**：
+> 
+
+---
+
+### A4b. 設定頁 — LM Studio 測試連線失敗
+
+![A4b](./ux-screenshots/A4b-Settings-LMStudio-test-result.png)
+
+**BUG-B**：「✗ fetch failed」訊息對使用者無意義。
+
+**Claude 改善建議**：
+- 改為「✗ 無法連線到 endpoint，請確認 server 已啟動」
+- 加 troubleshooting 連結（例如：開啟 LM Studio → Server tab → Start Server）
+
+**👤 你的 review**：
+> 
+
+---
+
+### A4c. 設定頁 — 完整滾動（fullPage）
+
+![A4c](./ux-screenshots/A4c-Settings-FullPage.png)
+
+完整設定頁含 LLM Providers + Agent 預設模型 + 儲存按鈕。
+
+| 觀察 | 說明 |
+|---|---|
+| Provider 卡片折疊 | Provider 預設折疊，只看到名稱+啟用 checkbox，**沒有展開指示**（▶ 或 ▼）|
+| Provider 卡片展開 | 點 checkbox 啟用後才顯示 API key/endpoint 欄位（見 A4d）|
+| Agent routing | 4 個 dropdown，未設定時無視覺警告 |
+| Preset 按鈕 | 4 個 button 邊框細，視覺上不像主要操作 |
+
+**👤 你的 review**：
+> 
+
+---
+
+### A4d. 設定頁 — Provider 展開狀態
+
+![A4d](./ux-screenshots/A4d-Settings-Provider-expanded.png)
+
+啟用 Anthropic Claude 後，卡片展開顯示 API Key、Endpoint、預設模型欄位。
+
+**👤 你的 review**：
+> 
 
 ---
 
 ### A5. StatusEditorPage
 
-**截圖：** `A5-StatusEditorPage.png`
-
-![A5](../../../apps/e2e/ux-screenshots/A5-StatusEditorPage.png)
+![A5](./ux-screenshots/A5-StatusEditorPage.png)
 
 | 維度 | 評分 | 說明 |
 |---|---|---|
-| 功能性 | ❌ | **「複製內容」而非「儲存」**：用戶必須手動複製再貼到 .md 檔，完全不直覺；此頁拿不到 git HEAD 的 story_status.md（API 需要 git show HEAD，但空專案沒有 commit） |
-| 視覺 | ⚠️ | Dark mode；工具列「保留 🔖/✨ 段」checkbox 旁的 emoji 在頁面截圖中顯示為方塊；底部路徑文字極小 |
-| 互動 | ❌ | 沒有直接「儲存到檔案」功能；checkbox label 沒有連接到 input（a11y 問題） |
-| 錯誤處理 | ⚠️ | 空專案讀不到 story_status.md 時只顯示空白 placeholder，沒有說明原因 |
+| 功能性 | ❌ | **「複製內容」而非「儲存」**（M3 遺留 pol-9 未完）|
+| 視覺 | ⚠️ | Dark 模式；底部 file path 字極小；「保留 🔖/✨ 段」checkbox 旁的 emoji 渲染怪 |
+| 互動 | ❌ | 沒有「直接寫到 .md」的選項，使用者必須複製貼上 |
+| 錯誤處理 | ⚠️ | 空專案讀不到 story_status.md 時只顯示 placeholder |
 
-**改善意見（P0）：**
-- 加入直接寫檔 API endpoint（POST /api/projects/:hash/status/write），讓「儲存」直接存到 .md
-- 「複製內容」改為「儲存」，複製改成次要功能
-- 空狀態時初始化預設 story_status.md 骨架
+**Claude 改善建議（P0）**：
+- 加 `POST /api/projects/:hash/status/write` endpoint
+- 「複製內容」改名為「儲存」直接寫檔
+- 「保留🔖/✨」用 icon 取代 emoji 提升渲染穩定度
 
-對應 M4 任務：`pol-9`（stat-fe-5 完整實作）
+**👤 你的 review**：
+> 
 
 ---
 
 ## B. MainPanels（6 個）
 
-### B1. ChapterList
+### B5. CharacterEditor — 身分 tab
 
-**截圖：** 包含在 A2（左欄）
-
-| 維度 | 評分 | 說明 |
-|---|---|---|
-| 功能性 | ✅ | 空狀態有「+ 新章節」按鈕 |
-| 視覺 | ⚠️ | 左欄標題只有「章節」二字（灰色，偏淡）；「+ 新章節」按鈕是虛線框，視覺重量不足 |
-| 互動 | ⚠️ | 沒有章節時無其他引導；點「+ 新章節」後沒有自動選中並聚焦到標題輸入 |
-| 錯誤處理 | ✅ | 無 |
-
-**改善意見：**
-- 「+ 新章節」按鈕改為實心邊框或填色，增加視覺重量
-- 建立章節後自動選中並 focus 到標題輸入
-
-對應 M4 任務：`pol-5`、`pol-6`
-
----
-
-### B2. ChapterEditor（CM6）
-
-**截圖：** `B2-ChapterEditor-CM6.png`（未成功載入編輯器）
-
-⚠️ **截圖說明**：測試過程中點擊「+ 新章節」後 CM6 編輯器未成功渲染（測試專案可能沒有有效的 git repo），截圖顯示與 A2 相同的空狀態。建議手動驗證此面板。
-
-**預期問題（基於程式碼分析）：**
-- 編輯器字型應為繁中 serif（Noto Serif TC），但 font 未 self-host → 可能出現系統字型 fallback
-- 行高、字間距未設定 → 中文長段落可能偏擠
-
-對應 M4 任務：`pol-2`（字型載入）
-
----
-
-### B3. DraftPanel
-
-截圖未能觸發（需要實際跑 AI，測試環境未連接 LM Studio）。
-
-**基於程式碼分析的觀察：**
-- ✅ 功能性：中止 / 重產出 / 丟棄 / 採用 四按鈕存在
-- ⚠️ 視覺：採用按鈕（green）在其他暗色按鈕中很突出（這是好事，但顏色系統應統一）
-- ⚠️ 互動：沒有 streaming 進度百分比或字數計數
-
-對應 M4 任務：`pol-3`（動畫）、`pol-6`（載入狀態）
-
----
-
-### B4. CharacterPanel
-
-**截圖：** 包含在 A3（左欄）
+![B5](./ux-screenshots/B5-CharacterEditor-new-identity.png)
 
 | 維度 | 評分 | 說明 |
 |---|---|---|
-| 功能性 | ✅ | 空狀態有提示文字 + + 新增按鈕 |
-| 視覺 | ⚠️ | 空狀態文字排版擠（一行變兩行，沒有垂直置中） |
-| 互動 | ✅ | + 新增按鈕可觸達 |
-| 錯誤處理 | ✅ | 空狀態有提示 |
+| 功能性 | ✅ | 6 個 tabs（身分/個性/外貌/對話/關係/親密）、姓名（必填）、角色定位、年齡、性別、代名詞 |
+| 視覺 | ⚠️ | AI 統整敘述區固定佔下方 ~25% 螢幕高度，新角色時無法折疊 |
+| 互動 | ⚠️ | 「AI 生成角色描述」按鈕 disabled（新角色未儲存），無 tooltip 解釋；姓名空白時「儲存」disabled，無 inline 錯誤 |
+
+**Claude 改善建議**：
+- AI 統整敘述區可折疊
+- disabled 按鈕加 tooltip
+
+**👤 你的 review**：
+> 
 
 ---
 
-### B5. CharacterEditor
+### B5b. CharacterEditor — 個性 tab
 
-**截圖（身分 tab）：** `B5-CharacterEditor-new.png`
+![B5b](./ux-screenshots/B5b-CharacterEditor-personality.png)
 
-![B5](../../../apps/e2e/ux-screenshots/B5-CharacterEditor-new.png)
+個性標籤輸入框（按 Enter 新增） + MBTI/星座/血型 dropdown + 文化背景 textarea。
 
-**截圖（個性 tab）：** `B5b-CharacterEditor-personality-tab.png`
+**👤 你的 review**：
+> 
 
-![B5b](../../../apps/e2e/ux-screenshots/B5b-CharacterEditor-personality-tab.png)
+---
+
+### B5c. CharacterEditor — 外貌 tab
+
+![B5c](./ux-screenshots/B5c-CharacterEditor-appearance.png)
+
+身高、體型、髮型、眼睛、其他特徵欄位 + 圖片上傳區。
+
+**👤 你的 review**：
+> 
+
+---
+
+### B5d. CharacterEditor — 親密 tab（預設摺疊）
+
+![B5d](./ux-screenshots/B5d-CharacterEditor-intimate-collapsed.png)
 
 | 維度 | 評分 | 說明 |
 |---|---|---|
-| 功能性 | ✅ | 六分區 tabs 存在；身分（姓名必填、角色定位、年齡、性別、代名詞）；個性（標籤、MBTI、星座、血型、文化背景） |
-| 視覺 | ⚠️ | AI 統整敘述區在每個 tab 底部都固定顯示，導致表單區域被壓縮；Tab 欄在深色背景，分頁線顏色對比度偏低 |
-| 互動 | ⚠️ | Tab 切換後 AI 統整敘述區固定顯示，佔用 30% 螢幕高度；「AI 生成角色描述」按鈕在新角色（未儲存）時 disabled，但沒有提示說明為何 |
-| 錯誤處理 | ⚠️ | 姓名欄位空時儲存按鈕 disabled，但沒有 inline 錯誤訊息；點儲存無法知道原因 |
+| 功能性 | ✅ | 預設摺疊（spec 002 2.9 符合）|
+| 視覺 | ⚠️ | 摺疊狀態下沒有任何提示，使用者不知道有內容可填 |
 
-**改善意見：**
-- AI 統整敘述區可折疊（預設展開，可收合）
-- Tab 未儲存切換時需警告（目前是否有警告？）
-- disabled 按鈕加 tooltip 說明原因
+**Claude 改善建議**：
+- 摺疊狀態加「展開」按鈕或一句說明（「點此展開親密場景描寫」）
 
-對應 M4 任務：`pol-4`、`pol-6`
+**👤 你的 review**：
+> 
 
 ---
 
-### B6. HistoryPanel
+### B1/B2/B3/B4/B6 因 BUG-A 無法截圖
 
-**截圖：** `B6-HistoryPanel.png`（未成功顯示 drawer）
+由於章節編輯器完全壞掉（章節清單空、新增無效），以下面板無法在當前環境截圖：
 
-⚠️ **截圖說明**：「歷史」按鈕因測試專案無章節而未顯示，HistoryPanel drawer 未能截圖。建議手動驗證。
+- **B1 ChapterList** — 永遠空白
+- **B2 ChapterEditor (CM6)** — 無章節可載入
+- **B3 DraftPanel** — 需要 AI（且需要章節已選取）
+- **B4 CharacterPanel** — 已在 A3 截到
+- **B6 HistoryPanel** — 「歷史」按鈕只在選取章節後出現
 
-**基於程式碼分析：**
-- ⚠️ 互動：「歷史」按鈕只在章節已選中後出現在工具列，未選中章節時整個工具列都沒有這些按鈕，新使用者無法發現這些功能
-- ⚠️ 視覺：Drawer 疊加在頁面上，沒有 slide-in 動畫（pol-3）
+→ **修復 BUG-A 後重做**
 
-對應 M4 任務：`pol-3`、`pol-6`
+**👤 你的 review**：
+> 
 
 ---
 
 ## C. Dialogs / Modals（7 個）
 
-### C1. NewProjectDialog（步驟 1/3）
+### C1. NewProjectDialog — 步驟 1（空白）
 
-**截圖：** `C1-NewProjectDialog.png`
-
-![C1](../../../apps/e2e/ux-screenshots/C1-NewProjectDialog.png)
+![C1](./ux-screenshots/C1-NewProjectDialog-step1.png)
 
 | 維度 | 評分 | 說明 |
 |---|---|---|
-| 功能性 | ✅ | 三步驟 wizard（步驟 1/3）、書名輸入、父資料夾選擇 |
-| 視覺 | ⚠️ | Light mode dialog，backdrop 是灰色半透明（OK）；Dialog 尺寸偏小；步驟 1/2/3 各填什麼沒有說明 |
-| 互動 | ⚠️ | 「下一步」按鈕在未填資料時顯示 disabled（淡藍色），但沒有說明「需要填書名和父資料夾才能繼續」；父資料夾欄位 placeholder 「貼「瀏覽」選擇」→ 措辭不夠直覺 |
-| 錯誤處理 | ⚠️ | 沒有 inline 欄位驗證訊息 |
+| 功能性 | ✅ | 3 步驟 wizard，書名 + 父資料夾 |
+| 視覺 | ⚠️ | Light dialog；Dialog 偏小，下半空白多 |
+| 互動 | ⚠️ | 「下一步」disabled 沒有 inline 錯誤；「上一步」也 disabled 但邏輯正確 |
+| 錯誤處理 | ❌ | **BUG-C** — 為何 disabled 無提示 |
 
-**改善意見：**
-- Dialog 加大（目前最大寬度約 500px，可到 600px）
-- 步驟指示器改為視覺化 progress bar
-- 父資料夾 placeholder 改為「點「瀏覽」選擇資料夾」
-- disabled 按鈕 tooltip 說明「請先填寫書名並選擇資料夾」
-
-對應 M4 任務：`pol-3`（動畫）、`on-2`（onboarding）
+**👤 你的 review**：
+> 
 
 ---
 
-### C2. ConflictDialog
+### C1b. NewProjectDialog — 步驟 1（已填書名，父資料夾空）
 
-未能截圖（需要製造 mtime 衝突）。建議手動驗證。
+![C1b](./ux-screenshots/C1b-NewProjectDialog-step1-filled.png)
 
----
+填了書名「測試小說」後，「下一步」仍 disabled（因為父資料夾未填）。**沒有任何視覺提示告訴使用者「還需要選父資料夾」。**
 
-### C3. MissingProjectDialog
+**Claude 改善建議**：
+- disabled 按鈕加 tooltip 列出未填欄位
+- 或：在欄位下方紅字提示「必填」
 
-未能截圖（需要刪除已記錄的專案）。建議手動驗證。
-
----
-
-### C4. FirstLaunchWarningDialog
-
-未能截圖（需要清除 meta.firstLaunchWarningAcknowledged）。建議手動驗證。
+**👤 你的 review**：
+> 
 
 ---
 
-### C5. GitMissingDialog
+### C2~C7 待補
 
-未能截圖（git 已安裝）。建議在 git 未安裝環境驗證。
+以下需要特殊觸發條件，本次未截到：
 
----
+| Dialog | 觸發條件 | 狀態 |
+|---|---|---|
+| C2 ConflictDialog | mtime 不符 | 待補（手動製造 .md 外部變動） |
+| C3 MissingProjectDialog | 最近清單中專案資料夾被刪 | 待補 |
+| C4 FirstLaunchWarningDialog | meta.firstLaunchWarningAcknowledged=false | 待補（重置 settings） |
+| C5 GitMissingDialog | git 未安裝 | 環境條件限制 |
+| C6 LlmNotConfiguredModal | routing 未設定 + 點 AI 按鈕 | 因 BUG-A 無法觸發 |
+| C7 AdoptConfirmDialog | 有 AI 草稿 + 點採用 | 需 LM Studio |
 
-### C6. LlmNotConfiguredModal
-
-**截圖：** 未觸發（因測試專案無章節，AI 撰寫按鈕未出現）
-
-**基於程式碼分析：**
-- ✅ 功能性：Modal 已加入 4 步驟說明 + LM Studio 推薦提示
-- ✅ 視覺：Dark modal on dark overlay
-
-建議手動觸發（設定頁清空 routing → 回章節頁點 AI 撰寫本章）確認顯示正確。
-
----
-
-### C7. AdoptButton / AdoptConfirmDialog
-
-**截圖：** `C7-AdoptButton-initial.png`（章節列表空，無法顯示）
-
-未能截圖（需有 AI draft）。建議手動驗證採用確認對話框和 DRAFT_STALE 流程。
+**👤 你的 review**：
+> 
 
 ---
 
@@ -317,53 +331,44 @@
 
 ### D1. 採用草稿 11 步事務
 
-未能自動測試（需要實際 AI 生成草稿）。
+🚫 需 LM Studio + 章節編輯器修復（BUG-A）
 
-**基於程式碼分析的潛在問題：**
-- ⚠️ 進度條：AdoptButton 目前只有 "採用中…" 文字，沒有實際步驟進度條
-- ⚠️ 採用後的 toast「已採用，狀態更新中…」目前是 StatusUpdateIndicator spinner，不是明確 toast
+### D2. 章節載入衝突偵測
 
-對應 M4 任務：`pol-3`（進度動畫）、`ad-fe-3`
+🚫 需製造 mtime 衝突
 
----
+### D3. Window Focus 重檢
 
-### D2 & D3. 章節載入衝突 / Window Focus 重檢
+🚫 需手動切換視窗
 
-未能自動測試（需要特定條件觸發）。建議手動驗證。
+**👤 你的 review（整段 Flows）**：
+> 
 
 ---
 
 ## 整體觀察
 
-### 視覺一致性 ❌
-**最嚴重問題**：深淺模式分裂
-- **Light**：HomePage、SettingsPage、ChapterEditorPage、NewProjectDialog
-- **Dark**：CharactersPage、CharacterEditor、StatusEditorPage
-- 切換頁面時視覺跳切明顯，讓人覺得是兩個不同的應用
+### 🔴 P0 必修
 
-### 跨頁 Navigation ⚠️
-- ✅ 各頁都有「← 返回」連結
-- ⚠️ 沒有全域 breadcrumb 或 site-wide nav
-- ⚠️ 沒有專案名稱顯示（在 ChapterEditorPage 工具列看不到目前在哪個專案）
+1. **BUG-A：章節編輯器壞掉**（trailing slash → 404）
+   - 是 M3 BUG-01 的實際影響，比想像中嚴重
+   - 修法：Hono route 接受帶/不帶 trailing slash
+2. **A5 StatusEditorPage 缺直接儲存**（M3 遺留 pol-9）
 
-### 載入 / 錯誤狀態整體 ⚠️
-- ✅ 多數頁面有空狀態提示
-- ⚠️ 空狀態提示文字顏色普遍偏淡（對比度不足）
-- ⚠️ 沒有統一的 spinner/skeleton 樣式
+### ⚠️ P1 重要
 
-### 鍵盤可達性 ⚠️
-- 未全面測試，但基於 biome lint 的 a11y 錯誤，有多處 onClick 沒有對應的 keyboard event
-- CharacterEditor 的 `<label>` 沒有對應 `<input>`（a11y 問題）
+3. **Light/Dark 模式分裂**（pol-1）
+4. **BUG-B：LM Studio 錯誤訊息粗糙**（"fetch failed"）
+5. **BUG-C：表單欄位 disabled 無提示**
+6. **Provider 卡片無折疊指示符**
+7. **Agent routing 未設定無視覺警告**
+8. **「+ 新章節」失敗無提示**（靜默失敗）
 
-### 應該存在但不存在的功能
-- ❌ StatusEditorPage 缺少直接「儲存到 .md 檔」功能（目前只有複製到剪貼簿）
-- ❌ 工具列上 AI 撰寫 / 歷史 / 立刻更新狀態按鈕在沒有章節時完全隱藏，新使用者不知道這些功能存在
-- ❌ 設定頁 Agent routing「未設定」沒有警告提示
-- ❌ 專案名稱在 ChapterEditorPage 工具列不可見
+### 💡 P2 拋光
 
-### 應該不存在但存在的問題
-- ⚠️ StatusEditorPage 的「複製內容」按鈕（應改為「儲存」）
-- ⚠️ 工具列「保留 🔖/✨ 段」checkbox 的 label 沒有 for 屬性
+9. AI 統整敘述區可折疊
+10. disabled 按鈕加 tooltip
+11. emoji 改 icon（StatusEditor checkbox）
 
 ---
 
@@ -371,31 +376,27 @@
 
 | 改善項目 | 對應任務 | 優先級 |
 |---|---|---|
-| Light/Dark mode 不一致 | pol-1（design token） | **P0** |
-| StatusEditorPage「複製」改「儲存」 | pol-9（stat-fe-5） | **P0** |
-| 空狀態文字對比度太低 | pol-5 | P1 |
-| 工具列按鈕條件隱藏 → 改 disabled | pol-5、pol-6 | P1 |
-| Provider card 展開/折疊 indicator | pol-1 | P1 |
-| Agent routing「未設定」警告 | on-4 | P1 |
-| 對話框/抽屜 slide-in 動畫 | pol-3 | P2 |
-| 採用進度條動畫 | pol-3、ad-fe-3 | P2 |
-| 字型 self-host | pol-2 | P2 |
-| Keyboard accessibility（a11y） | pol-4 | P2 |
-| 專案名稱顯示在工具列 | pol-1 | P2 |
-| NewProjectDialog 改善說明 | on-2 | P2 |
-
-## 完成狀態
-
-| 區塊 | 進度 |
-|---|---|
-| A. Pages | 5/5（A2 CM6 待手動）|
-| B. MainPanels | 3/6（B2 CM6 / B3 DraftPanel / B6 HistoryPanel 待手動）|
-| C. Dialogs | 3/7（C2/C3/C4/C5 待手動）|
-| D. Flows | 0/3（全部待手動）|
-| 整體觀察 | ✅ 完成 |
-| 任務匯總 | ✅ 完成 |
-| **截圖覆蓋** | **20 個截圖** |
+| BUG-A trailing slash → 404 | fix-route-01（新增）| **P0** |
+| StatusEditorPage 直接儲存 | pol-9（stat-fe-5）| **P0** |
+| Light/Dark 模式不一致 | pol-1 | P1 |
+| LM Studio 錯誤訊息友善化 | new-on-5 | P1 |
+| 表單 disabled 加 tooltip | pol-6 | P1 |
+| Provider card 折疊指示 | pol-1 | P1 |
+| Agent routing 未設定警告 | on-4 | P1 |
+| 「+ 新章節」失敗 toast | pol-6 | P1 |
+| AI 統整敘述區可折疊 | pol-5 | P2 |
+| 親密 tab 摺疊提示 | pol-5 | P2 |
 
 ---
 
-> **注意**：B3（DraftPanel）、B6（HistoryPanel）、C1b-C7（多數 Dialog）、D1-D3（Flows）需要在有實際 AI 草稿 / 特定觸發條件的環境下手動驗證。建議使用 LM Studio Qwen 生成一份草稿後補完。
+## 完成狀態
+
+| 區塊 | 已截圖 | 待補（修 BUG-A 後）|
+|---|---|---|
+| A. Pages | 5/5（A1/A2/A3/A4/A5）+ 4 補充截圖 | — |
+| B. MainPanels | 4/6（B5 系列）| B1/B2/B3/B6（卡在 BUG-A）|
+| C. Dialogs | 2/7（C1 + C1b）| C2~C7（需特殊觸發）|
+| D. Flows | 0/3 | D1~D3（需 LM Studio + 觸發）|
+| **總截圖** | **16 張**（vs 上次 20 張，本次因 BUG-A 少了 4 張）| — |
+
+> **下一步**：修 BUG-A（trailing slash 404）後，B1/B2/B3/B6 才能截圖。建議優先處理。
