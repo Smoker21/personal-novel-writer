@@ -1,98 +1,102 @@
 # Novel Writer
 
-一個輔助小說撰寫的**個人本機**應用程式。前後端分離、無伺服器、無登入；內容以純文字檔（`.md` / `.yaml`）存使用者選的目錄，可自接 Google Drive / git 同步；衍生資料用本機 SQLite。內建多個 AI 寫作 Agent 與 Skill，支援雲端（多家）與地端 LLM。
+> 個人本機小說撰寫工具。AI 輔助寫作，git 版控，完全本機執行。
 
-## 開發模式
+[![Tests](https://github.com/Smoker21/personal-novel-writer/actions/workflows/ci.yml/badge.svg)](https://github.com/Smoker21/personal-novel-writer/actions/workflows/ci.yml)
 
-本專案採用**雙層多代理協作**：
+## ✨ 功能
 
-1. **開發期** — Claude Code 子代理（`.claude/agents/`）分工協作：
-   - `product-manager` 寫 user story + BDD `.feature`
-   - `spec-architect` 把 ready 的 story 翻成技術 spec（API 合約、資料模型、開發任務）
-   - `backend-developer` / `frontend-developer` / `llm-integrator` 依 spec 動工
-   - `ai-agent-designer` 設計產品內 Agent 與 Skill 規格
-   - `qa-engineer` 依 .feature 寫 step definitions + 各層測試
-2. **產品內** — 應用內建多個 AI 角色（`docs/agents/`）與 AI 操作（`docs/skills/`）。例：`chapter-writer` 是 Agent（自主寫整章）、`polish-prose` 是 Skill（潤飾選取段落）。
+| 功能 | 說明 |
+|---|---|
+| 📝 章節編輯器 | CodeMirror 6，autosave，Ctrl+S 手動儲存，git 自動備份 |
+| 🤖 AI 撰寫 | 串流產出章節草稿；依角色外貌（章節敏感）+ 前章記憶撰寫 |
+| 🧠 記憶閉環 | 採用草稿後自動更新 story/character status，下一章 AI 記得前章 |
+| 👤 角色卡 | 6 分區欄位，AI 統整描述，Vision 圖片解析外貌 |
+| 📚 git 歷史 | 每次儲存自動 commit，可預覽 / Diff / 還原任何版本 |
+| ⚙️ 6 個 LLM | Anthropic / OpenAI / Google / xAI / Ollama / LM Studio |
 
-兩層互不混淆：開發期是 Claude Code 的協作工具，產品內是要實作出來給使用者用的功能。
+## 🚀 快速開始
 
-工作流：**需求（PM）→ 規格（spec-architect）→ 實作（dev）→ 測試（QA）**。dev 不繞過 spec 直接動工；spec-architect 發現 story 矛盾退回 PM。
+### 下載安裝（Windows）
 
-## 目錄結構
+1. 從 [Releases](https://github.com/Smoker21/personal-novel-writer/releases) 下載最新 `.exe`
+2. 安裝（若出現 SmartScreen 警告：點「更多資訊」→「仍要執行」）
+3. 確保已安裝 git：`git --version`
 
-```
-.
-├── .claude/                       # 開發期工具（給 Claude Code 用）
-│   ├── agents/                    # 子代理（PM、spec-architect、後端、前端、AI 設計師、QA…）
-│   ├── skills/                    # 工作流（write-user-story、create-adr、design-ai-agent…）
-│   └── settings.json
-├── apps/
-│   ├── web/                       # React + Vite + TS 前端（待建立）
-│   └── api/                       # Node 後端，監聽 localhost（待建立）
-├── packages/
-│   ├── shared-types/              # 跨前後端的型別（待建立）
-│   ├── llm-adapter/               # 雲端/地端 LLM 抽象層（待建立）
-│   └── prompt-library/            # 提示詞模板（待建立）
-├── tools/
-│   └── eval/                      # 模型評估 CLI（dev-time），見 tools/eval/README.md
-├── docs/
-│   ├── requirements/              # 需求層
-│   │   ├── _template.md
-│   │   ├── personas.md
-│   │   ├── idea.md                # 專案發起人原始構想
-│   │   ├── stories/               # User stories（Connextra + Gherkin，PM 寫）
-│   │   └── features/              # 對應的 BDD .feature（PM 寫，QA 綁 step definitions）
-│   ├── architecture/
-│   │   ├── overview.md
-│   │   ├── specs/                 # 技術規格（spec-architect 寫，dev 動工依據）
-│   │   └── adr/                   # 架構決策紀錄
-│   ├── agents/                    # 產品內 Agent 規格（自主多步流程）
-│   │   ├── _template.md
-│   │   └── README.md
-│   ├── skills/                    # 產品內 Skill 規格（單次操作）
-│   │   ├── _template.md
-│   │   └── README.md
-│   └── api/                       # OpenAPI / API 合約
-├── CLAUDE.md                      # Claude Code 專案指引
-└── README.md
-```
+### 設定 LLM
 
-執行時（不在 repo 內，使用者本機）：
+**地端免費（推薦）**
+
+1. 安裝 [LM Studio](https://lmstudio.ai/)，下載 `Qwen2.5-14B-Instruct-GGUF`（約 8GB）
+2. LM Studio 啟動 Local Server（port 1234）
+3. Novel Writer 設定頁 → 啟用 LM Studio → 套用「全地端 Qwen」preset → 儲存
+
+**雲端（Anthropic）**
+
+1. 取得 [Anthropic API key](https://console.anthropic.com/)
+2. 設定頁填入 key → 套用「全雲端 Haiku」preset → 儲存
+
+### 第一本小說
+
+1. 點「新小說」→ 填書名 + 父資料夾 + 簡介 → 建立
+2. 在編輯器輸入第一章，Ctrl+S 儲存
+3. 點「AI 撰寫本章」→ 等待串流 → 點「採用」
+4. 右下角 spinner 消失後，status 已自動更新
+5. 新增第 2 章 → AI 撰寫 → 草稿會提到第 1 章發生的事（記憶閉環驗證）
+
+## 📁 資料儲存
 
 ```
-~/.novel-writer/                   # 全域使用者設定（不同步）
-├── settings.yaml                  # API key、地端 endpoint、預設模型
-├── agents/                        # 全域 Agent 預設（內建 + 使用者擴充）
-├── skills/                        # 全域 Skill 預設
-└── cache/<project-hash>/index.db  # SQLite 衍生 cache
+<你選的資料夾>/             ← 小說內容（可 Drive 同步）
+  synopsis.md
+  chapters/                ← 章節 .md + prompt.md（採用記錄）
+  characters/              ← 角色卡 + _assets/ 圖片
+  status/                  ← story_status.md + character_status.md
+  style.md                 ← 寫作風格指引（可選）
 
-<使用者選的同步資料夾>/<小說專案>/  # 跟著 Drive 同步
-├── project.yaml
-├── synopsis.md
-├── characters/
-├── world/
-├── chapters/
-├── status/
-├── agents/                        # 此專案的 Agent override
-└── skills/                        # 此專案的 Skill override
+~/.novel-writer/           ← 本機 cache（不同步）
+  settings.yaml            ← API key + 路由設定
+  cache/<hash>/drafts/     ← AI 草稿 cache
 ```
 
-## 起步
+## 🛠 開發
 
-目前處於需求與架構成形階段。建議流程：
+```bash
+# 需要：Node.js 18.17+、pnpm 9、git
 
-1. ✅ 已有：[ADR-0001](docs/architecture/adr/0001-storage-strategy.md)、[ADR-0002](docs/architecture/adr/0002-agent-skill-naming.md)、idea.md、第一個 story 範例
-2. 持續用 `write-user-story` skill 在 `docs/requirements/stories/` 寫 stories（含 .feature）
-3. PM 把 stories 切成 epics、排優先序
-4. 每個 ready story 由 spec-architect 寫 spec
-5. 重大決策補 ADR（後端框架、編輯器、打包工具…）
-6. dev 開工：`apps/`、`packages/`
+git clone https://github.com/Smoker21/personal-novel-writer.git
+cd personal-novel-writer
+pnpm install
 
-## 與 Claude Code 協作
+# 開發（API port 3001 + Web port 5173）
+pnpm run dev
 
+# 測試
+pnpm test
+
+# 型別檢查
+pnpm typecheck
+
+# E2E 測試（需先啟動 dev server）
+pnpm --filter @novel-writer/e2e test
 ```
-> 你是 product-manager 子代理，請根據 docs/requirements/idea.md 把功能切分為 epics 與 stories。
-> 載入 ai-agent-designer，為「chapter-writer」生出 docs/agents/chapter-writer.md。
-> 用 write-user-story skill 為「章節版本回溯」寫一個 story（含 .feature）。
-> 用 create-adr skill 記錄「為何選 better-sqlite3 而非 Prisma」。
-```
+
+### 技術棧
+
+- **殼**：Tauri 2（Rust）
+- **API**：Hono + Node.js sidecar
+- **前端**：React 18 + Vite + Tailwind v4 + CodeMirror 6 + Zustand
+- **資料**：better-sqlite3（cache）+ .md 檔案
+- **AI**：llm-adapter（6 providers）+ prompt-library
+
+## 📖 文件
+
+- [安裝指南](docs/user-guide/installation.md)
+- [第一本小說](docs/user-guide/first-novel.md)
+- [AI 設定](docs/user-guide/ai-setup.md)
+- [git 版控](docs/user-guide/git-version-control.md)
+- [常見問題](docs/user-guide/troubleshooting.md)
+
+## 📄 授權
+
+MIT
