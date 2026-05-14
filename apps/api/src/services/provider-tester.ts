@@ -93,9 +93,51 @@ export async function testProvider(
     const modelCount = ep.parseCount(json);
     return modelCount !== undefined ? { ok: true, latencyMs, modelCount } : { ok: true, latencyMs };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return { ok: false, error: friendlyError(err, providerId, config) };
   } finally {
     clearTimeout(timeout);
     signal?.removeEventListener("abort", onAbort);
   }
+}
+
+function friendlyError(err: unknown, providerId: LLMProviderId, config: ProviderConfig): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  const cause = (err as { cause?: { code?: string } }).cause?.code ?? "";
+  const isLocal =
+    providerId === "ollama" || providerId === "lmstudio" || providerId === "rwkv-runner";
+  const target = isLocal ? (config.endpoint ?? "endpoint") : providerLabel(providerId);
+
+  if (msg.includes("aborted") || msg.includes("AbortError")) {
+    return `連線超時（${TIMEOUT_MS / 1000} 秒內無回應）。請確認 ${target} 可達。`;
+  }
+  if (cause === "ECONNREFUSED" || msg.includes("ECONNREFUSED")) {
+    return isLocal
+      ? `無法連線到 ${target}。請確認 ${providerLabel(providerId)} Server 已啟動。`
+      : `無法連線到 ${target}（連線被拒絕）。`;
+  }
+  if (cause === "ENOTFOUND" || msg.includes("ENOTFOUND")) {
+    return `找不到主機 ${target}（DNS 解析失敗）。請確認網址正確。`;
+  }
+  if (cause === "ETIMEDOUT" || msg.includes("ETIMEDOUT")) {
+    return `連線 ${target} 超時。請確認網路狀態與 endpoint 設定。`;
+  }
+  if (msg.includes("fetch failed")) {
+    return isLocal
+      ? `無法連線到 ${target}。請確認 ${providerLabel(providerId)} Server 已啟動（endpoint: ${target}）。`
+      : `無法連線到 ${target}。請檢查網路連線或 API key 是否正確。`;
+  }
+  return msg;
+}
+
+function providerLabel(id: LLMProviderId): string {
+  const names: Record<LLMProviderId, string> = {
+    anthropic: "Anthropic Claude",
+    openai: "OpenAI",
+    google: "Google Gemini",
+    xai: "xAI Grok",
+    ollama: "Ollama",
+    lmstudio: "LM Studio",
+    "rwkv-runner": "RWKV Runner",
+  };
+  return names[id];
 }

@@ -73,7 +73,8 @@ app.post("/", zValidator("json", adoptSchema), async (c) => {
     const chapter = chapters.find((ch) => ch.number === chapterNumber);
     if (!chapter) return c.json({ code: "INVALID_CHAPTER" }, 400);
 
-    const targetMainPath = join(projectPath, chapter.path);
+    // chapter.path from listChapters() is already absolute (full path)
+    const targetMainPath = chapter.path;
 
     // 4. Atomic write main file (tmp + rename)
     const tmpPath = `${targetMainPath}.tmp`;

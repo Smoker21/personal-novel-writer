@@ -6,6 +6,7 @@ import type {
   ProjectMeta,
 } from "@novel-writer/shared-types";
 import yaml from "js-yaml";
+import { buildMd, buildStatusMd, emptyFields } from "./character-fs.js";
 import { sanitizeSlug } from "./sanitize.js";
 
 export interface CreatedProject {
@@ -43,7 +44,10 @@ function buildIndexMd(characters: InitialCharacterCard[]): string {
 }
 
 function buildCharacterMd(c: InitialCharacterCard): string {
-  return `# ${c.name}\n\n## 描寫\n\n${c.description}\n`;
+  // Use the same YAML frontmatter format as M2 character management,
+  // so newly created characters can be opened/edited via the character editor.
+  const fields = emptyFields(c.name);
+  return buildMd(fields, c.description);
 }
 
 export async function createProjectFiles(
@@ -72,9 +76,14 @@ export async function createProjectFiles(
       writeFile(join(projectPath, "project.yaml"), yaml.dump(meta, { lineWidth: -1 }), "utf-8"),
       writeFile(join(projectPath, "synopsis.md"), `${req.synopsis}\n`, "utf-8"),
       writeFile(join(projectPath, "characters", "_index.md"), buildIndexMd(characters), "utf-8"),
-      ...characters.map((c) =>
+      ...characters.flatMap((c) => [
         writeFile(join(projectPath, "characters", `${c.slug}.md`), buildCharacterMd(c), "utf-8"),
-      ),
+        writeFile(
+          join(projectPath, "characters", `${c.slug}_status.md`),
+          buildStatusMd(c.name),
+          "utf-8",
+        ),
+      ]),
       writeFile(firstChapterPath, "", "utf-8"),
       writeFile(join(projectPath, "status", "story_status.md"), "", "utf-8"),
       writeFile(join(projectPath, "status", "character_status.md"), "", "utf-8"),

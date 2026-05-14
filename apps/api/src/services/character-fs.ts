@@ -28,7 +28,7 @@ function parseMd(raw: string): { fields: CharacterFields; body: string } {
   return { fields: yamlToFields(parsed), body };
 }
 
-function emptyFields(name: string): CharacterFields {
+export function emptyFields(name: string): CharacterFields {
   return {
     name,
     age: null,
@@ -161,7 +161,7 @@ function fieldsToYaml(fields: CharacterFields): string {
   return yamlStringify(doc);
 }
 
-function buildMd(fields: CharacterFields, body: string): string {
+export function buildMd(fields: CharacterFields, body: string): string {
   return `---\n${fieldsToYaml(fields)}---\n\n${body}\n`;
 }
 
@@ -202,7 +202,7 @@ async function writeIndex(projectPath: string, entries: Map<string, string>): Pr
 // Status.md skeleton
 // ---------------------------------------------------------------------------
 
-function buildStatusMd(name: string): string {
+export function buildStatusMd(name: string): string {
   return `# ${name} — 狀態
 
 ## 重要狀態變化

@@ -118,34 +118,41 @@ export function NewProjectDialog({ onClose }: Props) {
 
         {globalError && <div className="text-sm text-red-600">{globalError}</div>}
 
-        <div className="flex justify-between pt-3 border-t">
-          <button
-            type="button"
-            onClick={form.back}
-            disabled={form.state.step === 1}
-            className="px-3 py-1 text-sm border rounded disabled:opacity-30"
-          >
-            上一步
-          </button>
-          {form.state.step < 3 ? (
-            <button
-              type="button"
-              onClick={form.advance}
-              disabled={!form.canAdvance()}
-              className="px-4 py-1 text-sm bg-blue-600 text-white rounded disabled:opacity-30"
-            >
-              下一步
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!form.canAdvance() || submitting}
-              className="px-4 py-1 text-sm bg-blue-600 text-white rounded disabled:opacity-30"
-            >
-              {submitting ? "建立中…" : "建立"}
-            </button>
+        <div className="flex flex-col gap-2 pt-3 border-t">
+          {!form.canAdvance() && form.getBlockReason() && (
+            <p className="text-xs text-amber-600">{form.getBlockReason()}</p>
           )}
+          <div className="flex justify-between">
+            <button
+              type="button"
+              onClick={form.back}
+              disabled={form.state.step === 1}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-30"
+            >
+              上一步
+            </button>
+            {form.state.step < 3 ? (
+              <button
+                type="button"
+                onClick={form.advance}
+                disabled={!form.canAdvance()}
+                title={form.canAdvance() ? "" : form.getBlockReason()}
+                className="px-4 py-1 text-sm bg-blue-600 text-white rounded disabled:opacity-30"
+              >
+                下一步
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!form.canAdvance() || submitting}
+                title={!form.canAdvance() ? form.getBlockReason() : ""}
+                className="px-4 py-1 text-sm bg-blue-600 text-white rounded disabled:opacity-30"
+              >
+                {submitting ? "建立中…" : "建立"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

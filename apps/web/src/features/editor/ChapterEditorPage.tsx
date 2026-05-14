@@ -304,7 +304,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: autoSelectFirstChapter 內已用 projectHash；只要 hash 變動才重做
   useEffect(() => {
     async function autoSelectFirstChapter() {
-      const res = await fetch(`/api/projects/${projectHash}/chapters/`);
+      const res = await fetch(`/api/projects/${projectHash}/chapters`);
       if (!res.ok) {
         store.markClean("", "", "");
         return;

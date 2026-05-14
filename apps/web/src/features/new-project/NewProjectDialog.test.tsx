@@ -12,8 +12,8 @@ describe("NewProjectDialog", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText(/步驟 1 \/ 3/)).toBeInTheDocument();
-    expect(screen.getByText(/書名/)).toBeInTheDocument();
-    expect(screen.getByText(/父資料夾/)).toBeInTheDocument();
+    expect(screen.getAllByText(/書名/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/父資料夾/).length).toBeGreaterThan(0);
   });
 
   it("disables next button when step 1 incomplete", () => {

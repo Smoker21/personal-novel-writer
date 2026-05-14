@@ -18,7 +18,7 @@ export function ChapterList({
   const [creating, setCreating] = useState(false);
 
   async function refresh() {
-    const res = await fetch(`/api/projects/${projectHash}/chapters/`);
+    const res = await fetch(`/api/projects/${projectHash}/chapters`);
     if (!res.ok) return;
     const data = (await res.json()) as { chapters: ChapterListItem[] };
     setChapters(data.chapters);
@@ -32,7 +32,7 @@ export function ChapterList({
   async function handleCreate() {
     setCreating(true);
     try {
-      const res = await fetch(`/api/projects/${projectHash}/chapters/`, {
+      const res = await fetch(`/api/projects/${projectHash}/chapters`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({}),
