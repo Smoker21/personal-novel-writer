@@ -46,6 +46,13 @@ apps/desktop/src-tauri/target/
 # pnpm
 .pnpm-store/
 
+# npm — 本專案用 pnpm，npm 產的 lock 是誤產
+package-lock.json
+
+# Playwright E2E artifacts — 每次跑都變動，不該 commit
+**/test-results/
+**/playwright-report/
+
 # Temp / logs
 *.tmp
 *.bak
