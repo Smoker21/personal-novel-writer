@@ -3,18 +3,22 @@ Feature: AI 撰寫單章（chapter-writer）
   我想要點一個按鈕讓 AI 根據章節大綱、人物與故事狀態產出當前章節的草稿
   以便得到一個可以直接修改採用的初稿，省去從零開始打字的負擔
 
-  Scenario: 觸發 AI 撰寫並串流接收草稿
+  # M5 起：trigger 按鈕統一為「生成本章」；M3/M4 scenarios 仍寫「AI 撰寫本章」者視為同義 alias（5.4–5.10 之後 scenarios 在 QA 寫 step-defs 時可同時接受兩種 wording，直到 M6 統一改寫）
+
+  Scenario: 兩階段生成 — 先 build-prompt，再 generate（M5）
     Given 我在專案「春日記事」第二章「書店的訪客」編輯器中
-    And 該章節已有 outline、synopsis、至少一名角色
+    And 該章節 frontmatter 含 participants=[蘇晴, 林書言]、outline、requirements
     And 設定頁（009）已設定 chapter-writer 的預設模型
-    And 第一章已採用，存在 chapters/chapter_0001_梅雨初晴.md 與既有 status/story_status.md
     And 「蘇晴」「林書言」兩個角色卡與其各自 _status.md 都存在
-    When 我點擊「AI 撰寫本章」
-    Then 系統蒐集上下文：第二章 outline + synopsis + story_status.md + characters/{蘇晴,林書言}.md + characters/{蘇晴,林書言}_status.md + chapter_0001 完整內容
-    And 呼叫 chapter-writer Agent（透過 LLMRouter）
+    When 我點擊「生成本章」
+    Then 系統先呼叫 POST .../build-prompt（**不呼叫 LLM**）
+    And 蒐集上下文：synopsis + story_status.md + characters/{蘇晴,林書言}.md + characters/{蘇晴,林書言}_status.md + chapter_0001 完整內容
+    And response 200 含 promptText / contextHash / estimatedTokens / participants
+    And UI 開啟 PromptPreviewModal 顯示完整 prompt（textarea，可編輯）
+    When 我在 modal 中編輯 prompt 後點「送出」
+    Then 系統呼叫 POST .../generate（含 promptText / contextHash / participants / outline / requirements）
     And 草稿面板開啟，逐字顯示產出
-    And 主編輯區顯示為唯讀，提示「AI 撰寫中…」
-    And 顯示「中止」按鈕
+    And PromptSnapshot 記錄 userEdited=true
 
   Scenario: 未設定 LLM 時阻擋並引導
     Given 我在第一章編輯器中
@@ -27,9 +31,29 @@ Feature: AI 撰寫單章（chapter-writer）
   Scenario: 缺少必要上下文時阻擋並指引使用者
     Given 我在專案「春日記事」第一章編輯器中
     And synopsis.md 為空
-    When 我點擊「AI 撰寫本章」
-    Then 系統顯示「故事大綱未填寫，請先到專案設定補上」
+    When 我點擊「生成本章」
+    Then build-prompt 回 400 MISSING_CONTEXT
+    And UI 顯示「故事大綱未填寫，請先到專案設定補上」
     And 不呼叫 LLM
+
+  Scenario: participantSlugs 中的角色找不到時阻擋（M5）
+    Given 我在第二章編輯器
+    And 我在角色挑選器選了「林清風」但 characters/林清風.md 不存在
+    When 我點擊「生成本章」
+    Then build-prompt 回 400 INVALID_PARTICIPANT
+    And 錯誤訊息列出「林清風」
+    And UI 顯示「請新建角色卡，或從挑選器移除」
+    And 不呼叫 LLM
+
+  Scenario: build-prompt 是純函式無副作用（M5）
+    Given 我在第二章編輯器，frontmatter outline 為「春雨找明哲」
+    When 我在 UI 把 outline 改為「春雨獨自閱讀」
+    And 點擊「生成本章」
+    Then build-prompt 用「春雨獨自閱讀」拼接
+    And chapter front-matter 的 outline 仍為「春雨找明哲」（未被寫入）
+    When 我在 PromptPreviewModal 點「取消」
+    Then 沒有任何 .md / cache 被寫入
+    And LLM 未被呼叫
 
   Scenario: 串流中按「中止」保留已產出內容
     Given AI 撰寫正在串流，已產出約 300 字
@@ -84,10 +108,13 @@ Feature: AI 撰寫單章（chapter-writer）
     Then 草稿中所有提及的人物姓名僅能是「蘇晴」、「林書言」或上下文中提供的其他名字
     And 草稿不出現未在上下文出現的新角色姓名
 
-  Scenario: Context 太大時 UI 引導使用者精簡
+  Scenario: Context 太大時 UI 引導使用者精簡（M5 修訂）
     Given 累積到第 30 章，story_status.md 變得很長
+    And participantSlugs 列了 8 個角色
     And 上下文總 token 超過模型 context window 的 75%
-    When 我點擊「AI 撰寫本章」
-    Then 系統先嘗試把「該章相關角色」縮為 outline 顯式列出的
-    And 若仍超，把「上一章完整內容」截為末尾 1000 字
-    And 若仍超，UI 顯示「上下文太大，請：(a) 在 story_status.md 按 AI 精簡 (b) 縮角色 status (c) 換大模型」並中止
+    When 我點擊「生成本章」
+    Then build-prompt 回 400 CONTEXT_TOO_LARGE
+    And UI 顯示建議：「(a) 在角色挑選器減少參與角色 (b) 在 story_status 按 AI 精簡 (c) 縮角色 status (d) 換大 context model」
+    And 不呼叫 LLM
+
+  # M5：移除「outline 列表 / 全選 / substring matching」相關 scenario — 角色由 participants 明示

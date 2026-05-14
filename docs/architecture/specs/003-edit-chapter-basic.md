@@ -1,23 +1,32 @@
-# Spec: 章節編輯器（兩層儲存）
+# Spec: 章節編輯器（兩層儲存 + AI 寫作工作台）
 
 > Story: `docs/requirements/stories/003-edit-chapter-basic.md`
 > BDD: `docs/requirements/features/003-edit-chapter-basic.feature`
-> Status: `Ready`
+> Status: `Draft`（M5 修訂中，待 PM 簽核轉 Ready）
 > Owner: `spec-architect`
-> Last updated: `2026-05-12`
+> Last updated: `2026-05-15`
 > Depends on ADR: 0001（儲存）、0003（技術棧）、0005（CM6）、0006（Tauri fs watcher）、0007（git）、0008（前端架構）
-> Depends on spec: 009（settings）、010（git）
+> Depends on spec: 005（AI 撰寫 + build-prompt）、007（status-updater）、009（settings，含 systemPromptOverride / temperature）、010（git）
+> 修訂：`2026-05-15` — M4 review 發現「無法使用」（BUG-A 修後仍只有空殼），M5 重新設計編輯器主介面為「AI 寫作工作台」：
+> 1. 上下文預覽面板（前章 / story_status / 各參與角色 character_status）
+> 2. 寫作參數 inline 編輯（本章覆寫 model / temperature / system prompt）
+> 3. 本章劇情大綱 + 本章寫作需求（給 AI 的輸入，持久化於 chapter front-matter）
+> 4. 本章角色挑選器（portrait grid，可多選；預設帶入上一章選定）
+> 5. Generate 流程改造：build-prompt → user 編輯 prompt → 送出生 LLM
+> 6. ChapterPromptHistory：採用後寫入該章歷次採用的 prompt 全文
+> 7. chapter front-matter 新增 `participants: string[]` / `outline: string` / `requirements: string`
 
 ## 摘要
 
-章節編輯器是使用者寫小說的主介面。本 spec 規範**兩層儲存**架構與其全部 edge case：
+章節編輯器是使用者寫小說的主介面。本 spec 規範三件事：
 
-1. **Layer 1 — Browser draft（IndexedDB）**：1.5s debounce autosave；F5 / 切章 / 關 tab 都不掉
-2. **Layer 2 — Markdown 主檔（`.md`）**：使用者明示「儲存」按鈕才寫入；觸發 git commit + status-updater
+1. **兩層儲存架構**（Layer 1 IndexedDB autosave + Layer 2 `.md` 明示儲存），含三種衝突情境的完整處理
+2. **「AI 寫作工作台」UI**（M5 新增）：上下文預覽 + 寫作參數 + 大綱/需求 + 角色挑選器 + 兩階段 Generate
+3. **chapter front-matter schema**：含 `participants`、`outline`、`requirements`，跨開關章節保留
 
 兩層分離的核心收益：使用者隨意打字 / 探索不污染 AI 視野（AI 只讀 `.md`），「儲存」是 commit 心智契約。
 
-含三種衝突情境的完整處理（IndexedDB / .md 不同步、Tauri fs watcher 偵測外部變更、多 tab 開同章）。
+兩階段 Generate（先 build-prompt → user 編輯 → submit）的核心收益：使用者對「AI 看到什麼」完全透明可控；不滿意 prompt 可不啟動 LLM 直接重新調整參數。
 
 ## API 合約
 
@@ -33,9 +42,15 @@
   number: number;
   title: string;                 // 從檔名抽取
   path: string;                  // 絕對路徑
-  content: string;
+  content: string;               // 不含 frontmatter 的純正文
   mtime: string;                 // ISO 8601，給衝突偵測用
   size: number;
+
+  // M5 新增：chapter front-matter（缺失欄位以預設值回應，便於前端統一處理）
+  participants: string[];        // 缺失 → []
+  outline: string | null;        // 缺失 → null
+  requirements: string | null;
+  hasFrontmatter: boolean;       // 偵測舊章節是否有 frontmatter（舊章節 = false；前端 UI 可顯示「未設定大綱」hint）
 }
 ```
 
@@ -48,9 +63,14 @@
 **Request:**
 ```ts
 {
-  content: string;
+  content: string;               // 純正文（不含 frontmatter；server 端負責拼接）
   title: string;                 // 章節標題（可能與當前不同 → 觸發重命名）
   expectedMtime?: string;        // optional：optimistic concurrency；提供時若 .md 的 mtime 不符回 409
+
+  // M5 新增：chapter front-matter 欄位（與 PUT /generate 的 build-prompt 輸入同源）
+  participants?: string[];       // 本章參與角色 slugs；不傳 = 不動既有 frontmatter；傳 [] = 清空
+  outline?: string | null;       // 本章劇情大綱；null = 清空欄位；undefined = 不動
+  requirements?: string | null;  // 本章寫作需求；同上
 }
 ```
 
@@ -62,6 +82,9 @@
   size: number;
   commitSha: string | null;      // 若內容無變化則 null
   statusUpdateJobId: string | null;  // 若觸發了 status-updater 的 job
+  participants: string[];        // M5：echo back 寫入後的 frontmatter（給 UI 同步用）
+  outline: string | null;
+  requirements: string | null;
 }
 ```
 
@@ -123,6 +146,195 @@
 }
 ```
 
+## 章節 front-matter（M5 新增）
+
+從 M5 起，章節 `.md` 檔可有 optional YAML frontmatter：
+
+```markdown
+---
+participants:
+  - 春雨
+  - 明哲
+outline: |
+  春雨在圖書館找到明哲，請他協助查詢《梅雨草稿》借閱歷史。
+  明哲在館藏系統發現該書曾被列為「待處理」，留下伏筆。
+requirements: |
+  約 1500 字。第三人稱有限視角（以春雨為主）。
+  保留書卷氣的文藝風格；不要過度推進感情線。
+---
+
+春雨輕輕將那份無名詩稿推到明哲面前……
+```
+
+### Schema
+
+| 欄位 | 型別 | 預設 | 用途 |
+|---|---|---|---|
+| `participants` | `string[]`（slugs） | `[]` | 本章參與角色 — Spec 005 context-collector 與 Spec 007 status-updater 都讀此欄位；只有列出的角色卡 + status 會塞進 prompt |
+| `outline` | `string \| null` | `null` | 本章劇情大綱 — Spec 005 build-prompt 注入到 user prompt 的「本章劇情指引」段 |
+| `requirements` | `string \| null` | `null` | 本章寫作需求 — Spec 005 build-prompt 注入到 user prompt 的「本章寫作需求」段 |
+
+未來可加更多欄位（如 POV、wordCountTarget），向前相容（多餘欄位讀取時保留、不報錯）。
+
+### Parser 規則
+
+- 用 `yaml` 套件（eemeli/yaml）解析；frontmatter 由 `---\n` 開頭與 `\n---\n` 結尾界定（與 Hugo / Jekyll 慣例一致）
+- 解析失敗 → 視為**無 frontmatter**（fail-open，保護現有純文字章節）+ log warning
+- 寫入時：若三個欄位都是預設值（`[]` / `null` / `null`），**不**寫 frontmatter（保持檔案乾淨）；任何一個欄位非預設 → 寫完整 frontmatter（含三個欄位）
+- 欄位順序固定：`participants` → `outline` → `requirements`（便於 git diff 觀察）
+- 行尾統一 LF；frontmatter 與正文間以單一空行分隔
+
+### Migration / 向前相容
+
+- 舊章節（無 frontmatter）：GET 時 server 端解析回 `participants: []`、`outline: null`、`requirements: null`、`hasFrontmatter: false`
+- 首次 PUT 攜帶任一新欄位 → server 寫入 frontmatter；`hasFrontmatter` 之後為 true
+- **不**做自動偵測（不從正文 substring matching 推斷 participants，避免錯誤判斷）
+- 使用者在編輯器手動勾選角色 + 填寫大綱 + 按儲存 → 開始持久化
+
+### participants 欄位的下游讀者
+
+| 讀者 | 用途 |
+|---|---|
+| Spec 005 `build-prompt` / `context-collector` | 只把 `participants` 中列出的角色卡 + character_status 塞進 prompt |
+| Spec 005 `generate` 的 PromptSnapshot | 記錄當次採用的 participants（保留審計痕跡） |
+| Spec 007 status-updater | 只更新 `participants` 中列出的角色的 `<slug>_status.md`；不再用 substring matching |
+| Spec 006 adopt | 採用後將 build-prompt 階段的 participants 寫進主檔 frontmatter（採用流程同步持久化） |
+| 章節編輯器 UI | 開啟章節時：UI 角色挑選器預選 `participants`；空時預選「上一章 participants」 |
+
+## 章節編輯器 UI（M5 新增）
+
+章節編輯器頁面（`ChapterEditorPage`）的版面從 M4 的「左清單 + CM6 編輯區」擴充為「AI 寫作工作台」：
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ ← 首頁  |  章節 7 ▸ 春雨的探訪  | [儲存] [歷史] [角色] [⚙ 設定]      │
+├──────────┬──────────────────────────────────────────────────────────┤
+│ 章節清單 │ ┌──── 上下文預覽（折疊面板）───────────────────────────┐ │
+│ ──────── │ │ ▸ 前一章：第 6 章「圖書館的詩稿」 …………………… 1500 字 │ │
+│ 1 …      │ │ ▸ story_status 摘要 ……………………………… 800 字       │ │
+│ 2 …      │ │ ▸ 春雨_status   ……………………………… 350 字           │ │
+│ 3 …      │ │ ▸ 明哲_status   ……………………………… 280 字           │ │
+│ 4 …      │ └──────────────────────────────────────────────────────┘ │
+│ 5 …      │ ┌──── 寫作參數 (inline) ─────────────────────────────┐  │
+│ 6 …      │ │ Model:  [google:gemini-2.5-flash ▼] (從 routing 拉)│  │
+│ 7 ●(目前)│ │ Temp:   [1.0 ▢▢▢▢▢▢▢▢▢]                            │  │
+│ + 新章節 │ │ System prompt 本章覆寫:                            │  │
+│          │ │ [(空 → 用 settings)                            ]   │  │
+│          │ └────────────────────────────────────────────────────┘  │
+│          │ ┌──── 本章劇情大綱 ─────────────────────────────────┐   │
+│          │ │ [春雨在圖書館找到明哲，請他協助查詢……         ]   │   │
+│          │ └─────────────────────────────────────────────────────┘ │
+│          │ ┌──── 本章寫作需求 ─────────────────────────────────┐   │
+│          │ │ [約 1500 字。第三人稱有限視角……                 ]   │   │
+│          │ └─────────────────────────────────────────────────────┘ │
+│          │ ┌──── 本章角色 (portrait grid，可多選) ────────────┐   │
+│          │ │ [▣春雨] [▣明哲] [□林清風] [□蘇晴] … [+ 加角色]    │   │
+│          │ └─────────────────────────────────────────────────────┘ │
+│          │ ┌──── [▶ 生成本章] [⛢ 重產] [✕ 丟棄草稿] ─────────┐    │
+│          │ │ (尚未生成 / 草稿產生中 / 完成時切按鈕)            │    │
+│          │ └─────────────────────────────────────────────────────┘ │
+│          │ ┌──── 章節主檔 (CM6) ─────────────────────────────┐   │
+│          │ │  [使用者編輯正文 .md]                            │   │
+│          │ │  …                                              │   │
+│          │ └─────────────────────────────────────────────────────┘ │
+└──────────┴──────────────────────────────────────────────────────────┘
+```
+
+### 1. 上下文預覽面板（read-only）
+
+| 區段 | 內容來源 | 缺失時 |
+|---|---|---|
+| 前一章 | `chapters/chapter_<N-1>_*.md` 的正文（不含 frontmatter） | 第一章 → 顯示「（本章為第一章）」 |
+| story_status 摘要 | `status/story_status.md` 完整內容 | 顯示「（尚無 story_status，第一章採用後生成）」 |
+| 各參與角色 character_status | `participants` 中每個 slug 對應的 `characters/<slug>_status.md` | 該角色 status 不存在 → 顯示「（尚無 status；新角色）」 |
+
+UI 為摺疊面板（accordion），預設摺疊。展開時顯示前 200 字摘要 + 「展開全部」按鈕。
+
+- 來源變更（外部修改）：透過 Spec 003 既有的 Tauri fs watcher 通知 → 前端重新拉取
+- 不可編輯 — 唯讀預覽
+
+### 2. 寫作參數 inline 編輯
+
+| 欄位 | 預設來源 | 覆寫範圍 |
+|---|---|---|
+| Model | settings.agents.chapter-writer.routing.primary | 本章 build-prompt + generate 期間生效，不寫進 chapter front-matter（每次重新展開預設拉 settings） |
+| Temperature | settings.agents.chapter-writer.routing.temperature | 同上；空白 = null = 用 settings |
+| System prompt 本章覆寫 | （無） | 與 settings.systemPromptOverride 兩階段 concat（settings 先、本章後）；空白 = 不疊加 |
+
+「本章覆寫」是 ephemeral state — 切章 / reload 後消失。原因：使用者在嘗試不同寫法時不應污染 chapter front-matter；要持久化請改 settings。
+
+### 3. 本章劇情大綱（持久化）
+
+- textarea，多行
+- 寫入 `outline` frontmatter 欄位（PUT chapter）
+- 顯示「(來自第 N 章的舊大綱)」如果使用者切到另一章後又切回
+
+### 4. 本章寫作需求（持久化）
+
+- textarea，多行
+- 寫入 `requirements` frontmatter 欄位
+- placeholder 提供範例：「約 N 字、第幾人稱、特殊風格指引、要避免的元素」
+
+### 5. 本章角色挑選器（portrait grid）
+
+- 顯示所有角色卡為 portrait grid（reuse Spec 002 M5 修訂的 grid）
+- 預設選取：
+  - 若 chapter frontmatter `participants` 非空 → 用該值
+  - 否則：上一章的 `participants`（若有）
+  - 否則：空
+- 使用者可加入 / 移除
+- **只有選定角色**的 character.md + character_status.md 會塞進 prompt
+- 寫入 `participants` frontmatter 欄位（PUT chapter）
+- 角色卡尚未建立時，UI 顯示「+ 新建角色」按鈕（連到 Spec 002 角色編輯器）
+
+### 6. 兩階段 Generate 流程
+
+詳見 Spec 005「兩階段 Generate」段。簡述：
+
+```
+使用者按「生成本章」
+  │
+  ▼
+POST /api/projects/:hash/chapters/:n/build-prompt
+   { participantSlugs, outline, requirements, modelOverride, temperatureOverride, systemPromptOverrideForChapter }
+  │
+  ▼ response 200 { promptText, contextHash, estimatedTokens, ... }
+  │
+  ▼
+顯示完整 prompt 在 modal 或 side panel → 使用者可編輯
+  │
+  ▼ 使用者按「送出」
+  │
+  ▼
+POST /api/projects/:hash/chapters/:n/generate
+   { promptText, modelOverride, temperatureOverride, contextHash }
+  │
+  ▼ SSE stream (same as M4)
+  │
+  ▼
+草稿產生 → 採用 / 重產 / 退回
+```
+
+「重產」= 回到 build-prompt 階段（保留先前的參數值，使用者可再次調整）。
+「退回」= 丟棄 draft（DELETE draft），不影響 frontmatter。
+「採用」= 既有 Spec 006 流程；採用後 prompt 寫入 `chapter_<NNNN>_prompt.md`（即 ChapterPromptHistory，見下節）。
+
+> **OPEN（待 PM 確認）**：「重產」語意 — spec-architect 預設為「回 build-prompt 階段（使用者可重調參數再 build）」。替代方案：「直接重送同一 promptText 給 LLM（單純跑第二輪 sampling）」。前者更安全（使用者每次都明確確認 prompt），後者更快（一鍵重 roll）。請 PM 在 review 時拍板。
+
+### 7. ChapterPromptHistory（沿用既有 `chapter_<NNNN>_prompt.md`）
+
+> **設計決策（M5）**：M5 handover 提到「ChapterPromptHistory.md」是新檔案，但 Spec 006 既有的 `chapter_<NNNN>_prompt.md` 已經是「採用後累積的 prompt 歷史」。M5 **不**新增第二個檔案，而是**形式化** `_prompt.md` 的語意為「prompt history」。
+
+- 路徑：`chapters/chapter_<NNNN>_prompt.md`（檔名與 Spec 006 一致，不變）
+- 內容：每次採用（Spec 006）追加一個段落，含：
+  - 時間戳
+  - 模型 ID
+  - 完整 prompt（使用者編輯過的，從 build-prompt + user edit 的最終版本）
+  - contextHash
+  - adopt-marker（HTML 註解，供 unadopt 定位 — Spec 006 既有）
+- 採用流程（Spec 006）已實作 append + marker 邏輯；M5 只改 PromptSnapshot 內容為「使用者編輯過的 promptText」而非「server 自動 build 的版本」
+- Chapter 刪除時，`_prompt.md` 一併刪除（既有規則不變）
+
 ## Browser draft（IndexedDB）
 
 依 [ADR-0008](../adr/0008-frontend-architecture.md) 用 **Dexie**。
@@ -141,6 +353,11 @@ interface DraftRow {
   updatedAt: number;             // epoch ms
   baseMtime: string;             // 上次讀取 .md 時的 mtime（給衝突偵測用）
   baseSha256?: string;           // 上次讀取 .md 內容的 sha256（補助比對）
+
+  // M5 新增：frontmatter dirty 狀態（與 content 一起 autosave，使用者切章不掉）
+  participants?: string[];
+  outline?: string | null;
+  requirements?: string | null;
 }
 
 class NovelWriterDB extends Dexie {
@@ -317,13 +534,23 @@ BroadcastChannel 限同 origin / 同 WebView；Tauri 單視窗下天然成立。
 新增至 `packages/shared-types/src/chapter.ts`：
 
 ```ts
+export interface ChapterFrontMatter {
+  participants: string[];        // 角色 slugs
+  outline: string | null;
+  requirements: string | null;
+}
+
 export interface ChapterContent {
   number: number;
   title: string;
   path: string;
-  content: string;
+  content: string;               // 不含 frontmatter
   mtime: string;
   size: number;
+  participants: string[];        // M5
+  outline: string | null;        // M5
+  requirements: string | null;   // M5
+  hasFrontmatter: boolean;       // M5
 }
 
 export interface ChapterListItem {
@@ -334,12 +561,16 @@ export interface ChapterListItem {
   mtime: string;
   hasPromptFile: boolean;
   hasBrowserDraft: boolean;
+  participants: string[];        // M5：列表 view 也回傳，給「角色挑選器預選上一章」使用
 }
 
 export interface SaveChapterRequest {
   content: string;
   title: string;
   expectedMtime?: string;
+  participants?: string[];       // M5：undefined = 不動；[] = 清空
+  outline?: string | null;       // M5
+  requirements?: string | null;  // M5
 }
 
 export interface SaveChapterResponse {
@@ -348,6 +579,9 @@ export interface SaveChapterResponse {
   size: number;
   commitSha: string | null;
   statusUpdateJobId: string | null;
+  participants: string[];        // M5
+  outline: string | null;        // M5
+  requirements: string | null;   // M5
 }
 ```
 
@@ -414,30 +648,52 @@ git commit 紀錄（Spec 010）
 
 ## 開發任務拆解
 
-- [ ] **types**: `packages/shared-types/src/chapter.ts`、`text-count.ts`
-- [ ] **be-1**: `apps/api/src/services/chapter-fs.ts` — 讀寫 .md、title sanitize、rename 流程、檔案掃描列表
-- [ ] **be-2**: `apps/api/src/services/chapter-mtime.ts` — mtime 取得與比對 helper
-- [ ] **be-3**: `apps/api/src/routes/chapters.ts` — GET / PUT / POST / DELETE / list / rename endpoint
-- [ ] **be-4**: 整合 Spec 010 commit-policy
-- [ ] **be-5**: 整合 Spec 007 status-updater 觸發
+### 既有（M3/M4）
+- [x] **types**: `packages/shared-types/src/chapter.ts`、`text-count.ts`
+- [x] **be-1**: `apps/api/src/services/chapter-fs.ts` — 讀寫 .md、title sanitize、rename 流程、檔案掃描列表
+- [x] **be-2**: `apps/api/src/services/chapter-mtime.ts` — mtime 取得與比對 helper
+- [x] **be-3**: `apps/api/src/routes/chapters.ts` — GET / PUT / POST / DELETE / list / rename endpoint
+- [x] **be-4**: 整合 Spec 010 commit-policy
+- [x] **be-5**: 整合 Spec 007 status-updater 觸發
 - [ ] **be-6**: Tauri Rust fs watcher 設定（依 ADR-0006）
-- [ ] **fe-1**: `apps/web/src/lib/db.ts` — Dexie database + migration
-- [ ] **fe-2**: `apps/web/src/stores/editor-store.ts` — Zustand store（view ref、currentChapter、dirtyState）
-- [ ] **fe-3**: `apps/web/src/features/editor/ChapterEditor.tsx` — CM6 整合 + autosave 鉤子
-- [ ] **fe-4**: `apps/web/src/features/editor/SaveButton.tsx` — 儲存邏輯 + 衝突對話框
-- [ ] **fe-5**: `apps/web/src/features/editor/ChapterList.tsx` — 列表 + 切換 + 新增
-- [ ] **fe-6**: `apps/web/src/features/editor/TitleInput.tsx` — 標題編輯 + sanitize hint
-- [ ] **fe-7**: `apps/web/src/features/editor/ConflictDialog.tsx` — 三種衝突情境的對話框
-- [ ] **fe-8**: `apps/web/src/lib/tauri-fs-watcher.ts` — listen Tauri event → invalidate
-- [ ] **fe-9**: `apps/web/src/lib/broadcast-channel.ts` — 多 tab 偵測
-- [ ] **fe-10**: `apps/web/src/lib/word-count.ts` 即時字數顯示
-- [ ] **fe-11**: 鍵盤快捷鍵 Ctrl+S → SaveButton
-- [ ] **qa-1**: cucumber-js step definitions for `003.feature`
-- [ ] **qa-2**: 衝突情境 matrix 端對端測試（A/B/C/D/E 每個都跑）
-- [ ] **qa-3**: autosave 節流測試（debounce / flush 時機）
-- [ ] **qa-4**: F5 / crash recovery 測試（用 Playwright 模擬 reload）
-- [ ] **qa-5**: rename 流程的檔案 / git commit 完整性測試
+- [x] **fe-1**: `apps/web/src/lib/db.ts` — Dexie database + migration
+- [x] **fe-2**: `apps/web/src/stores/editor-store.ts`
+- [x] **fe-3**: `apps/web/src/features/editor/ChapterEditor.tsx`
+- [x] **fe-4**: `apps/web/src/features/editor/SaveButton.tsx`
+- [x] **fe-5**: `apps/web/src/features/editor/ChapterList.tsx`
+- [x] **fe-6**: `apps/web/src/features/editor/TitleInput.tsx`
+- [ ] **fe-7**: `apps/web/src/features/editor/ConflictDialog.tsx`
+- [ ] **fe-8**: `apps/web/src/lib/tauri-fs-watcher.ts`
+- [ ] **fe-9**: `apps/web/src/lib/broadcast-channel.ts`
+- [x] **fe-10**: `apps/web/src/lib/word-count.ts`
+- [x] **fe-11**: 鍵盤快捷鍵 Ctrl+S
+
+### M5 新增
+
+- [ ] **types-m5**: chapter.ts 補 `ChapterFrontMatter` / `participants` / `outline` / `requirements`；DraftRow 補三欄
+- [ ] **be-m5-1**: `apps/api/src/services/chapter-fs.ts` 補 frontmatter parse / serialize（用 `yaml` 套件）；fail-open 保護舊章節；寫入時若三欄都預設則不寫 frontmatter
+- [ ] **be-m5-2**: chapter-fs 提供 `listChaptersWithFrontmatter()`（給「上一章 participants」UI 用）
+- [ ] **be-m5-3**: chapter-fs 整合：GET / PUT 補 frontmatter 三欄（schema 已在 API 段）
+- [ ] **be-m5-4**: Dexie migration v2：DraftRow 補三欄（向前相容，舊 row missing → 預設值）
+- [ ] **fe-m5-1**: `apps/web/src/features/editor/ContextPreviewPanel.tsx`（上下文預覽 — 前章 / story_status / character_status）
+- [ ] **fe-m5-2**: `apps/web/src/features/editor/WritingParamsBar.tsx`（model / temperature / system prompt 本章覆寫）
+- [ ] **fe-m5-3**: `apps/web/src/features/editor/OutlineInput.tsx` + `RequirementsInput.tsx`（textarea + autosave）
+- [ ] **fe-m5-4**: `apps/web/src/features/editor/ParticipantPicker.tsx`（reuse Spec 002 M5 portrait grid 為內嵌挑選器）
+- [ ] **fe-m5-5**: `apps/web/src/features/editor/PromptPreviewModal.tsx`（兩階段 generate 的 prompt 編輯介面）
+- [ ] **fe-m5-6**: editor-store 補三欄 state + autosave 邏輯
+- [ ] **qa-m5-1**: cucumber-js step defs for `003.feature` M5 新 scenarios
+- [ ] **qa-m5-2**: frontmatter parser 單元測試（含 fail-open、舊章節向前相容）
+- [ ] **qa-m5-3**: build-prompt → user edit → generate 端對端測試（mock LLM）
+- [ ] **qa-m5-4**: participants 變更觸發 status-updater 「只更新所列角色」測試（連動 Spec 007）
 
 ## 變更紀錄
 
 - `2026-05-12`: 初版 Ready
+- `2026-05-15`: M5 修訂（待 PM 簽核轉 Ready）：
+  - 章節編輯器 UI 重新設計為「AI 寫作工作台」（6 個面板）
+  - chapter front-matter 新增 `participants` / `outline` / `requirements`（YAML frontmatter，向前相容）
+  - GET / PUT chapter API 補三欄；ChapterContent / SaveChapterRequest / SaveChapterResponse 對應補欄位
+  - 兩階段 Generate（build-prompt → user 編輯 → submit）取代既有單階段 generate；詳見 Spec 005
+  - ChapterPromptHistory：沿用 Spec 006 既有 `chapter_<NNNN>_prompt.md`（形式化為「採用後 prompt 累積歷史」，不開新檔）
+  - DraftRow 補 frontmatter 三欄 autosave（切章不掉）
+  - 開發任務拆解：標記 M3/M4 既有任務 + 列 M5 新任務

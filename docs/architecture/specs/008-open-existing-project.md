@@ -2,11 +2,15 @@
 
 > Story: `docs/requirements/stories/008-open-existing-project.md`
 > BDD: `docs/requirements/features/008-open-existing-project.feature`
-> Status: `Ready`
+> Status: `Draft`（M5 微調中，待 PM 簽核轉 Ready）
 > Owner: `spec-architect`
-> Last updated: `2026-05-12`
+> Last updated: `2026-05-15`
 > Depends on ADR: 0001、0003、0006（Tauri fs dialog）、0007（git）、0008（前端架構）
 > Depends on spec: 009（settings.recentProjects schema）、010（git status 驗證）
+> 修訂：`2026-05-15` — M5 微調 TD-2 / TD-3：
+> 1. **TD-2**：統一 hash 長度為 **16-char**（取代 M4 既有的 `recent-projects-store=16` vs `project-resolver=8` 不一致），消除「靠巧合運作」的風險
+> 2. **TD-3**：路徑 normalize 一致性（`path.normalize` + `path.resolve` 確保 stored path 不因斜線方向重複）
+> 3. **Migration**：應用啟動時掃 settings.yaml `recentProjects`，將 8-char hash / 未 normalize path 自動補正並去重
 
 ## 摘要
 
@@ -182,6 +186,83 @@ recentProjects:
 - `lastChapter` 由 Spec 003 GET chapter 時更新
 - `chapterCount`、`title` 在每次開啟時更新（從專案資料夾掃 + 讀 project.yaml）
 
+## ProjectHash 與 path normalize 規則（M5 修訂；TD-2 / TD-3）
+
+### Hash 規則（M5 統一）
+
+```ts
+function hashProjectPath(absolutePath: string): string {
+  const normalized = path.normalize(absolutePath);    // 統一斜線方向、解 .. / .
+  return sha256(normalized).slice(0, 16);             // M5：統一 16 字（M4 既有兩個版本：8 / 16）
+}
+```
+
+- **長度：16 字**（提升 collision resistance；M4 的 8-char 在使用者有大量 path 時碰撞風險上升）
+- **輸入：normalized path**（先做 `path.normalize`；不做 `realpath` — 避免 symlink 解析造成「使用者改 link target 後 hash 變」）
+- **輸入 case-sensitivity**：Windows 視為大小寫不敏感（小寫化 drive letter + 維持其餘）；Mac/Linux 大小寫敏感（不轉）。具體：
+
+```ts
+function normalizeForHash(p: string): string {
+  const normalized = path.normalize(p);
+  if (process.platform === "win32") {
+    // 統一 drive letter 為小寫；維持其餘路徑大小寫
+    return normalized.replace(/^([A-Z]):/, (_, d) => d.toLowerCase() + ":");
+  }
+  return normalized;
+}
+```
+
+- 所有讀寫 hash 的 service（`recent-projects-store`、`project-resolver`、`context-collector` 等）**必須**使用同一個 `hashProjectPath` helper（M5 統一）
+
+### Path 儲存規則（M5）
+
+`recentProjects[i].path` 寫入 settings.yaml 前必做：
+
+```ts
+function canonicalizeProjectPath(p: string): string {
+  const normalized = path.normalize(p);
+  return path.resolve(normalized);            // 處理相對路徑（理論上 Tauri dialog 都回絕對路徑，但 belt-and-suspenders）
+}
+```
+
+### Migration（應用啟動）
+
+```
+on app start:
+  read ~/.novel-writer/settings.yaml
+  for each entry in recentProjects:
+    oldHash = entry.hash
+    canonicalPath = canonicalizeProjectPath(entry.path)
+    newHash = hashProjectPath(canonicalPath)
+
+    if oldHash !== newHash or canonicalPath !== entry.path:
+      mark entry.path = canonicalPath
+      mark entry.hash = newHash
+
+  # Dedupe：若多個 entry 有相同 newHash，保留 lastOpenedAt 最新者
+  group by hash → keep max(lastOpenedAt)
+
+  write back settings.yaml (atomic)
+```
+
+對應症狀：M4 觀察到的「同一專案因 forward/back slash 差異出現兩份 entry」（UX screenshot A1）。Migration 跑一次後自動 dedupe。
+
+### project-resolver 反查（M5）
+
+`POST /api/projects/:projectHash/...` 任何 endpoint 從 hash 反查實際 path：
+
+```ts
+function resolveProjectPath(projectHash: string): string {
+  const settings = readSettings();
+  for (const p of settings.recentProjects) {
+    if (hashProjectPath(p.path) === projectHash) return p.path;
+  }
+  throw PROJECT_NOT_FOUND;
+}
+```
+
+注意：反查時**重新 hash**（不用 stored `entry.hash`），確保即使 migration 漏跑也能正確比對。
+
 ## 路徑不存在的處理
 
 當「最近開啟」清單中的項目對應路徑已被刪 / 移走：
@@ -314,9 +395,12 @@ client（編輯器）
 - [ ] **types**: `packages/shared-types/src/project.ts` 補 `OpenProjectRequest/Response`、`ProjectOpenWarning`
 - [ ] **be-1**: `apps/api/src/services/project-validator.ts` — 驗證流程（步驟 1-6）
 - [ ] **be-2**: `apps/api/src/services/project-summary.ts` — 統計 chapterCount、title 等
-- [ ] **be-3**: `apps/api/src/services/recent-projects-store.ts` — settings.yaml 中 recentProjects 的 CRUD
-- [ ] **be-4**: `apps/api/src/routes/projects-open.ts` — POST `/open`、POST `/recent/remove`、POST `/recent/clear`、POST `/recent/relocate`、POST `/init-git`
-- [ ] **be-5**: 整合 Spec 010 git status 檢查
+- [x] **be-3**: `apps/api/src/services/recent-projects-store.ts` — settings.yaml 中 recentProjects 的 CRUD
+- [x] **be-4**: `apps/api/src/routes/projects-open.ts` — POST `/open`、POST `/recent/remove`、POST `/recent/clear`、POST `/recent/relocate`、POST `/init-git`
+- [x] **be-5**: 整合 Spec 010 git status 檢查
+- [ ] **be-m5-1（TD-2）**: 提取 `apps/api/src/services/project-hash.ts` 為單一 source of truth；recent-projects-store 與 project-resolver 都引用此 helper；既有 8-char `hashProjectPath` 改為 16-char
+- [ ] **be-m5-2（TD-3）**: 提取 `canonicalizeProjectPath` helper；recent-projects-store 寫入前一律呼叫
+- [ ] **be-m5-3（migration）**: 應用啟動時的 settings.yaml 一次性 migration：補正 hash + dedupe；寫 unit test 驗證 idempotent
 - [ ] **fe-1**: `apps/web/src/features/home/HomePage.tsx`（與「新小說」按鈕並列）
 - [ ] **fe-2**: `apps/web/src/features/home/RecentProjectsList.tsx`（卡片式樣）
 - [ ] **fe-3**: `apps/web/src/features/home/BrowseFolderButton.tsx`（Tauri dialog 整合）
@@ -332,3 +416,8 @@ client（編輯器）
 ## 變更紀錄
 
 - `2026-05-12`: 初版 Ready
+- `2026-05-15`: M5 微調（待 PM 簽核轉 Ready）：
+  - TD-2：統一 hash 長度為 16-char（M4 雙版本 8/16 不一致 → 統一）；提取 `hashProjectPath` 為 single source of truth
+  - TD-3：path normalize 一致性（`path.normalize` + drive letter 小寫化於 Windows）；recent-projects-store 寫入前 canonicalize
+  - 加 Migration 段：應用啟動時自動補正 hash + dedupe（修 M4 UX 截圖 A1 觀察到的「同一專案重複顯示」問題）
+  - 開發任務：be-m5-1 / be-m5-2 / be-m5-3

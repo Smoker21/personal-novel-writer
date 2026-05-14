@@ -68,3 +68,45 @@ Feature: 開啟既有專案
     Then 系統載入專案
     And UI 提示「Drive 同步帶來了未 commit 的變更，建議檢視 git status 或手動觸發 commit」（→ Story 010 處理具體 UI）
     And 仍可正常編輯
+
+  # === M5 新增 ===
+
+  Scenario: 應用啟動時自動補正 8-char hash 為 16-char（TD-2）
+    Given M4 既有 settings.yaml 的 recentProjects[0].hash 為 8 字「c4609c4e」
+    And recentProjects[0].path 為「F:\workspace\bdd-test\梅雨」
+    When 應用啟動
+    Then settings-store migration 自動算出 newHash = 16-char
+    And settings.yaml 的 hash 欄位被改寫為 16-char
+    And 寫入動作為 atomic（暫存 .tmp → rename）
+
+  Scenario: 應用啟動時自動 dedupe path 因斜線差異的重複（TD-3）
+    Given settings.yaml 有兩筆 recentProjects 對應同一專案：
+      | hash | path                       | lastOpenedAt     |
+      | h1   | F:/workspace/bdd-test/梅雨 | 2026-05-13T10:00 |
+      | h2   | F:\workspace\bdd-test\梅雨 | 2026-05-15T10:00 |
+    When 應用啟動
+    Then migration 對兩筆 path 都 canonicalize 後得相同結果
+    And 兩筆 hash 變相同
+    And dedupe 保留 lastOpenedAt 最新的那筆
+    And 寫回後 settings.yaml 只剩一筆 entry
+    And UI 首頁清單只顯示一個「梅雨」卡（不再重複）
+
+  Scenario: project-resolver 反查 hash 對所有 recent path 都能命中（TD-2）
+    Given settings.yaml 有 5 個 recentProjects（migrate 完成）
+    When apps/api 收到 GET /api/projects/<hash>/...
+    Then resolveProjectPath 對每個 entry 重新算 hash 比對（不靠 stored entry.hash）
+    And 命中即回該 path
+    And 全部 miss 才回 404 PROJECT_NOT_FOUND
+
+  Scenario: Windows 路徑大小寫不敏感（TD-3）
+    Given Windows 平台
+    And settings.yaml 已有 entry path「F:\workspace\test」
+    When 我用 Tauri dialog 選「f:\workspace\test」（drive letter 小寫）
+    Then hashProjectPath 把 drive letter 統一為小寫後 hash
+    And 視為**同一專案**（不新增 entry，只更新 lastOpenedAt）
+
+  Scenario: Migration idempotent（重複啟動不重複動）
+    Given settings.yaml migration 已跑過一次（全部 hash 為 16-char、path 為 canonical）
+    When 應用再次啟動
+    Then migration 偵測無需變更
+    And 不寫 settings.yaml（避免無意義 mtime 變動）

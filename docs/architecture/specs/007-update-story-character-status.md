@@ -2,11 +2,14 @@
 
 > Story: `docs/requirements/stories/007-update-story-character-status.md`
 > BDD: `docs/requirements/features/007-update-story-character-status.feature`
-> Status: `Ready`
+> Status: `Draft`（M5 微調中，待 PM 簽核轉 Ready）
 > Owner: `spec-architect`
-> Last updated: `2026-05-13`
+> Last updated: `2026-05-15`
 > Depends on ADR: 0001、0003、0004
-> Depends on spec: 006
+> Depends on spec: 003（chapter front-matter `participants`）、006
+> 修訂：`2026-05-15` — M5 微調：
+> 1. **TD-1**：新增 `POST /api/projects/:hash/status/write` endpoint（直接寫檔，取代 M4 「複製內容」）
+> 2. **與 Spec 003 串接**：「相關角色」篩選改用 chapter front-matter `participants`，取代 substring matching
 
 ## 摘要
 
@@ -95,6 +98,54 @@ data: {"code":"network","message":"...","retries":3}
 
 `skipped: true` 表示 LLM 判斷 status 無需更新（輸出與輸入相同，故跳過寫檔）。
 
+### POST .../status/write（M5 新增；TD-1）
+
+直接寫 status 主檔。給 StatusEditorPage「儲存」按鈕用（取代 M4 的「複製內容到 clipboard」UX）。
+
+**Request:**
+```ts
+{
+  fileType: "story" | "character";
+  characterSlug?: string;          // fileType === "character" 時必填
+  content: string;                 // 完整 markdown 內容
+  expectedMtime?: string;          // optional：optimistic concurrency；不符回 409
+}
+```
+
+**Response 200:**
+```ts
+{
+  path: string;                    // 寫入後的絕對路徑
+  mtime: string;
+  size: number;
+  commitSha: string | null;        // 內容無變化則 null
+}
+```
+
+**Errors:**
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `INVALID_INPUT` | fileType 不認、character 缺 slug、content 為空字串（empty 視為刪除？M5 規範：拒絕） |
+| 404 | `CHARACTER_NOT_FOUND` | fileType=character 但 slug 對應檔不存在；此 endpoint **不**自動建立新角色 status，請走 Spec 002 character POST |
+| 409 | `MTIME_MISMATCH` | expectedMtime 與實際 .md mtime 不符（外部修改了 .md） |
+| 500 | `IO_ERROR` |
+
+**寫入流程**：
+
+1. zod 驗證
+2. 計算目標路徑：
+   - `fileType=story` → `<project>/status/story_status.md`
+   - `fileType=character` → `<project>/characters/<slug>_status.md`（slug 必須對應已存在的 character.md）
+3. 若 `expectedMtime` 提供 → stat 比對；不符回 409
+4. atomic write（`.tmp` → rename）
+5. `commitIfChanged` with message：`"status: manual edit <fileType>[/<slug>] (story chapter <N>?)"`
+6. 回 200
+
+**設計決策**：
+- 此 endpoint **不**觸發 status-updater（使用者手寫的內容是「最終版」，不需要 AI 再去 review）
+- **不**動 character_index cache（cache 只 index `<slug>.md` 不 index `<slug>_status.md`）
+
 ### POST .../status/shorten
 
 AI 精簡 status 檔（對應「AI 精簡」按鈕）。
@@ -135,10 +186,14 @@ interface StatusUpdateContext {
 }
 ```
 
-「相關角色」篩選邏輯（與 spec 005 相同）：
-1. 若該章 outline 明確列出角色 → 只取列表中的
-2. 否則 → 取**全部**角色卡（保守）
-3. Substring matching：掃 chapterText 中是否提到各角色 `name`（輔助判斷，不強制）
+「相關角色」篩選邏輯（M5 改，與 spec 005 對齊）：
+
+1. 從 chapter front-matter 讀 `participants: string[]`
+2. 只更新 `participants` 中列出的角色的 `<slug>_status.md`
+3. 若 `participants` 為空 → 不動任何 character_status，只更新 story_status
+4. **不**做 substring matching（M3/M4 既有邏輯移除 — 不穩）
+
+向前相容：M3/M4 既有章節無 frontmatter / 無 participants → 視為 `[]`，狀態更新時只動 story_status（保守，不誤動角色）。
 
 **不包含**：
 - writingStyle / style.md（structured data 處理，不受 style 影響）
@@ -304,11 +359,17 @@ emit StatusJobEvent("completed") → client SSE 收到
 - [ ] **stat-be-9**: 整合 Spec 006 adopt 在尾端觸發 status-updater（reason: `auto-after-adopt`）
 
 ### 前端
-- [ ] **stat-fe-1**: `StatusUpdateIndicator.tsx`（編輯器右下角 spinner + 完成 toast；訂閱 jobId SSE）
-- [ ] **stat-fe-2**: `UpdateStatusButton.tsx`（「立刻更新狀態」按鈕 → POST /status/update-from-chapter）
-- [ ] **stat-fe-3**: `StatusShortenButton.tsx`（「AI 精簡」按鈕 → POST /status/shorten → textarea 預覽）
-- [ ] **stat-fe-4**: 「狀態更新失敗」永久側邊提示 + 重試（failed event → banner）
-- [ ] **stat-fe-5**: status 編輯畫面（複用 CM6 editor；加「AI 精簡」按鈕；edit + save 觸發 commit）
+- [x] **stat-fe-1**: `StatusUpdateIndicator.tsx`
+- [x] **stat-fe-2**: `UpdateStatusButton.tsx`
+- [x] **stat-fe-3**: `StatusShortenButton.tsx`
+- [x] **stat-fe-4**: 「狀態更新失敗」永久側邊提示 + 重試
+- [ ] **stat-fe-5（M5）**: status 編輯畫面「儲存」按鈕 — 改接 POST `/status/write` endpoint，取代「複製內容到 clipboard」（TD-1）
+- [ ] **stat-fe-6（M5）**: 失敗時保留 textarea 內容 + inline error
+- [ ] **stat-fe-7（M5）**: 「複製內容」改為次要 icon button（保留功能，主操作改為「儲存」）
+
+### M5 後端微調
+- [ ] **stat-be-m5-1**: `apps/api/src/routes/status.ts` 新增 `POST /status/write` endpoint（含 mtime 衝突偵測）
+- [ ] **stat-be-m5-2**: `status-context-collector.ts`：「相關角色」改讀 chapter front-matter `participants`；移除 substring matching
 
 ### Prompt library
 - [ ] **prompt-1**: `packages/prompt-library/skills/status-updater.ts`（依 status-updater.md v0.1）
@@ -325,3 +386,6 @@ emit StatusJobEvent("completed") → client SSE 收到
 
 - `2026-05-10`: 初版 Ready
 - `2026-05-13`: 全面對齊 2026-05-12 架構決策：移除 JobQueue / worker / jobs SQLite table；改為 stateless 直接呼叫；character status 改為一人一檔（characters/<slug>_status.md）；移除 token 上限；加 retry 3x 指數退避；加三觸發點 reason 欄位；API 從 /jobs/status-update 改為 /status/update-from-chapter + /status/shorten；新增 StatusJobEvent SSE bridge
+- `2026-05-15`: M5 微調（待 PM 簽核轉 Ready）：
+  - TD-1：新增 `POST /status/write` endpoint，給 StatusEditorPage「儲存」按鈕用，取代 M4「複製內容」
+  - 「相關角色」篩選改用 chapter front-matter `participants`（取代 substring matching；對齊 Spec 003 / 005）

@@ -140,12 +140,23 @@ ChapterEditor / Character / Settings。M5 = 走完整 spec 流程重設計這三
 
 | Spec | 修訂狀態 | PM 簽核 | 對應 .feature 草稿 |
 |---|---|---|---|
-| 003 + 005（章節編輯器重設計） | ⬜ Draft | ⬜ | ⬜ |
-| 002（角色卡 portrait grid + 手動為主） | ⬜ Draft | ⬜ | ⬜ |
-| 009（設定強化） | ⬜ Draft | ⬜ | ⬜ |
-| 007 微調（TD-1） | ⬜ Draft | ⬜ | ⬜ |
-| 008 微調（TD-2/3） | ⬜ Draft | ⬜ | ⬜ |
-| 032 微調（TD-9） | ⬜ Draft | ⬜ | ⬜ |
+| 003 + 005（章節編輯器重設計） | ✅ Draft (2026-05-15) | ⬜ | ✅ 003.feature + 005.feature 草稿 |
+| **006**（採用流程串接 003+005）| ✅ Draft (2026-05-15) | ⬜ | （沿用既有 006.feature；M6 視需要補）|
+| 002（角色卡 portrait grid + 手動為主） | ✅ Draft (2026-05-15) | ⬜ | ✅ 002.feature 草稿 |
+| 009（設定強化）| ✅ Draft (2026-05-15) | ⬜ | ✅ 009.feature 草稿（含 TD-9 Story 032 修訂）|
+| 007 微調（TD-1） | ✅ Draft (2026-05-15) | ⬜ | ✅ 007.feature 草稿 |
+| 008 微調（TD-2/3） | ✅ Draft (2026-05-15) | ⬜ | ✅ 008.feature 草稿 |
+| ~~032 微調（TD-9）~~ | ✅ 併入 spec 009 | ⬜ | （已在 009.feature） |
+
+**spec-architect 修訂筆記（2026-05-15）**：
+- spec 032 不開獨立檔（spec 009 既有「對 Story 032 的承擔」段已絕對承擔；TD-9 補在該段「Dialog modality 行為驗證點」小節）
+- spec 003 + 005 視為「同一改動」處理：chapter front-matter 新增 `participants` / `outline` / `requirements` 在 003 定義，005 的 build-prompt + generate 消費；兩 spec 同步調整
+- spec 002 / 002b 分工不變：002 改 body 兩 section + portrait grid UI；002b 仍負責圖片 I/O 與 vision 解析（不動）
+- Spec 006 沿用：`chapter_<NNNN>_prompt.md` 形式化為「採用後 prompt 累積歷史」（即 handover 提的 ChapterPromptHistory），不新增第二個檔案
+- **Spec 006 在 advisor review 後追加**：原本 handover 沒提，但採用流程必須同步寫入 chapter frontmatter（participants/outline/requirements）才能讓 003 的 contract 完整；spec 006 的 PromptSnapshot 渲染同步調整為「使用者編輯過的 promptText」+ 保留 auto-built 對比
+
+**OPEN（待 PM 拍板的設計選擇）**：
+- Spec 003「重產」語意：回 build-prompt 階段（spec-architect 推薦，更安全）vs. 直接重送同 promptText（更快）— 需 PM 在 review 時決定
 
 ---
 

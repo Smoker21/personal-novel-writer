@@ -85,8 +85,79 @@ Feature: 新增 / 編輯角色卡（欄位輸入 + AI 統整）
     And 該角色不再出現在「角色」面板
     And git 記錄一個 commit「刪除角色：林書言」（依 Story 010 版本控制）
 
-  Scenario: 親密場景描寫區預設摺疊
-    Given 我在「新增角色」對話框
-    When 對話框第一次打開
-    Then 「親密場景描寫參考」區塊處於摺疊狀態，僅顯示標題與說明「只有要寫成人題材才填」
-    And 我點擊區塊標題可展開、再點可收合
+  Scenario: 性愛場景表現 tab 預設展開（M5 修訂；spec 002 2.9 反轉）
+    Given 我在角色編輯器
+    When 我切到「性愛場景表現」tab
+    Then tab 內容**預設展開**顯示所有欄位
+    And tab 頂部顯示「此區內容會餵給 chapter-writer。題材不適用時請留空。」
+    And tab 名稱為「性愛場景表現」（取代 M4「親密」）
+
+  # === M5 新增 ===
+
+  Scenario: CharactersPage 主視圖為 portrait grid（M5）
+    Given 專案中已有 3 個角色（蘇晴 / 林書言 / 蕭母）
+    And 蘇晴上傳了 portrait default 圖
+    When 我進入「角色」頁
+    Then 主視圖為 portrait grid（每張卡含 portrait + 名稱 + 角色定位）
+    And 蘇晴的卡顯示她的 portrait 圖
+    And 林書言的卡顯示「主角」icon（無 portrait fallback）
+    And 蕭母的卡顯示「配角」icon
+    And 頁面頂部有搜尋框
+    And 頁面頂部有「+ 新增角色」按鈕
+
+  Scenario: 點 portrait 卡進入編輯模式（M5）
+    Given 我在 CharactersPage portrait grid
+    When 我點蘇晴的卡
+    Then 進入蘇晴的編輯模式（6 個 tabs）
+
+  Scenario: 搜尋框即時 filter（M5）
+    Given CharactersPage 有 10 個角色
+    When 我在搜尋框輸入「主角」
+    Then grid 只顯示 role=主角 的角色卡
+    When 我清空搜尋框
+    Then 顯示全部 10 張卡
+
+  Scenario: 手動為主 — 使用者填寫角色描述（手動）段（M5）
+    Given 我在「蘇晴」編輯器
+    When 我在「角色描述（手動）」textarea 輸入「蘇晴 30 歲文學系編輯，內向…」
+    And 我按「儲存」
+    Then characters/蘇晴.md 的 body「## 角色描述（手動）」段為我輸入的內容
+    And 「## AI 統整敘述」段保持原狀（空 / 既有 AI 內容）
+    And frontmatter manuallyEditedSections.manualDescription = true
+
+  Scenario: AI 統整不蓋手動段（M5）
+    Given 蘇晴的「角色描述（手動）」段已有「蘇晴 30 歲文學系編輯，內向…」內容
+    When 我點「AI 統整」按鈕
+    And consolidate 完成回應 aiSummary="蘇晴是 30 歲的女作家，內向但…"
+    Then 「## AI 統整敘述」段更新為 AI 輸出
+    And 「## 角色描述（手動）」段**完全不變**
+    And 不出現「下次 AI 生成會覆蓋」警告對話框（M5 取消此 dialog）
+
+  Scenario: AI 統整失敗時 UI 仍可使用（M5 bug 修）
+    Given 我在蘇晴編輯器，所有 tabs 與輸入欄位都正常可點
+    When 我點「AI 統整」
+    And LLMRouter 所有 fallback 都失敗回 502 LLM_FAILED
+    Then 「AI 統整敘述」區顯示 inline error「✗ AI 統整失敗：<message>。重試」
+    And 其他 tabs / 輸入欄位 / 儲存按鈕 / 刪除按鈕都仍可點
+    And 我的「角色描述（手動）」與 frontmatter 欄位編輯仍可儲存
+
+  Scenario: 舊角色卡向前相容 — 無兩 section heading（M5）
+    Given M3/M4 已建立的角色卡 body 為純文字（無 ## heading）
+    When 我用 M5 開啟該角色
+    Then 「角色描述（手動）」textarea 顯示既有 body 全文
+    And 「AI 統整敘述」段為空
+    When 我按「儲存」
+    Then characters/<slug>.md 寫成兩 section 格式
+
+  Scenario: SQLite cache 加速搜尋（M5）
+    Given 專案有 50 個角色
+    When 我在搜尋框輸入「文學系」
+    Then 系統查 character_index.db（SQLite cache）
+    And p95 < 50ms 內回應 filter 結果
+    And cache miss 時自動 rebuild
+
+  Scenario: 衍生 cache 從 .md rebuild（M5）
+    Given character_index.db 不存在
+    When 應用啟動
+    Then 系統全量掃 characters/*.md 重建 character_index.db
+    And 即使 cache 整個刪掉，UI 仍可正常運作（只是首次查詢稍慢）

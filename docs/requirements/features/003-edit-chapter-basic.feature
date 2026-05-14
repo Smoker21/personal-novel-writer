@@ -95,3 +95,95 @@ Feature: 章節編輯器：開啟、編輯、自動儲存（含 browser 草稿�
     Given 我在編輯器，browser draft 有未儲存內容
     When 我按 Ctrl+S
     Then 與按「儲存」按鈕同行為：寫 .md + git commit + status-updater
+
+  # === M5 新增：AI 寫作工作台 UI ===
+
+  Scenario: 開啟章節時上下文預覽面板顯示三項內容（M5）
+    Given 我在專案第 7 章編輯器
+    And chapter front-matter participants=[春雨, 明哲]
+    And 第 6 章已存在
+    And status/story_status.md 已存在
+    And characters/春雨_status.md 與 characters/明哲_status.md 已存在
+    When 編輯器渲染完成
+    Then 上下文預覽面板顯示「前一章：第 6 章 (1500 字)」
+    And 顯示「story_status 摘要 (前 200 字)」
+    And 顯示「春雨_status (前 200 字)」
+    And 顯示「明哲_status (前 200 字)」
+    And 每項可展開看全文
+
+  Scenario: 第一章開啟時前章預覽為空（M5）
+    Given 我在第 1 章編輯器
+    When 編輯器渲染完成
+    Then 上下文預覽面板的「前一章」區顯示「（本章為第一章）」
+
+  Scenario: 寫作參數本章覆寫不寫進 frontmatter（M5）
+    Given 我在第 3 章編輯器
+    And settings.agents.chapter-writer.routing.temperature = 0.7
+    When 我在「寫作參數」inline 區把 temperature 改為 1.2
+    Then 第 3 章 frontmatter 不含 temperature 欄位
+    When 我切到第 4 章再切回第 3 章
+    Then 「寫作參數」temperature 回到 settings 預設 0.7
+    And 我剛才的 1.2 設定已遺失（本章覆寫為 ephemeral）
+
+  Scenario: 本章劇情大綱持久化到 frontmatter（M5）
+    Given 我在第 3 章編輯器，frontmatter 無 outline
+    When 我在「本章劇情大綱」textarea 輸入「春雨在圖書館遇到明哲」
+    And 我按「儲存」
+    Then PUT chapter 帶 outline="春雨在圖書館遇到明哲"
+    And chapter 主檔 frontmatter 新增 outline 欄位
+    When 我切到第 4 章再切回第 3 章
+    Then 「本章劇情大綱」textarea 顯示「春雨在圖書館遇到明哲」
+
+  Scenario: 本章角色挑選器預設帶入上一章 participants（M5）
+    Given 第 6 章 frontmatter participants=[春雨, 明哲]
+    And 第 7 章 frontmatter 無 participants（新章節）
+    When 我開啟第 7 章編輯器
+    Then 角色挑選器預選「春雨」「明哲」
+    And UI 顯示「(來自第 6 章)」標記
+    When 我加入「林清風」並按儲存
+    Then 第 7 章 frontmatter participants=[春雨, 明哲, 林清風]
+    And 上次的「(來自第 6 章)」標記消失
+
+  Scenario: 兩階段生成 — 顯示 prompt 給使用者編輯（M5）
+    Given 我在第 7 章編輯器，已填好參數
+    When 我點「生成本章」
+    Then 系統呼叫 POST .../build-prompt
+    And PromptPreviewModal 開啟，顯示完整 promptText（textarea，可編輯）
+    And modal 顯示 estimatedTokens / modelId
+    When 我在 modal 編輯 prompt（例：加一句「請以春雨的視角寫」）
+    And 點「送出」
+    Then 系統呼叫 POST .../generate 帶我編輯過的 promptText
+    And SSE 串流開始
+    And PromptSnapshot.userEdited = true
+
+  Scenario: 兩階段生成 — 不滿意 prompt 可退回不啟動 LLM（M5）
+    Given PromptPreviewModal 開啟中
+    When 我點「取消」
+    Then modal 關閉
+    And 沒有 cache draft 被建立
+    And 沒有 LLM 被呼叫
+    And 我可以調整參數後再次點「生成本章」
+
+  Scenario: 採用後 prompt 寫入 chapter_NNNN_prompt.md（M5 沿用既有 Spec 006）
+    Given 我已用 build-prompt + generate 產出第 7 章草稿
+    And 我編輯過 promptText（userEdited=true）
+    When 我採用該草稿
+    Then chapter 主檔 chapter_0007_<title>.md 內容為 AI 草稿
+    And chapter_0007_prompt.md 追加一段，含：
+      | 欄位 | 內容 |
+      | timestamp | 採用當下 ISO 8601 |
+      | modelId | 實際使用的 model |
+      | promptText | 我編輯過的完整 prompt（不是 server auto-built） |
+      | contextHash | build-prompt 階段的 hash |
+      | adopt-marker | HTML 註解供 unadopt 定位 |
+    And 第 7 章 frontmatter participants 同步寫入採用時使用的 participants
+
+  Scenario: 舊章節（無 frontmatter）開啟向前相容（M5）
+    Given chapters/chapter_0001_*.md 是 M4 既存檔案，無 YAML frontmatter
+    When 我開啟第 1 章
+    Then GET chapter 回應 hasFrontmatter=false / participants=[] / outline=null / requirements=null
+    And 編輯器照常載入正文
+    And 角色挑選器為空（不自動偵測 substring）
+    When 我加入 participants 並按儲存
+    Then chapter 主檔變為「frontmatter + 正文」格式
+    And hasFrontmatter 之後為 true

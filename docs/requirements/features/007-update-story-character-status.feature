@@ -98,3 +98,45 @@ Feature: 故事與人物狀態更新（status-updater）
     Then LLM 讀的是「我手改後」的 story_status.md（含我加的伏筆條）
     And 新版 status 中該伏筆條被保留（因為在 🔖 段，預設不動）
     And LLM 不會「察覺」是我改的還是它前次寫的，純粹依當下檔案內容生新版
+
+  # === M5 新增 ===
+
+  Scenario: StatusEditorPage「儲存」直接寫檔（TD-1）
+    Given 我在 StatusEditorPage 編輯 story_status.md
+    When 我修改內容後按「儲存」
+    Then 系統呼叫 POST /api/projects/:hash/status/write
+    And status/story_status.md 被直接寫入
+    And git 記錄 commit「status: manual edit story」
+    And 顯示 toast「已儲存」
+    And 「複製內容」改為 icon button（次要功能）
+
+  Scenario: status write 遇 mtime 衝突回 409（TD-1）
+    Given 我在 StatusEditorPage 編輯，已讀取 expectedMtime=T1
+    And 在我編輯期間，外部修改了 story_status.md（mtime 變成 T2）
+    When 我按「儲存」
+    Then POST /status/write 回 409 MTIME_MISMATCH
+    And UI 顯示對話框「外部已修改此檔，請選擇：覆寫 / 重載 / 取消」
+    And textarea 內容保留（不丟失我的編輯）
+
+  Scenario: status write 失敗保留 textarea 內容（TD-1）
+    Given 我在 StatusEditorPage，textarea 有未存內容
+    When 我按「儲存」但 server 回 500 IO_ERROR
+    Then 顯示 inline error「✗ 儲存失敗：<reason>。重試」
+    And textarea 內容保留
+    And 我按「重試」可重新送出
+
+  Scenario: status-updater 只更新 participants 列出的角色（M5；對齊 Spec 003/005）
+    Given 第 7 章 chapter front-matter participants=[春雨, 明哲]
+    And 章節內容偶然提到「林清風」（劇情虛構人物，未列入 participants）
+    When 我採用第 7 章，status-updater 跑
+    Then characters/春雨_status.md 被更新
+    And characters/明哲_status.md 被更新
+    And **不**動 characters/林清風_status.md（即使檔案存在）
+    And 不做 substring matching 推斷
+
+  Scenario: status-updater 在無 participants 章節時只動 story_status（M5）
+    Given 第 8 章為舊章節，frontmatter 無 participants（讀為 []）
+    When 我採用第 8 章，status-updater 跑
+    Then story/story_status.md 仍會被更新
+    And 不動任何 character_status 檔
+    And UI 顯示提示「此章節未指定參與角色 — 角色狀態未更新」
