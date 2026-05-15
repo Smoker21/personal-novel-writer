@@ -16,6 +16,7 @@ import { getProjectQueue } from "../services/job-queue.js";
 import { resolveProjectPath } from "../services/project-resolver.js";
 import { buildRouter, toRouterPolicy } from "../services/router-factory.js";
 import { readSettings } from "../services/settings-store.js";
+import { safeWriteSSE } from "../services/sse-safe.js";
 
 // M5 (Spec 005): new request shape — user-edited prompt + audit metadata
 const generateSchema = z.object({
@@ -115,7 +116,7 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
         totalChars: 0,
       });
 
-      await stream.writeSSE({
+      await safeWriteSSE(stream, {
         event: "started",
         data: JSON.stringify({ draftId, model: policy.primary, contextHash: body.contextHash }),
       });
@@ -138,16 +139,25 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
 
       try {
         for await (const chunk of router.stream(req, policy)) {
+          // Client disconnected — abort upstream LLM and stop processing
+          if (stream.aborted) {
+            abortController.abort();
+            await abortDraft(projectHash, chapterNumber, draftId);
+            return;
+          }
           if (chunk.type === "text") {
             await appendDraftText(projectHash, chapterNumber, chunk.text);
-            await stream.writeSSE({ event: "chunk", data: JSON.stringify({ text: chunk.text }) });
+            await safeWriteSSE(stream, {
+              event: "chunk",
+              data: JSON.stringify({ text: chunk.text }),
+            });
           } else if (chunk.type === "usage") {
             inputTokens = chunk.usage.inputTokens;
             outputTokens = chunk.usage.outputTokens;
-            await stream.writeSSE({ event: "usage", data: JSON.stringify(chunk.usage) });
+            await safeWriteSSE(stream, { event: "usage", data: JSON.stringify(chunk.usage) });
           } else if (chunk.type === "degraded") {
             usedModel = chunk.toModel;
-            await stream.writeSSE({
+            await safeWriteSSE(stream, {
               event: "degraded",
               data: JSON.stringify({
                 fromModel: chunk.fromModel,
@@ -166,7 +176,7 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
 
         await completeDraft(projectHash, chapterNumber, draftId, { inputTokens, outputTokens });
         const finished = await readDraft(projectHash, chapterNumber);
-        await stream.writeSSE({
+        await safeWriteSSE(stream, {
           event: "complete",
           data: JSON.stringify({
             draftId,
@@ -178,7 +188,7 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
       } catch (e: unknown) {
         await abortDraft(projectHash, chapterNumber, draftId);
         const err = e as { code?: string; message?: string; retryable?: boolean };
-        await stream.writeSSE({
+        await safeWriteSSE(stream, {
           event: "error",
           data: JSON.stringify({
             code: err.code ?? "UNKNOWN",
