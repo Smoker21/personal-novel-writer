@@ -50,6 +50,16 @@ export function ChapterEditor({
   baseMtimeRef.current = baseMtime;
   titleRef.current = store.chapter?.title ?? initialTitle;
 
+  // M5: 從 store 即時讀 frontmatter 三欄帶入 DraftRow（切章時不掉）
+  const snapshotFrontmatter = () => {
+    const s = useEditorStore.getState();
+    return {
+      participants: s.participants,
+      outline: s.outline,
+      requirements: s.requirements,
+    };
+  };
+
   // flush：立即把目前內容寫入 IndexedDB（不等 debounce）
   const flush = () => {
     if (!isDirtyRef.current || !viewRef.current) return;
@@ -63,6 +73,7 @@ export function ChapterEditor({
       title: titleRef.current,
       updatedAt: now,
       baseMtime: baseMtimeRef.current,
+      ...snapshotFrontmatter(),
     });
     store.markDirty(content.replace(/\s/g, "").length, now);
     isDirtyRef.current = false;
@@ -118,6 +129,7 @@ export function ChapterEditor({
           title: titleRef.current,
           updatedAt: now,
           baseMtime: baseMtimeRef.current,
+          ...snapshotFrontmatter(),
         });
         store.markDirty(content.replace(/\s/g, "").length, now);
         isDirtyRef.current = false;
@@ -170,6 +182,7 @@ export function ChapterEditor({
           title: titleRef.current,
           updatedAt: now,
           baseMtime: baseMtimeRef.current,
+          ...snapshotFrontmatter(),
         });
       }
     };

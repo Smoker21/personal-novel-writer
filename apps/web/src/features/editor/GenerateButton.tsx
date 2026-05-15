@@ -2,6 +2,7 @@ import { useState } from "react";
 import { connectSse } from "../../lib/sse-client";
 import { useDraftStore } from "../../stores/draft-store";
 import { LlmNotConfiguredModal } from "../settings/LlmNotConfiguredModal";
+import { type GenerateParams, PromptPreviewModal } from "./PromptPreviewModal";
 
 interface Props {
   projectHash: string;
@@ -11,17 +12,29 @@ interface Props {
 export function GenerateButton({ projectHash, chapterNumber }: Props) {
   const { status, setStatus, appendText, setAbort, setDraftId, setModel, setDegradedTo, reset } =
     useDraftStore();
-  const [showModal, setShowModal] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [showLlmModal, setShowLlmModal] = useState(false);
   const isStreaming = status === "streaming";
   const hasActiveDraft = status !== "idle";
 
-  const handleGenerate = () => {
+  const handleStart = (params: GenerateParams) => {
     reset();
     setStatus("streaming");
 
+    const body: Record<string, unknown> = {
+      promptText: params.promptText,
+      contextHash: params.contextHash,
+      participants: params.participants,
+      outline: params.outline,
+      requirements: params.requirements,
+    };
+    if (params.modelOverride) body["modelOverride"] = params.modelOverride;
+    if (params.temperatureOverride !== undefined)
+      body["temperatureOverride"] = params.temperatureOverride;
+
     const abortFn = connectSse(
       `/api/projects/${projectHash}/chapters/${chapterNumber}/generate`,
-      { agentName: "chapter-writer" },
+      body,
       {
         onStarted: (d) => {
           setDraftId(d.draftId);
@@ -33,7 +46,7 @@ export function GenerateButton({ projectHash, chapterNumber }: Props) {
         onError: (d) => {
           if (d.code === "ROUTING_NOT_CONFIGURED" || d.code === "HTTP_ERROR") {
             reset();
-            setShowModal(true);
+            setShowLlmModal(true);
             return;
           }
           setStatus("errored");
@@ -53,16 +66,23 @@ export function GenerateButton({ projectHash, chapterNumber }: Props) {
     <>
       <button
         type="button"
-        onClick={handleGenerate}
+        onClick={() => setPreviewOpen(true)}
         disabled={isStreaming}
         className="flex items-center gap-1.5 rounded border border-indigo-700 bg-indigo-900/50 px-3 py-1.5 text-xs text-indigo-300 hover:bg-indigo-800/60 disabled:opacity-40 transition-colors"
       >
-        AI 撰寫本章
+        ▶ 生成本章
       </button>
+      <PromptPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        projectHash={projectHash}
+        chapterNumber={chapterNumber}
+        onGenerateStart={handleStart}
+      />
       <LlmNotConfiguredModal
         agentName="chapter-writer"
-        open={showModal}
-        onClose={() => setShowModal(false)}
+        open={showLlmModal}
+        onClose={() => setShowLlmModal(false)}
       />
     </>
   );

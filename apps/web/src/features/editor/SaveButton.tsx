@@ -43,6 +43,10 @@ export function SaveButton({ getContent, onConflict, onSaveTriggerRef }: Props) 
             content,
             title: store.chapter.title.trim(),
             ...(force ? {} : { expectedMtime: store.chapter.baseMtime }),
+            // M5 (Spec 003): persist chapter frontmatter
+            participants: store.participants,
+            outline: store.outline,
+            requirements: store.requirements,
           }),
         },
       );
@@ -64,7 +68,11 @@ export function SaveButton({ getContent, onConflict, onSaveTriggerRef }: Props) 
       }
       const body = (await res.json()) as SaveChapterResponse;
       await deleteDraft(store.projectHash, store.chapter.number);
-      store.markClean(body.mtime, content, store.chapter.title.trim());
+      store.markClean(body.mtime, content, store.chapter.title.trim(), {
+        participants: body.participants,
+        outline: body.outline,
+        requirements: body.requirements,
+      });
     } catch (err) {
       store.markSaveError(err instanceof Error ? err.message : String(err));
     } finally {

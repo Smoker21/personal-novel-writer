@@ -274,6 +274,7 @@ export async function listCharacters(projectPath: string): Promise<CharacterList
       role: fields.role ?? null,
       age: fields.age ?? null,
       oneLineSummary: index.get(slug) ?? "",
+      portraitDefault: fields.portrait.default ?? null,
     });
   }
   return result;

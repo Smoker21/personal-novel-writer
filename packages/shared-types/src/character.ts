@@ -102,6 +102,8 @@ export interface CharacterListItem {
   role: string | null;
   age: number | null;
   oneLineSummary: string;
+  /** Relative path (e.g. "characters/_assets/<slug>/default.jpg") or null. */
+  portraitDefault: string | null;
 }
 
 // ── Consolidator I/O ──────────────────────────────────────────────────────

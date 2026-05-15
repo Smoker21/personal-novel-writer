@@ -1,7 +1,12 @@
 /**
- * ChapterEditorPage — 三欄整合頁面
+ * ChapterEditorPage — M5「AI 寫作工作台」整合頁面
  *
- * 欄：[ChapterList（左）] | [CM6 ChapterEditor（中，主體）] | [工具列（右上角 TitleInput + Indicator + SaveButton）]
+ * 結構：
+ *   ├─ 左欄：ChapterList
+ *   └─ 中欄：
+ *       ├─ 工具列（首頁 / 角色 / TitleInput / Indicator / SaveButton / GenerateButton / Status / 歷史）
+ *       ├─ 工作台面板（可摺疊）：ContextPreview / WritingParams / Outline / Requirements / ParticipantPicker
+ *       └─ CM6 主編輯區 + DraftPanel（並排）
  *
  * 載入流程（依 spec 003）：
  *   Case A: 沒 draft              → 載入 .md；state = clean
@@ -10,9 +15,10 @@
  *   Case D: draft.baseMtime !== .md.mtime（外部修改）→ ConflictDialog
  */
 import type { ChapterFile } from "@novel-writer/shared-types";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { deleteDraft, getDraft } from "../../lib/db";
+import { deleteDraft, draftKey, getDraft, putDraft } from "../../lib/db";
 import { useWindowFocusEffect } from "../../lib/window-focus";
 import { useDraftStore } from "../../stores/draft-store";
 import { useEditorStore } from "../../stores/editor-store";
@@ -21,14 +27,16 @@ import { UpdateStatusButton } from "../status/UpdateStatusButton";
 import { ChapterEditor } from "./ChapterEditor";
 import { ChapterList } from "./ChapterList";
 import { ConflictDialog } from "./ConflictDialog";
+import { ContextPreviewPanel } from "./ContextPreviewPanel";
 import { DraftPanel } from "./DraftPanel";
 import { EditorStatusIndicator } from "./EditorStatusIndicator";
 import { GenerateButton } from "./GenerateButton";
+import { OutlineInput, RequirementsInput } from "./OutlineRequirementsInputs";
+import { ParticipantPicker } from "./ParticipantPicker";
 import { SaveButton } from "./SaveButton";
 import { StatusUpdateIndicator } from "./StatusUpdateIndicator";
 import { TitleInput } from "./TitleInput";
-
-// ── 型別 ────────────────────────────────────────────────────────────────────
+import { WritingParamsBar } from "./WritingParamsBar";
 
 interface ConflictState {
   kind: "open" | "save";
@@ -37,54 +45,33 @@ interface ConflictState {
   serverMtime: string;
 }
 
-// ── 元件 ────────────────────────────────────────────────────────────────────
-
 export function ChapterEditorPage() {
   const { hash } = useParams<{ hash: string }>();
-
-  // hash 不存在（例如 /editor/created 沒 hash 的路由）→ 回首頁
-  if (!hash) {
-    return <Navigate to="/" replace />;
-  }
-
+  if (!hash) return <Navigate to="/" replace />;
   return <ChapterEditorPageInner projectHash={hash} />;
 }
 
-// ── 內部實作 ────────────────────────────────────────────────────────────────
-
-interface InnerProps {
-  projectHash: string;
-}
-
-function ChapterEditorPageInner({ projectHash }: InnerProps) {
+function ChapterEditorPageInner({ projectHash }: { projectHash: string }) {
   const store = useEditorStore();
   const draftStatus = useDraftStore((s) => s.status);
   const draftReset = useDraftStore((s) => s.reset);
 
-  // 記錄目前選中的章節號
   const [currentChapter, setCurrentChapter] = useState<number | null>(null);
-
-  // 已完成載入（章節讀取 + draft 比對完成）後才顯示編輯器
   const [editorReady, setEditorReady] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [workbenchOpen, setWorkbenchOpen] = useState(true);
 
-  // 載入後給 ChapterEditor 的初始值
   const [initialContent, setInitialContent] = useState("");
   const [initialBaseMtime, setInitialBaseMtime] = useState("");
   const [initialTitle, setInitialTitle] = useState("");
 
-  // Toast 訊息
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 衝突對話框
   const [conflict, setConflict] = useState<ConflictState | null>(null);
 
-  // 父元件持有 getContent（由 ChapterEditor 透過 onContentRef 傳入）
   const getContentRef = useRef<() => string>(() => "");
-
-  // 載入中 flag，避免重複 fetch
   const loadingRef = useRef(false);
 
   function showToast(msg: string, duration = 3000) {
@@ -93,8 +80,6 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
     toastTimerRef.current = setTimeout(() => setToast(null), duration);
   }
 
-  // ── 載入章節（spec 003 Case A/B/C/D）──────────────────────────────────
-
   async function loadChapter(n: number) {
     if (loadingRef.current) return;
     loadingRef.current = true;
@@ -102,23 +87,29 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
     setEditorReady(false);
 
     try {
-      // 1. 從後端讀 .md
       const res = await fetch(`/api/projects/${projectHash}/chapters/${n}`);
       if (!res.ok) {
         console.error("loadChapter: fetch failed", res.status);
         return;
       }
       const serverChapter = (await res.json()) as ChapterFile;
-
-      // 2. 從 IndexedDB 讀 draft
       const draft = await getDraft(projectHash, n);
 
-      // 3. 依 spec 003 決定 Case
       let contentToLoad = serverChapter.content;
       let caseLabel = "A";
 
+      const baseFrontmatter = {
+        baseParticipants: serverChapter.participants,
+        baseOutline: serverChapter.outline,
+        baseRequirements: serverChapter.requirements,
+      };
+      const fmEcho = {
+        participants: serverChapter.participants,
+        outline: serverChapter.outline,
+        requirements: serverChapter.requirements,
+      };
+
       if (!draft) {
-        // Case A: 沒 draft → 載 .md，clean
         caseLabel = "A";
         store.setProjectHash(projectHash);
         store.setChapter({
@@ -127,10 +118,10 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           fileTitle: serverChapter.title,
           baseMtime: serverChapter.mtime,
           baseContent: serverChapter.content,
+          ...baseFrontmatter,
         });
-        store.markClean(serverChapter.mtime, serverChapter.content, serverChapter.title);
+        store.markClean(serverChapter.mtime, serverChapter.content, serverChapter.title, fmEcho);
       } else if (draft.content === serverChapter.content) {
-        // Case B: draft 與 .md 內容一致 → 載 .md，刪 draft，clean
         caseLabel = "B";
         await deleteDraft(projectHash, n);
         store.setProjectHash(projectHash);
@@ -140,10 +131,10 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           fileTitle: serverChapter.title,
           baseMtime: serverChapter.mtime,
           baseContent: serverChapter.content,
+          ...baseFrontmatter,
         });
-        store.markClean(serverChapter.mtime, serverChapter.content, serverChapter.title);
+        store.markClean(serverChapter.mtime, serverChapter.content, serverChapter.title, fmEcho);
       } else if (draft.baseMtime === serverChapter.mtime) {
-        // Case C: draft 比 .md 新，正常 dirty → 載 draft，browser-only
         caseLabel = "C";
         contentToLoad = draft.content;
         store.setProjectHash(projectHash);
@@ -153,13 +144,15 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           fileTitle: serverChapter.title,
           baseMtime: serverChapter.mtime,
           baseContent: serverChapter.content,
+          ...baseFrontmatter,
         });
+        store.setParticipants(draft.participants ?? serverChapter.participants);
+        store.setOutline(draft.outline ?? serverChapter.outline);
+        store.setRequirements(draft.requirements ?? serverChapter.requirements);
         store.markDirty(draft.content.replace(/\s/g, "").length, draft.updatedAt);
         showToast("這是上次未存入 .md 的草稿，按儲存才會寫入檔案");
       } else {
-        // Case D: .md 被外部修改（baseMtime 不符）→ 顯示衝突對話框
         caseLabel = "D";
-        // 先設 store，讓衝突對話框能知道章節資訊
         store.setProjectHash(projectHash);
         store.setChapter({
           number: n,
@@ -167,6 +160,7 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           fileTitle: serverChapter.title,
           baseMtime: serverChapter.mtime,
           baseContent: serverChapter.content,
+          ...baseFrontmatter,
         });
         setConflict({
           kind: "open",
@@ -174,14 +168,12 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
           serverContent: serverChapter.content,
           serverMtime: serverChapter.mtime,
         });
-        // 暫時以 draft.content 設好編輯器，讓對話框解決後再決定
         contentToLoad = draft.content;
-        // 不 setEditorReady，等使用者選完再 mount 編輯器
         setInitialContent(contentToLoad);
         setInitialBaseMtime(serverChapter.mtime);
         setInitialTitle(draft.title);
         setCurrentChapter(n);
-        return; // 等對話框
+        return;
       }
 
       console.log(`loadChapter Case ${caseLabel}: chapter=${n}`);
@@ -190,15 +182,12 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
       setInitialBaseMtime(serverChapter.mtime);
       setInitialTitle(caseLabel === "C" && draft ? draft.title : serverChapter.title);
       setCurrentChapter(n);
-      // 用新 key 強制 ChapterEditor 重建（換章節時確保新 doc）
       setEditorKey((k) => k + 1);
       setEditorReady(true);
     } finally {
       loadingRef.current = false;
     }
   }
-
-  // ── window focus 重檢（Case C/D 的 mtime 偵測）─────────────────────────
 
   const handleWindowFocus = useCallback(() => {
     if (currentChapter !== null && editorReady) {
@@ -214,7 +203,6 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
     if (!res.ok) return;
     const serverChapter = (await res.json()) as ChapterFile;
     if (serverChapter.mtime !== store.chapter.baseMtime) {
-      // .md 被外部修改了
       const currentContent = getContentRef.current();
       setConflict({
         kind: "open",
@@ -225,13 +213,15 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
     }
   }
 
-  // ── 衝突對話框處理 ───────────────────────────────────────────────────────
-
   function handleApplyServer() {
     if (!conflict || !store.chapter) return;
     const { serverContent, serverMtime } = conflict;
     setConflict(null);
-    store.markClean(serverMtime, serverContent, store.chapter.fileTitle);
+    store.markClean(serverMtime, serverContent, store.chapter.fileTitle, {
+      participants: store.chapter.baseParticipants,
+      outline: store.chapter.baseOutline,
+      requirements: store.chapter.baseRequirements,
+    });
     setInitialContent(serverContent);
     setInitialBaseMtime(serverMtime);
     setInitialTitle(store.chapter.fileTitle);
@@ -242,7 +232,6 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
 
   function handleForceLocal() {
     if (!conflict || !store.chapter) return;
-    // 保留 local content，讓使用者按儲存覆寫
     setConflict(null);
     setEditorKey((k) => k + 1);
     setEditorReady(true);
@@ -252,22 +241,16 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
 
   function handleCancelConflict() {
     setConflict(null);
-    // 若之前 editorReady 則繼續，否則回到未載入狀態
     if (!editorReady && currentChapter !== null) {
-      // 取消後用 .md 版本載入
       void loadChapter(currentChapter);
     }
   }
-
-  // ── 儲存觸發（從 ChapterEditor Mod-s callback 呼叫 SaveButton.performSave）
 
   const saveTriggerRef = useRef<(() => void) | null>(null);
 
   function handleEditorSave() {
     saveTriggerRef.current?.();
   }
-
-  // ── 衝突儲存（409 MTIME_MISMATCH）─────────────────────────────────────
 
   async function handleSaveConflict(serverContent: string) {
     const currentContent = getContentRef.current();
@@ -279,34 +262,28 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
     });
   }
 
-  // ── 標題變更 ─────────────────────────────────────────────────────────────
-
   function handleTitleChange(next: string) {
     store.setTitle(next);
   }
 
-  // ── 選章節 ───────────────────────────────────────────────────────────────
-
   function handleSelectChapter(n: number) {
     if (n === currentChapter) return;
-    draftReset(); // clear any active draft when switching chapters
+    draftReset();
     setEditorReady(false);
     void loadChapter(n);
   }
 
   function handleCreateChapter() {
-    // ChapterList 建立後會 onSelectChapter，這裡不需額外處理
+    /* ChapterList 建立後會 onSelectChapter，這裡不需額外處理 */
   }
 
-  // ── 首次自動載入最近章節（首個章節）────────────────────────────────────
-
-  // 用 useEffect 在 mount 後觸發，避免 render 階段的 side effect
-  // biome-ignore lint/correctness/useExhaustiveDependencies: autoSelectFirstChapter 內已用 projectHash；只要 hash 變動才重做
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在 projectHash 變動時重做
   useEffect(() => {
     async function autoSelectFirstChapter() {
       const res = await fetch(`/api/projects/${projectHash}/chapters`);
+      const emptyFm = { participants: [], outline: null, requirements: null };
       if (!res.ok) {
-        store.markClean("", "", "");
+        store.markClean("", "", "", emptyFm);
         return;
       }
       const data = (await res.json()) as { chapters: Array<{ number: number }> };
@@ -314,20 +291,49 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
       if (first !== undefined) {
         void loadChapter(first.number);
       } else {
-        // 沒有章節 → 不顯示「載入中…」，讓使用者建立第一章
-        store.markClean("", "", "");
+        store.markClean("", "", "", emptyFm);
       }
     }
     void autoSelectFirstChapter();
-    // 只在 projectHash 改變時（即元件掛載後）執行一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectHash]);
 
-  // ── 渲染 ────────────────────────────────────────────────────────────────
+  // M5: frontmatter dirty autosave watcher — store.participants/outline/requirements 變動 → debounce 1.5s → putDraft
+  const participants = useEditorStore((s) => s.participants);
+  const outline = useEditorStore((s) => s.outline);
+  const requirements = useEditorStore((s) => s.requirements);
+  const chapter = useEditorStore((s) => s.chapter);
+
+  useEffect(() => {
+    if (!chapter || currentChapter === null || !editorReady) return;
+    const dirty =
+      JSON.stringify(participants) !== JSON.stringify(chapter.baseParticipants) ||
+      outline !== chapter.baseOutline ||
+      requirements !== chapter.baseRequirements;
+    if (!dirty) return;
+    const t = setTimeout(() => {
+      const content = getContentRef.current();
+      const now = Date.now();
+      void putDraft({
+        id: draftKey(projectHash, currentChapter),
+        projectHash,
+        chapterNumber: currentChapter,
+        content,
+        title: chapter.title,
+        updatedAt: now,
+        baseMtime: chapter.baseMtime,
+        participants,
+        outline,
+        requirements,
+      });
+      store.markDirty(content.replace(/\s/g, "").length, now);
+    }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participants, outline, requirements, chapter?.baseMtime, currentChapter, editorReady]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white text-gray-900">
-      {/* 左欄：章節列表 */}
+    <div className="flex h-screen overflow-hidden bg-neutral-950 text-neutral-100">
       <ChapterList
         projectHash={projectHash}
         currentChapter={currentChapter}
@@ -335,16 +341,15 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
         onCreateChapter={handleCreateChapter}
       />
 
-      {/* 中欄：編輯區 + 工具列 */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* 工具列 */}
-        <div className="flex items-center gap-3 px-4 py-2 border-b shrink-0">
-          <Link to="/" className="text-sm text-blue-600 underline shrink-0">
+        <div className="flex shrink-0 items-center gap-3 border-b border-neutral-800 bg-neutral-950 px-4 py-2">
+          <Link to="/" className="shrink-0 text-sm text-indigo-400 hover:text-indigo-300">
             ← 首頁
           </Link>
           <Link
             to={`/editor/${projectHash}/characters`}
-            className="text-xs text-indigo-400 hover:text-indigo-300 shrink-0 border border-indigo-800 rounded px-2 py-1"
+            className="shrink-0 rounded border border-indigo-800 px-2 py-1 text-xs text-indigo-300 hover:bg-indigo-900/30"
           >
             角色
           </Link>
@@ -373,70 +378,107 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
-              className="text-xs text-neutral-400 hover:text-neutral-200 border border-neutral-700 rounded px-2 py-1 transition-colors"
+              className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
             >
               歷史
             </button>
           )}
         </div>
 
-        {/* 編輯器主體 + 草稿面板並排 */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* 主編輯區 */}
-          <div
-            className={`flex-1 overflow-hidden relative ${draftStatus === "streaming" ? "opacity-60 pointer-events-none" : ""}`}
-          >
-            {store.state.kind === "loading" && !editorReady && (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-                載入中…
+        {/* 工作台面板 + CM6 主編輯區（直向 stack） */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {currentChapter !== null && (
+            <div className="shrink-0 overflow-y-auto border-b border-neutral-800 bg-neutral-950">
+              <div className="px-4 py-2">
+                <button
+                  type="button"
+                  onClick={() => setWorkbenchOpen((v) => !v)}
+                  className="flex items-center gap-2 text-sm font-medium text-neutral-300 hover:text-neutral-100"
+                >
+                  {workbenchOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  ✦ AI 寫作工作台
+                </button>
               </div>
-            )}
-
-            {currentChapter === null && store.state.kind !== "loading" && !editorReady && (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-                請從左側選擇或新建章節
-              </div>
-            )}
-
-            {draftStatus === "streaming" && (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm z-10 pointer-events-none">
-                AI 撰寫中…
-              </div>
-            )}
-
-            {editorReady && currentChapter !== null && (
-              <ChapterEditor
-                key={`${projectHash}:${currentChapter}:${editorKey}`}
-                projectHash={projectHash}
-                chapterNumber={currentChapter}
-                initialContent={initialContent}
-                baseMtime={initialBaseMtime}
-                initialTitle={initialTitle}
-                onContentRef={(fn) => {
-                  getContentRef.current = fn;
-                }}
-                onSave={handleEditorSave}
-              />
-            )}
-          </div>
-
-          {/* 草稿面板（只在有草稿時顯示；佔一半寬度） */}
-          {currentChapter !== null && draftStatus !== "idle" && (
-            <div className="w-1/2 shrink-0 overflow-hidden">
-              <DraftPanel projectHash={projectHash} chapterNumber={currentChapter} />
+              {workbenchOpen && (
+                <div className="space-y-3 px-4 pb-3" style={{ maxHeight: "55vh", overflowY: "auto" }}>
+                  <ContextPreviewPanel
+                    projectHash={projectHash}
+                    chapterNumber={currentChapter}
+                    participants={participants}
+                  />
+                  <WritingParamsBar />
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <OutlineInput />
+                    <RequirementsInput />
+                  </div>
+                  <ParticipantPicker
+                    projectHash={projectHash}
+                    chapterNumber={currentChapter}
+                  />
+                </div>
+              )}
             </div>
           )}
+
+          <div className="flex flex-1 overflow-hidden">
+            <div
+              className={`relative flex-1 overflow-hidden bg-white text-gray-900 ${
+                draftStatus === "streaming" ? "pointer-events-none opacity-60" : ""
+              }`}
+            >
+              {store.state.kind === "loading" && !editorReady && (
+                <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                  載入中…
+                </div>
+              )}
+
+              {currentChapter === null && store.state.kind !== "loading" && !editorReady && (
+                <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                  請從左側選擇或新建章節
+                </div>
+              )}
+
+              {draftStatus === "streaming" && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-sm text-gray-500">
+                  AI 撰寫中…
+                </div>
+              )}
+
+              {editorReady && currentChapter !== null && (
+                <ChapterEditor
+                  key={`${projectHash}:${currentChapter}:${editorKey}`}
+                  projectHash={projectHash}
+                  chapterNumber={currentChapter}
+                  initialContent={initialContent}
+                  baseMtime={initialBaseMtime}
+                  initialTitle={initialTitle}
+                  onContentRef={(fn) => {
+                    getContentRef.current = fn;
+                  }}
+                  onSave={handleEditorSave}
+                />
+              )}
+            </div>
+
+            {currentChapter !== null && draftStatus !== "idle" && (
+              <div className="w-1/2 shrink-0 overflow-hidden border-l border-neutral-800">
+                <DraftPanel projectHash={projectHash} chapterNumber={currentChapter} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Toast */}
       {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-4 py-2 rounded shadow-lg z-50">
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded bg-neutral-800 px-4 py-2 text-sm text-white shadow-lg">
           {toast}
         </div>
       )}
 
-      {/* 衝突對話框 */}
       {conflict && (
         <ConflictDialog
           kind={conflict.kind}
@@ -448,10 +490,8 @@ function ChapterEditorPageInner({ projectHash }: InnerProps) {
         />
       )}
 
-      {/* status-updater 進度指示 */}
       <StatusUpdateIndicator projectHash={projectHash} />
 
-      {/* git 歷史面板 */}
       <HistoryPanel
         projectHash={projectHash}
         file={

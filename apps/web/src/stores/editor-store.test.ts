@@ -11,6 +11,9 @@ describe("editor-store", () => {
     expect(useEditorStore.getState().state.kind).toBe("loading");
   });
 
+  const EMPTY_BASE = { baseParticipants: [], baseOutline: null, baseRequirements: null };
+  const EMPTY_FM = { participants: [], outline: null, requirements: null };
+
   it("setChapter sets context", () => {
     useEditorStore.getState().setChapter({
       number: 1,
@@ -18,6 +21,7 @@ describe("editor-store", () => {
       fileTitle: "x",
       baseMtime: "2026-01-01T00:00:00Z",
       baseContent: "content",
+      ...EMPTY_BASE,
     });
     expect(useEditorStore.getState().chapter?.number).toBe(1);
   });
@@ -29,6 +33,7 @@ describe("editor-store", () => {
       fileTitle: "x",
       baseMtime: "x",
       baseContent: "x",
+      ...EMPTY_BASE,
     });
     useEditorStore.getState().markDirty(10, 1000);
     const s = useEditorStore.getState().state;
@@ -43,8 +48,9 @@ describe("editor-store", () => {
       fileTitle: "x",
       baseMtime: "old",
       baseContent: "old",
+      ...EMPTY_BASE,
     });
-    useEditorStore.getState().markClean("new", "new content", "new-title");
+    useEditorStore.getState().markClean("new", "new content", "new-title", EMPTY_FM);
     const { chapter, state } = useEditorStore.getState();
     expect(state.kind).toBe("clean");
     expect(chapter?.baseMtime).toBe("new");
@@ -59,6 +65,7 @@ describe("editor-store", () => {
       fileTitle: "old",
       baseMtime: "x",
       baseContent: "x",
+      ...EMPTY_BASE,
     });
     useEditorStore.getState().setTitle("new");
     const c = useEditorStore.getState().chapter;
