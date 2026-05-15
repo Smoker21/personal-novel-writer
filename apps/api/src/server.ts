@@ -17,6 +17,7 @@ import { projects } from "./routes/projects.js";
 import { settings } from "./routes/settings.js";
 import { statusRouter } from "./routes/status.js";
 import { unadoptRouter } from "./routes/unadopt.js";
+import { migrateRecentProjects } from "./services/recent-projects-store.js";
 
 const app = new Hono()
   .route("/api/health", health)
@@ -39,6 +40,19 @@ const app = new Hono()
 export type AppType = typeof app;
 
 const port = Number.parseInt(process.env["PORT"] ?? "0", 10);
+
+// M5 (TD-2/3): migrate recent projects hash + canonicalize paths + dedupe
+void migrateRecentProjects()
+  .then((r) => {
+    if (r.rehashed + r.recanonicalized + r.deduped > 0) {
+      logger.info(
+        `migrateRecentProjects: rehashed=${r.rehashed} recanonicalized=${r.recanonicalized} deduped=${r.deduped}`,
+      );
+    }
+  })
+  .catch((err) => {
+    logger.warn(`migrateRecentProjects failed: ${String(err)}`);
+  });
 
 const server = serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, (info) => {
   const actualPort = info.port;

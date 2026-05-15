@@ -1,18 +1,8 @@
-import { createHash } from "node:crypto";
-import { normalize } from "node:path";
+import { canonicalizeProjectPath, hashProjectPath } from "./path-utils.js";
 import { readSettings, writeSettings } from "./settings-store.js";
 
-// ---------------------------------------------------------------------------
-// hashProjectPath
-// ---------------------------------------------------------------------------
-
-/**
- * Compute a stable 8-character hex hash for a project path.
- * The path is normalised before hashing so equivalent paths produce the same hash.
- */
-export function hashProjectPath(projectPath: string): string {
-  return createHash("sha256").update(normalize(projectPath)).digest("hex").slice(0, 8);
-}
+// Re-export for compatibility with existing callers
+export { hashProjectPath } from "./path-utils.js";
 
 // ---------------------------------------------------------------------------
 // resolveProjectPath
@@ -21,6 +11,7 @@ export function hashProjectPath(projectPath: string): string {
 /**
  * Reverse-look up a project path from its hash.
  * Reads the current settings' recentProjects list.
+ * Re-hashes each stored path so we don't depend on stored hash being current.
  * Returns null if no match is found.
  */
 export async function resolveProjectPath(projectHash: string): Promise<string | null> {
@@ -45,11 +36,13 @@ export async function resolveProjectPath(projectHash: string): Promise<string | 
  */
 export async function touchProject(projectPath: string, title: string): Promise<void> {
   const settings = await readSettings();
-  const normalised = normalize(projectPath);
-  const hash = hashProjectPath(normalised);
+  const canonical = canonicalizeProjectPath(projectPath);
+  const hash = hashProjectPath(canonical);
   const lastOpenedAt = new Date().toISOString();
 
-  const existingIdx = settings.recentProjects.findIndex((p) => normalize(p.path) === normalised);
+  const existingIdx = settings.recentProjects.findIndex(
+    (p) => hashProjectPath(p.path) === hash,
+  );
 
   if (existingIdx >= 0) {
     const entry = settings.recentProjects[existingIdx];
@@ -57,7 +50,13 @@ export async function touchProject(projectPath: string, title: string): Promise<
       settings.recentProjects[existingIdx] = { ...entry, lastOpenedAt };
     }
   } else {
-    settings.recentProjects.push({ hash, path: normalised, title, lastOpenedAt, pinned: false });
+    settings.recentProjects.push({
+      hash,
+      path: canonical,
+      title,
+      lastOpenedAt,
+      pinned: false,
+    });
   }
 
   await writeSettings(settings);

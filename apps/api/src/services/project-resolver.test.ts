@@ -29,9 +29,9 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("hashProjectPath", () => {
-  it("produces a stable 8-character hex string", () => {
+  it("produces a stable 16-character hex string (M5 unified)", () => {
     const hash = hashProjectPath("/some/project/path");
-    expect(hash).toMatch(/^[0-9a-f]{8}$/);
+    expect(hash).toMatch(/^[0-9a-f]{16}$/);
   });
 
   it("same input always yields same hash", () => {
