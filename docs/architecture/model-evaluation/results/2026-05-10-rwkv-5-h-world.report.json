@@ -28,9 +28,7 @@
         "不新增未提供角色": {
           "score": 3,
           "explanation": "3/5 — 出現 1 個疑似新角色姓名：黃鶯從（請人工確認是否為配角描述）",
-          "evidence": [
-            "黃鶯從"
-          ]
+          "evidence": ["黃鶯從"]
         },
         "不修改既有角色名": {
           "score": 5,
@@ -41,9 +39,7 @@
           "explanation": "_/5 — 待人工（語意理解）"
         }
       },
-      "redFlags": [
-        "疑似新角色姓名：黃鶯從"
-      ]
+      "redFlags": ["疑似新角色姓名：黃鶯從"]
     },
     {
       "caseId": "TC-02",
@@ -402,12 +398,7 @@
         "避免英文": {
           "score": 3,
           "explanation": "3/5 — 出現 4 個英文：User, Assistant, User, Assant",
-          "evidence": [
-            "User",
-            "Assistant",
-            "User",
-            "Assant"
-          ]
+          "evidence": ["User", "Assistant", "User", "Assant"]
         },
         "不畫蛇添足": {
           "score": 5,
@@ -563,9 +554,7 @@
           "explanation": "_/5 — 待人工（語意）"
         }
       },
-      "redFlags": [
-        "疑似新角色姓名：方都应、方试图、方立即"
-      ]
+      "redFlags": ["疑似新角色姓名：方都应、方试图、方立即"]
     },
     {
       "caseId": "TC-08",
@@ -596,9 +585,7 @@
           "explanation": "_/5 — 待人工（語意）"
         }
       },
-      "redFlags": [
-        "疑似新角色姓名：趙立志"
-      ]
+      "redFlags": ["疑似新角色姓名：趙立志"]
     },
     {
       "caseId": "TC-08",

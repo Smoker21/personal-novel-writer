@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { redactSecrets, LLMError } from "./error.js";
+import { describe, expect, it } from "vitest";
+import { LLMError, redactSecrets } from "./error.js";
 
 describe("redactSecrets", () => {
   it("redacts a full Anthropic API key", () => {

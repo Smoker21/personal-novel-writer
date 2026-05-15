@@ -1,4 +1,4 @@
-import { AutoScore } from "../../types.js";
+import type { AutoScore } from "../../types.js";
 import { countChineseChars, longestCommonSubstring } from "../../utils/text.js";
 
 export function scoreStatusFormat(text: string): AutoScore {

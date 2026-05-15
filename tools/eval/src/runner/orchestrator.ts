@@ -1,16 +1,21 @@
 import { writeFile } from "node:fs/promises";
 import { basename, dirname, extname, resolve } from "node:path";
 
-import { CASE_PROFILE, CASE_MAX_TOKENS, RuntimeProfile, SAMPLING_PROFILES } from "../config.js";
-import { parseAllTestCases } from "../parsers/test-case-parser.js";
-import { runCase } from "./case-runner.js";
-import { writeReportToMarkdown } from "../reporting/report-writer.js";
-import { writeOutputMarkdown } from "../reporting/output-md-writer.js";
-import { generateSuggestions } from "../scoring/suggestions.js";
-import { logger, fmtDuration } from "../utils/logger.js";
-import { Runtime } from "../runtimes/runtime.js";
-import { CaseId, CaseResult, EvaluationReport, TestCaseRun } from "../types.js";
 import oraDefault from "ora";
+import {
+  CASE_MAX_TOKENS,
+  CASE_PROFILE,
+  type RuntimeProfile,
+  SAMPLING_PROFILES,
+} from "../config.js";
+import { parseAllTestCases } from "../parsers/test-case-parser.js";
+import { writeOutputMarkdown } from "../reporting/output-md-writer.js";
+import { writeReportToMarkdown } from "../reporting/report-writer.js";
+import type { Runtime } from "../runtimes/runtime.js";
+import { generateSuggestions } from "../scoring/suggestions.js";
+import type { CaseId, CaseResult, EvaluationReport, TestCaseRun } from "../types.js";
+import { fmtDuration, logger } from "../utils/logger.js";
+import { runCase } from "./case-runner.js";
 
 const ora = (oraDefault as unknown as { default?: typeof oraDefault }).default ?? oraDefault;
 

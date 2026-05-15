@@ -1,14 +1,14 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
+import { basename, dirname, extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { consola } from "consola";
-import { fileURLToPath } from "node:url";
-import { basename, dirname, extname, resolve } from "node:path";
-import { existsSync } from "node:fs";
 
-import { ALL_CASE_IDS, CaseId } from "./types.js";
-import { RUNTIME_PROFILES, RuntimeProfile } from "./config.js";
-import { Runtime } from "./runtimes/runtime.js";
+import { RUNTIME_PROFILES, type RuntimeProfile } from "./config.js";
+import type { Runtime } from "./runtimes/runtime.js";
 import { RwkvRunnerRuntime } from "./runtimes/rwkv-runner.js";
+import { ALL_CASE_IDS, type CaseId } from "./types.js";
 import { logger } from "./utils/logger.js";
 
 const program = new Command();
@@ -16,13 +16,7 @@ const program = new Command();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, "..", "..", "..");
-const TEST_CASES_DIR = resolve(
-  REPO_ROOT,
-  "docs",
-  "architecture",
-  "model-evaluation",
-  "test-cases",
-);
+const TEST_CASES_DIR = resolve(REPO_ROOT, "docs", "architecture", "model-evaluation", "test-cases");
 
 function makeRuntime(
   profile: RuntimeProfile,
@@ -64,10 +58,7 @@ function withRunIndex(originalPath: string, idx: number): string {
   if (idx === 0) return originalPath;
   const ext = extname(originalPath);
   const stem = basename(originalPath, ext);
-  return resolve(
-    dirname(originalPath),
-    `${stem}.${String(idx).padStart(3, "0")}${ext}`,
-  );
+  return resolve(dirname(originalPath), `${stem}.${String(idx).padStart(3, "0")}${ext}`);
 }
 
 /**
@@ -115,7 +106,7 @@ program
   .option("--result <path>", "path to result markdown (input + output same file)")
   .option("--only <case-ids>", "comma-separated CaseIds, e.g. TC-01,TC-04")
   .option("--dry-run", "print what would run without calling the model")
-  .option("--max-tokens <n>", "override max_tokens for all cases", parseInt)
+  .option("--max-tokens <n>", "override max_tokens for all cases", Number.parseInt)
   .option("--json-out <path>", "write raw EvaluationReport JSON here")
   .option(
     "--output-md <path>",
@@ -142,9 +133,7 @@ program
     if (opts.health) {
       const h = await runtime.health();
       if (h.ok) {
-        consola.success(
-          `${profile.name} responded OK at ${opts.endpoint ?? profile.endpoint}`,
-        );
+        consola.success(`${profile.name} responded OK at ${opts.endpoint ?? profile.endpoint}`);
         if (h.modelInfo) consola.info(h.modelInfo.slice(0, 500));
         process.exit(0);
       } else {
@@ -189,9 +178,7 @@ program
     const explicitOutputMd = opts.outputMd
       ? resolve(process.cwd(), opts.outputMd)
       : defaultOutputMdPath;
-    const explicitJson = opts.jsonOut
-      ? resolve(process.cwd(), opts.jsonOut)
-      : defaultJsonPath;
+    const explicitJson = opts.jsonOut ? resolve(process.cwd(), opts.jsonOut) : defaultJsonPath;
 
     // Allocate ONE run index that's free across all three artifact paths.
     // The result template (`resultBasePath`) is treated as the "input" — it
@@ -221,9 +208,7 @@ program
     try {
       // commander turns --no-thinking-budget into opts.thinkingBudget = false
       const effectiveProfile =
-        opts.thinkingBudget === false
-          ? { ...profile, thinkingTokenBudget: 0 }
-          : profile;
+        opts.thinkingBudget === false ? { ...profile, thinkingTokenBudget: 0 } : profile;
 
       await runEvaluation({
         runtime,

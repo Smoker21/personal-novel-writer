@@ -1,9 +1,9 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { CASE_MAX_TOKENS, CASE_PROFILE, SAMPLING_PROFILES } from "../config.js";
-import { CaseId, TestCaseRun } from "../types.js";
-import { findAllSections, findSection, firstCodeBlock, parseSections, Section } from "./md-sections.js";
+import type { CaseId, TestCaseRun } from "../types.js";
+import { findAllSections, findSection, firstCodeBlock, parseSections } from "./md-sections.js";
 
 const TC_FILES: Record<CaseId, string> = {
   "TC-01": "tc-01-character-consistency.md",
@@ -16,8 +16,7 @@ const TC_FILES: Record<CaseId, string> = {
   "TC-08": "tc-08-content-freedom.md",
 };
 
-const TC07_END_EMPHASIS_TAIL =
-  "\n\n請特別注意：本章必須提到蘇晴帶來的母親照片。";
+const TC07_END_EMPHASIS_TAIL = "\n\n請特別注意：本章必須提到蘇晴帶來的母親照片。";
 
 function baseRun(caseId: CaseId, systemPrompt: string, userPrompt: string): TestCaseRun {
   const profile = CASE_PROFILE[caseId];

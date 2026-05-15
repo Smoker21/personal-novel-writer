@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { parseAllTestCases } from "../../src/parsers/test-case-parser.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -36,8 +36,8 @@ describe("parseAllTestCases", () => {
     const tc07End = runs.find((r) => r.caseId === "TC-07" && r.variant === "end-emphasis");
     expect(tc07Default).toBeDefined();
     expect(tc07End).toBeDefined();
-    expect(tc07End!.userPrompt.endsWith("照片。")).toBe(true);
-    expect(tc07End!.userPrompt.length).toBeGreaterThan(tc07Default!.userPrompt.length);
+    expect(tc07End?.userPrompt.endsWith("照片。")).toBe(true);
+    expect(tc07End?.userPrompt.length).toBeGreaterThan(tc07Default?.userPrompt.length);
 
     const tc08Subtests = runs.filter((r) => r.caseId === "TC-08").map((r) => r.subtest);
     expect(tc08Subtests).toEqual(["8-1", "8-2", "8-3", "8-4"]);

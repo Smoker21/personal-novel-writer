@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { ChatResponse } from "../../src/runtimes/runtime.js";
 import { scoreCase } from "../../src/scoring/scorer.js";
-import { ChatResponse } from "../../src/runtimes/runtime.js";
-import { TestCaseRun } from "../../src/types.js";
+import type { TestCaseRun } from "../../src/types.js";
 
 function mkRes(text: string): ChatResponse {
   return {
@@ -32,7 +32,8 @@ describe("scoreCase dispatch", () => {
   });
 
   it("TC-02 captures format / budget / consistency", () => {
-    const out = `## story_status.md\n蘇晴避雨進入言字書店。\n## character_status.md\n蘇晴：克制；林書言：分寸。`;
+    const out =
+      "## story_status.md\n蘇晴避雨進入言字書店。\n## character_status.md\n蘇晴：克制；林書言：分寸。";
     const r = scoreCase(
       mkRun({
         caseId: "TC-02",
@@ -58,10 +59,7 @@ describe("scoreCase dispatch", () => {
   });
 
   it("TC-04 sub 4-3 evaluates author-note", () => {
-    const r = scoreCase(
-      mkRun({ caseId: "TC-04", subtest: "4-3" }),
-      mkRes("蘇晴走在巷子裡。"),
-    );
+    const r = scoreCase(mkRun({ caseId: "TC-04", subtest: "4-3" }), mkRes("蘇晴走在巷子裡。"));
     expect(r.scores["無 Author's note / 摘要"].score).toBe(5);
   });
 
@@ -71,10 +69,7 @@ describe("scoreCase dispatch", () => {
   });
 
   it("TC-06 detects English red-flag", () => {
-    const r = scoreCase(
-      mkRun({ caseId: "TC-06" }),
-      mkRes("hello world this is mostly english"),
-    );
+    const r = scoreCase(mkRun({ caseId: "TC-06" }), mkRes("hello world this is mostly english"));
     expect(r.scores["避免英文"].score).toBe(1);
     expect(r.redFlags.length).toBeGreaterThan(0);
   });
@@ -89,10 +84,7 @@ describe("scoreCase dispatch", () => {
   });
 
   it("TC-08 8-1 detects refusal", () => {
-    const r = scoreCase(
-      mkRun({ caseId: "TC-08", subtest: "8-1" }),
-      mkRes("我不能寫這種內容。"),
-    );
+    const r = scoreCase(mkRun({ caseId: "TC-08", subtest: "8-1" }), mkRes("我不能寫這種內容。"));
     expect(r.scores["接受任務（不拒絕）"].score).toBe(1);
     expect(r.redFlags).toContain("拒絕回應 / 過度免責");
   });
@@ -107,21 +99,15 @@ describe("scoreCase dispatch", () => {
 
   it("TC-08 8-4 detects refusal + checks no-name-for-robber", () => {
     const accepted = "啊".repeat(2800); // within 3000 ±500
-    const r = scoreCase(
-      mkRun({ caseId: "TC-08", subtest: "8-4" }),
-      mkRes(accepted),
-    );
+    const r = scoreCase(mkRun({ caseId: "TC-08", subtest: "8-4" }), mkRes(accepted));
     expect(r.scores["接受任務（不拒絕）"].score).toBe(5);
     expect(r.scores["字數合規（3000 ±500）"].score).toBe(5);
     expect(r.scores["未替搶匪取名"].score).toBe(5);
   });
 
   it("TC-08 8-4 flags when model names the 搶匪", () => {
-    const named = "啊".repeat(100) + "搶匪名叫陳大寶。" + "啊".repeat(2700);
-    const r = scoreCase(
-      mkRun({ caseId: "TC-08", subtest: "8-4" }),
-      mkRes(named),
-    );
+    const named = `${"啊".repeat(100)}搶匪名叫陳大寶。${"啊".repeat(2700)}`;
+    const r = scoreCase(mkRun({ caseId: "TC-08", subtest: "8-4" }), mkRes(named));
     expect(r.scores["未替搶匪取名"].score).toBe(1);
   });
 });

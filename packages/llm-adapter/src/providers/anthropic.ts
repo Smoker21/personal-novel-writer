@@ -59,9 +59,7 @@ const MODELS: Record<string, ModelCapabilities> = {
 // Helper: map Anthropic stop_reason → FinishReason
 // ---------------------------------------------------------------------------
 
-function mapStopReason(
-  reason: string | null | undefined,
-): FinishReason {
+function mapStopReason(reason: string | null | undefined): FinishReason {
   switch (reason) {
     case "end_turn":
       return "end";
@@ -81,65 +79,31 @@ function mapStopReason(
 // Helper: map Anthropic SDK errors → LLMError
 // ---------------------------------------------------------------------------
 
-function mapSdkError(
-  err: unknown,
-  provider: string,
-  modelId: string,
-): LLMError {
+function mapSdkError(err: unknown, provider: string, modelId: string): LLMError {
   // Abort signal fires as AbortError — surface as finish:abort, not an error.
   // (Callers that need the abort finish reason should catch separately.)
   if (err instanceof Error && err.name === "AbortError") {
-    return new LLMError(
-      "network",
-      provider,
-      "Request aborted by caller",
-      false,
-      err,
-    );
+    return new LLMError("network", provider, "Request aborted by caller", false, err);
   }
 
   if (err instanceof AuthenticationError) {
-    return new LLMError(
-      "unauthorized",
-      provider,
-      redactSecrets(err.message),
-      false,
-      err,
-    );
+    return new LLMError("unauthorized", provider, redactSecrets(err.message), false, err);
   }
 
   if (err instanceof RateLimitError) {
-    return new LLMError(
-      "rate_limit",
-      provider,
-      redactSecrets(err.message),
-      true,
-      err,
-    );
+    return new LLMError("rate_limit", provider, redactSecrets(err.message), true, err);
   }
 
   if (err instanceof BadRequestError) {
     const msg = err.message ?? "";
     if (msg.includes("context_length_exceeded") || msg.includes("too many tokens")) {
-      return new LLMError(
-        "context_overflow",
-        provider,
-        redactSecrets(msg),
-        false,
-        err,
-      );
+      return new LLMError("context_overflow", provider, redactSecrets(msg), false, err);
     }
     return new LLMError("unknown", provider, redactSecrets(msg), false, err);
   }
 
   if (err instanceof PermissionDeniedError) {
-    return new LLMError(
-      "content_blocked",
-      provider,
-      redactSecrets(err.message),
-      false,
-      err,
-    );
+    return new LLMError("content_blocked", provider, redactSecrets(err.message), false, err);
   }
 
   if (err instanceof NotFoundError) {
@@ -154,13 +118,7 @@ function mapSdkError(
 
   // Network-level errors: fetch failed, ECONNRESET, etc.
   if (err instanceof APIConnectionError) {
-    return new LLMError(
-      "network",
-      provider,
-      redactSecrets(err.message),
-      true,
-      err,
-    );
+    return new LLMError("network", provider, redactSecrets(err.message), true, err);
   }
 
   if (err instanceof Error) {
@@ -206,11 +164,15 @@ async function buildAnthropicContent(
         // Infer mime from extension
         const ext = src.path.split(".").pop()?.toLowerCase();
         mimeType =
-          ext === "jpg" || ext === "jpeg" ? "image/jpeg"
-          : ext === "png" ? "image/png"
-          : ext === "webp" ? "image/webp"
-          : ext === "gif" ? "image/gif"
-          : "image/jpeg";
+          ext === "jpg" || ext === "jpeg"
+            ? "image/jpeg"
+            : ext === "png"
+              ? "image/png"
+              : ext === "webp"
+                ? "image/webp"
+                : ext === "gif"
+                  ? "image/gif"
+                  : "image/jpeg";
       } else if (src.kind === "base64") {
         data = src.data;
         mimeType = src.mimeType;
@@ -223,11 +185,15 @@ async function buildAnthropicContent(
         const ct = res.headers.get("content-type") ?? "image/jpeg";
         const ctBase = ct.split(";")[0]?.trim() ?? "image/jpeg";
         mimeType =
-          ctBase === "image/jpeg" ? "image/jpeg"
-          : ctBase === "image/png" ? "image/png"
-          : ctBase === "image/webp" ? "image/webp"
-          : ctBase === "image/gif" ? "image/gif"
-          : "image/jpeg";
+          ctBase === "image/jpeg"
+            ? "image/jpeg"
+            : ctBase === "image/png"
+              ? "image/png"
+              : ctBase === "image/webp"
+                ? "image/webp"
+                : ctBase === "image/gif"
+                  ? "image/gif"
+                  : "image/jpeg";
       }
 
       blocks.push({

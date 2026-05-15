@@ -1,4 +1,4 @@
-import { AutoScore } from "../../types.js";
+import type { AutoScore } from "../../types.js";
 
 /**
  * Detects ASCII English words. Single letters in the middle of math / "AI" etc. are excluded

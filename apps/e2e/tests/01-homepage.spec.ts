@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("首頁", () => {
   test("首頁正確顯示 Novel Writer 標題", async ({ page }) => {

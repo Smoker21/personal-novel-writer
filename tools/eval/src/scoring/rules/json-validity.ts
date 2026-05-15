@@ -1,4 +1,4 @@
-import { AutoScore } from "../../types.js";
+import type { AutoScore } from "../../types.js";
 
 export interface ParsedJson {
   ok: boolean;
@@ -66,10 +66,7 @@ export function scoreTC04Fields(parsed: unknown): AutoScore {
   const obj = parsed as TC04Schema;
   const issues: string[] = [];
   if (typeof obj.wordCount !== "number") issues.push("wordCount 非 number");
-  if (
-    !Array.isArray(obj.characters) ||
-    !obj.characters.every((c) => typeof c === "string")
-  ) {
+  if (!Array.isArray(obj.characters) || !obj.characters.every((c) => typeof c === "string")) {
     issues.push("characters 非 string[]");
   }
   if (typeof obj.mood !== "string") issues.push("mood 非 string");

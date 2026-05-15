@@ -18,9 +18,7 @@ describe("scoreStatusFormat", () => {
     expect(scoreStatusFormat(STATUS_GOOD).score).toBe(5);
   });
   it("3/5 when only one heading", () => {
-    expect(
-      scoreStatusFormat("## story_status.md\n蘇晴避雨。").score,
-    ).toBe(3);
+    expect(scoreStatusFormat("## story_status.md\n蘇晴避雨。").score).toBe(3);
   });
   it("1/5 when no headings", () => {
     expect(scoreStatusFormat("純文字描述").score).toBe(1);
@@ -33,8 +31,7 @@ describe("scoreStatusBudget", () => {
     expect(s.score).toBe(5);
   });
   it("1/5 when story over limit", () => {
-    const big =
-      "## story_status.md\n" + "蘇".repeat(2000) + "\n## character_status.md\n少量字。";
+    const big = `## story_status.md\n${"蘇".repeat(2000)}\n## character_status.md\n少量字。`;
     expect(scoreStatusBudget(big, { storyMax: 1500, charMax: 2000 }).score).toBe(1);
   });
 });

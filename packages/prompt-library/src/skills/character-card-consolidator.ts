@@ -56,41 +56,41 @@ function fieldsToYaml(fields: CharacterFields): string {
   add("zodiac", fields.zodiac);
   add("bloodType", fields.bloodType);
   if (fields.culturalBackground) {
-    lines.push(`culturalBackground: |`);
+    lines.push("culturalBackground: |");
     for (const line of fields.culturalBackground.split("\n")) lines.push(`  ${line}`);
   }
 
   add("heightCm", fields.heightCm);
   add("bodyType", fields.bodyType);
   if (fields.hairAndColor) {
-    lines.push(`hairAndColor: |`);
+    lines.push("hairAndColor: |");
     for (const line of fields.hairAndColor.split("\n")) lines.push(`  ${line}`);
   }
   if (fields.eyes) {
-    lines.push(`eyes: |`);
+    lines.push("eyes: |");
     for (const line of fields.eyes.split("\n")) lines.push(`  ${line}`);
   }
   if (fields.otherFeatures) {
-    lines.push(`otherFeatures: |`);
+    lines.push("otherFeatures: |");
     for (const line of fields.otherFeatures.split("\n")) lines.push(`  ${line}`);
   }
   if (fields.clothing) {
-    lines.push(`clothing: |`);
+    lines.push("clothing: |");
     for (const line of fields.clothing.split("\n")) lines.push(`  ${line}`);
   }
 
   add("dialoguePace", fields.dialoguePace);
   if (fields.wordingPreference) {
-    lines.push(`wordingPreference: |`);
+    lines.push("wordingPreference: |");
     for (const line of fields.wordingPreference.split("\n")) lines.push(`  ${line}`);
   }
   if (fields.writingAvoid) {
-    lines.push(`writingAvoid: |`);
+    lines.push("writingAvoid: |");
     for (const line of fields.writingAvoid.split("\n")) lines.push(`  ${line}`);
   }
 
   if (fields.relations) {
-    lines.push(`relations: |`);
+    lines.push("relations: |");
     for (const line of fields.relations.split("\n")) lines.push(`  ${line}`);
   }
 

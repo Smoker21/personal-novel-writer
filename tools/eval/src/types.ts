@@ -1,12 +1,4 @@
-export type CaseId =
-  | "TC-01"
-  | "TC-02"
-  | "TC-03"
-  | "TC-04"
-  | "TC-05"
-  | "TC-06"
-  | "TC-07"
-  | "TC-08";
+export type CaseId = "TC-01" | "TC-02" | "TC-03" | "TC-04" | "TC-05" | "TC-06" | "TC-07" | "TC-08";
 
 export const ALL_CASE_IDS: CaseId[] = [
   "TC-01",

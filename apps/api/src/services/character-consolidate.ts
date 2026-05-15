@@ -1,7 +1,7 @@
-import type { CharacterFields, ConsolidatorOutput } from "@novel-writer/shared-types";
-import { LLMRouter } from "@novel-writer/llm-adapter";
+import type { LLMRouter } from "@novel-writer/llm-adapter";
 import type { RoutingPolicy } from "@novel-writer/llm-adapter";
 import { buildConsolidatorRequest } from "@novel-writer/prompt-library";
+import type { CharacterFields, ConsolidatorOutput } from "@novel-writer/shared-types";
 
 interface ConsolidateOptions {
   router: LLMRouter;
@@ -13,9 +13,7 @@ interface ConsolidateOptions {
  * Call character-card-consolidator Skill via LLMRouter.
  * Returns the parsed output or throws on failure.
  */
-export async function consolidateCharacter(
-  opts: ConsolidateOptions,
-): Promise<ConsolidatorOutput> {
+export async function consolidateCharacter(opts: ConsolidateOptions): Promise<ConsolidatorOutput> {
   const { router, policy, fields } = opts;
 
   const req = buildConsolidatorRequest(fields, policy.primary);
@@ -41,7 +39,10 @@ export async function consolidateCharacter(
       content: '請只回傳 JSON，格式：{"body":"...","oneLineSummary":"..."}，不要加任何說明。',
     });
     const retry = await router.generate(retryReq, policy);
-    const retryText = retry.text.trim().replace(/^```(?:json)?\n?([\s\S]*?)\n?```$/m, "$1").trim();
+    const retryText = retry.text
+      .trim()
+      .replace(/^```(?:json)?\n?([\s\S]*?)\n?```$/m, "$1")
+      .trim();
     parsed = JSON.parse(retryText);
   }
 

@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  scoreWordCountRange,
-  scoreWordCountRelative,
-} from "../../src/scoring/rules/word-count.js";
+import { scoreWordCountRange, scoreWordCountRelative } from "../../src/scoring/rules/word-count.js";
 import { countChineseChars } from "../../src/utils/text.js";
 
 const stub = (n: number) => "啊".repeat(n);
@@ -27,24 +24,16 @@ describe("scoreWordCountRange", () => {
 
 describe("scoreWordCountRange hardLimitOnly (TC-05)", () => {
   it("5/5 when ≤ max with > 30% margin", () => {
-    expect(
-      scoreWordCountRange(stub(80), { min: 0, max: 150, hardLimitOnly: true }).score,
-    ).toBe(5);
+    expect(scoreWordCountRange(stub(80), { min: 0, max: 150, hardLimitOnly: true }).score).toBe(5);
   });
   it("4/5 when in limit but tight", () => {
-    expect(
-      scoreWordCountRange(stub(140), { min: 0, max: 150, hardLimitOnly: true }).score,
-    ).toBe(4);
+    expect(scoreWordCountRange(stub(140), { min: 0, max: 150, hardLimitOnly: true }).score).toBe(4);
   });
   it("3/5 when slightly over (within 1.5×)", () => {
-    expect(
-      scoreWordCountRange(stub(180), { min: 0, max: 150, hardLimitOnly: true }).score,
-    ).toBe(3);
+    expect(scoreWordCountRange(stub(180), { min: 0, max: 150, hardLimitOnly: true }).score).toBe(3);
   });
   it("1/5 when severely over", () => {
-    expect(
-      scoreWordCountRange(stub(400), { min: 0, max: 150, hardLimitOnly: true }).score,
-    ).toBe(1);
+    expect(scoreWordCountRange(stub(400), { min: 0, max: 150, hardLimitOnly: true }).score).toBe(1);
   });
 });
 

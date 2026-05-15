@@ -33,14 +33,7 @@ inner
 describe("parseSections", () => {
   it("parses level + title", () => {
     const s = parseSections(SAMPLE);
-    expect(s.map((x) => x.title)).toEqual([
-      "Title",
-      "A",
-      "B",
-      "A",
-      "sub of second A",
-      "B",
-    ]);
+    expect(s.map((x) => x.title)).toEqual(["Title", "A", "B", "A", "sub of second A", "B"]);
     expect(s.map((x) => x.level)).toEqual([1, 2, 2, 2, 3, 2]);
   });
 
@@ -58,7 +51,7 @@ describe("parseSections", () => {
   });
 
   it("ignores headings inside code fences", () => {
-    const md = `## Outer\n\`\`\`\n## not a heading\n\`\`\`\n## Real\n`;
+    const md = "## Outer\n```\n## not a heading\n```\n## Real\n";
     const s = parseSections(md);
     expect(s.map((x) => x.title)).toEqual(["Outer", "Real"]);
   });

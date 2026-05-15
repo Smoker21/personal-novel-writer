@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 
-import { CaseResult, EvaluationReport } from "../types.js";
+import type { CaseResult, EvaluationReport } from "../types.js";
 import { countChineseChars } from "../utils/text.js";
 
 export interface WriteReportOpts {
@@ -25,7 +25,7 @@ export function applyReport(md: string, report: EvaluationReport): string {
 
   // 2) TC-05 rerun summary table
   const tc05 = report.cases.find((c) => c.caseId === "TC-05");
-  if (tc05 && tc05.runs) {
+  if (tc05?.runs) {
     out = applyTC05RerunTable(out, tc05);
   }
 
@@ -42,7 +42,7 @@ export function applyReport(md: string, report: EvaluationReport): string {
   // 5) Status header
   out = out.replace(
     /^> Status: \*\*待跑\*\*（[^\n)]*?）/m,
-    `> Status: **已跑（自動評分填回，主觀維度待人工）**`,
+    "> Status: **已跑（自動評分填回，主觀維度待人工）**",
   );
 
   return out;
@@ -116,7 +116,11 @@ const INDENTED_PLACEHOLDER_RE = /^[ \t]{4}<貼(?:這裡|輸出)>$/m;
 const FENCED_PLACEHOLDER_RE = /^[ \t]*```\s*\n[ \t]*<貼(?:這裡|輸出)>\s*\n[ \t]*```/m;
 
 function indent4(text: string): string {
-  return text.replace(/\r\n/g, "\n").split("\n").map((l) => "    " + l).join("\n");
+  return text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((l) => `    ${l}`)
+    .join("\n");
 }
 
 function applyOutputBlock(text: string, output: string): string {
@@ -144,7 +148,7 @@ function applyOutputBlock(text: string, output: string): string {
     if (h.kind === "indented") {
       result += indent4(piece);
     } else {
-      result += "```\n" + piece.replace(/\r\n/g, "\n") + "\n```";
+      result += `\`\`\`\n${piece.replace(/\r\n/g, "\n")}\n\`\`\``;
     }
     cursor = h.index + h.matchLen;
   }
@@ -152,7 +156,10 @@ function applyOutputBlock(text: string, output: string): string {
   return result;
 }
 
-function applyScoreTable(text: string, scores: Record<string, { score: number | null; explanation: string }>): string {
+function applyScoreTable(
+  text: string,
+  scores: Record<string, { score: number | null; explanation: string }>,
+): string {
   // Match table rows like: | 維度 | _/5 | <空白> | (template)
   // OR             rows like: | 維度 | 3/5 | … |    (already filled — re-runs)
   const lines = text.split("\n");
@@ -177,10 +184,7 @@ function applyScoreTable(text: string, scores: Record<string, { score: number | 
   return lines.join("\n");
 }
 
-function matchScoreKey(
-  dim: string,
-  scores: Record<string, unknown>,
-): string | undefined {
+function matchScoreKey(dim: string, scores: Record<string, unknown>): string | undefined {
   // Exact, then contains-based fuzzy match
   if (scores[dim] !== undefined) return dim;
   const stripped = dim.replace(/[（(].*?[)）]/g, "").trim();
@@ -211,11 +215,7 @@ function applyTC05RerunTable(md: string, tc05: CaseResult): string {
     .join("\n");
   const fullReplacement = `${header}${newRows}\n`;
   const offsetInMd = start + (tableMatch.index ?? 0);
-  return (
-    md.slice(0, offsetInMd) +
-    fullReplacement +
-    md.slice(offsetInMd + tableMatch[0].length)
-  );
+  return md.slice(0, offsetInMd) + fullReplacement + md.slice(offsetInMd + tableMatch[0].length);
 }
 
 const SUGGESTIONS_MARKER_BEGIN = "<!-- AUTO-SUGGESTIONS BEGIN -->";
@@ -239,10 +239,10 @@ function applyAutoSuggestions(md: string, report: EvaluationReport): string {
     const m = re.exec(md);
     if (m) {
       const idx = m.index;
-      return md.slice(0, idx) + wrapped + "\n\n" + md.slice(idx);
+      return `${md.slice(0, idx) + wrapped}\n\n${md.slice(idx)}`;
     }
   }
-  return md + "\n\n" + wrapped + "\n";
+  return `${md}\n\n${wrapped}\n`;
 }
 
 function renderSuggestionsBlock(report: EvaluationReport): string {
@@ -304,5 +304,5 @@ function escapeReg(s: string): string {
 
 function truncate(s: string, n: number): string {
   if (s.length <= n) return s;
-  return s.slice(0, n - 1) + "…";
+  return `${s.slice(0, n - 1)}…`;
 }

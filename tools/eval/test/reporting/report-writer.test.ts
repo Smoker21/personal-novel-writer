@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { applyReport } from "../../src/reporting/report-writer.js";
-import { CaseResult, EvaluationReport } from "../../src/types.js";
+import type { CaseResult, EvaluationReport } from "../../src/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = resolve(__dirname, "..", "fixtures", "result-template.md");
@@ -43,9 +43,9 @@ describe("applyReport", () => {
       caseId: "TC-01",
       output: "蘇晴推開言字書店的木門。林書言抬頭看了她一眼。雨剛好停。",
       scores: {
-        "不新增未提供角色": { score: 5, explanation: "5/5 — 無新角色" },
-        "不修改既有角色名": { score: 5, explanation: "5/5 — 名字正確" },
-        "角色屬性貼合卡片": { score: null, explanation: "_/5 — 待人工" },
+        不新增未提供角色: { score: 5, explanation: "5/5 — 無新角色" },
+        不修改既有角色名: { score: 5, explanation: "5/5 — 名字正確" },
+        角色屬性貼合卡片: { score: null, explanation: "_/5 — 待人工" },
       },
     });
     const out = applyReport(md, buildReport([tc01]));
@@ -63,8 +63,8 @@ describe("applyReport", () => {
       output: '{"wordCount": 30, "characters": ["蘇晴", "林書言"], "mood": "靜謐"}',
       scores: {
         "純 JSON 可解析": { score: 5, explanation: "5/5" },
-        "欄位正確": { score: 5, explanation: "5/5" },
-        "角色辨識": { score: 5, explanation: "5/5" },
+        欄位正確: { score: 5, explanation: "5/5" },
+        角色辨識: { score: 5, explanation: "5/5" },
       },
     });
     const out = applyReport(md, buildReport([tc041]));
@@ -127,9 +127,9 @@ describe("applyReport", () => {
       caseId: "TC-01",
       output: "蘇晴推門進來，林書言抬頭。",
       scores: {
-        "不新增未提供角色": { score: 5, explanation: "5/5" },
-        "不修改既有角色名": { score: 5, explanation: "5/5" },
-        "角色屬性貼合卡片": { score: null, explanation: "_/5" },
+        不新增未提供角色: { score: 5, explanation: "5/5" },
+        不修改既有角色名: { score: 5, explanation: "5/5" },
+        角色屬性貼合卡片: { score: null, explanation: "_/5" },
       },
     });
     const out = applyReport(md, buildReport([tc01]));

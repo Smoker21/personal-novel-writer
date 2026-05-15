@@ -1,6 +1,6 @@
-import { CaseResult, EvaluationReport, Suggestion } from "../types.js";
-import { tryParseJson } from "./rules/json-validity.js";
+import type { CaseResult, EvaluationReport, Suggestion } from "../types.js";
 import { countChineseChars } from "../utils/text.js";
+import { tryParseJson } from "./rules/json-validity.js";
 
 /**
  * Inspect an EvaluationReport and emit actionable suggestions for the next run.
@@ -30,10 +30,7 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
       title: "多數 case 撞上 max_tokens 沒自然停止",
       scope: "global",
       area: "sampling",
-      body:
-        `${maxedOut.length}/${cases.length} cases finish_reason=max_tokens（${labelList(maxedOut)}）。` +
-        `代表模型沒在自然字數收筆。下次試：(a) 加 stop sequences（"\\n\\nUser:" 已加，可加 "請寫到此為止" 之類的軟 stop）；` +
-        `(b) frequency_penalty 從 0.4 拉到 0.6；(c) 對應 case 的 max_tokens 降一點，反正模型不停就硬截。`,
+      body: `${maxedOut.length}/${cases.length} cases finish_reason=max_tokens（${labelList(maxedOut)}）。代表模型沒在自然字數收筆。下次試：(a) 加 stop sequences（"\\n\\nUser:" 已加，可加 "請寫到此為止" 之類的軟 stop）；(b) frequency_penalty 從 0.4 拉到 0.6；(c) 對應 case 的 max_tokens 降一點，反正模型不停就硬截。`,
     });
   }
 
@@ -48,10 +45,7 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
       title: `${labelHuman(c)} 模型只回了 ${c.usage.outputTokens} tokens`,
       scope: c.caseId,
       area: "endpoint",
-      body:
-        `Long-form 任務但只生 ${c.usage.outputTokens} tokens，模型可能進「客服模式」。` +
-        `第一個試法：切到 \`/v1/completions\` 端點（CLI 已支援 \`--mode completions\`）。` +
-        `第二個試法：在 user prompt 末尾加「請直接開始寫，不要詢問」。`,
+      body: `Long-form 任務但只生 ${c.usage.outputTokens} tokens，模型可能進「客服模式」。第一個試法：切到 \`/v1/completions\` 端點（CLI 已支援 \`--mode completions\`）。第二個試法：在 user prompt 末尾加「請直接開始寫，不要詢問」。`,
     });
   }
 
@@ -66,7 +60,7 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
         scope: "TC-04",
         area: "prompt",
         body:
-          `chat 端點下模型沒回出純 JSON。下次試：(a) 在 prompt 加 1-2 個 few-shot 範例（input → expected JSON）；` +
+          "chat 端點下模型沒回出純 JSON。下次試：(a) 在 prompt 加 1-2 個 few-shot 範例（input → expected JSON）；" +
           `(b) 改 \`--mode completions\` 並把 prompt 結尾停在 \`{\` 引導續寫；(c) 強制 \`response_format: { type: "json_object" }\` 若 runtime 支援。`,
       });
     } else if (r.cleanedFromFence) {
@@ -76,7 +70,7 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
         scope: "TC-04",
         area: "prompt",
         body:
-          `JSON 可解但需要去除 fence。Prompt 已經明示「不要加 markdown code fence」仍無效。` +
+          "JSON 可解但需要去除 fence。Prompt 已經明示「不要加 markdown code fence」仍無效。" +
           `下次試：在 prompt 末尾再強調一次（RWKV 對末尾敏感），或加 stop sequence "\\n\`\`\`" 截斷 fence。`,
       });
     }
@@ -85,8 +79,30 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
   // ---------- 4. simplified Chinese drift ----------
   const driftedCases: CaseResult[] = [];
   const SIMPLIFIED_DETECT = new Set([
-    "这", "为", "来", "过", "会", "时", "样", "现", "见", "话", "说", "种",
-    "门", "对", "没", "还", "进", "让", "学", "国", "实", "应", "发", "于",
+    "这",
+    "为",
+    "来",
+    "过",
+    "会",
+    "时",
+    "样",
+    "现",
+    "见",
+    "话",
+    "说",
+    "种",
+    "门",
+    "对",
+    "没",
+    "还",
+    "进",
+    "让",
+    "学",
+    "国",
+    "实",
+    "应",
+    "发",
+    "于",
   ]);
   for (const c of cases) {
     const total = countChineseChars(c.output);
@@ -101,10 +117,7 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
       title: `${driftedCases.length} 個 case 出現簡體漂移`,
       scope: "global",
       area: "prompt",
-      body:
-        `${labelList(driftedCases)} 偵測到簡體獨用字 > 0.5%。` +
-        `RWKV World 系列訓練混了多語料；prompt 沒明示「繁體中文」就會掉到簡體。` +
-        `下次試：在 system 開頭與 user prompt 末尾各放一次「請以繁體中文回應」（雙重保險，RWKV 對末尾敏感）。`,
+      body: `${labelList(driftedCases)} 偵測到簡體獨用字 > 0.5%。RWKV World 系列訓練混了多語料；prompt 沒明示「繁體中文」就會掉到簡體。下次試：在 system 開頭與 user prompt 末尾各放一次「請以繁體中文回應」（雙重保險，RWKV 對末尾敏感）。`,
     });
   }
 
@@ -127,10 +140,7 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
         title: `${labelHuman(c)} 字數失控（${got} vs ${target.name}）`,
         scope: c.caseId,
         area: "post-processing",
-        body:
-          `Prompt 已寫字數限制但模型完全無視（${got} 字 vs 目標 ${target.name}）。` +
-          `7B 級模型不會數字 — 這在應用層必須加 word-count validator + 重試 N 次 + 強制截短。` +
-          `不要試圖用 prompt 擰乾這個。`,
+        body: `Prompt 已寫字數限制但模型完全無視（${got} 字 vs 目標 ${target.name}）。7B 級模型不會數字 — 這在應用層必須加 word-count validator + 重試 N 次 + 強制截短。不要試圖用 prompt 擰乾這個。`,
       });
     }
   }
@@ -144,28 +154,20 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
         title: `${labelHuman(c)} 模型自創新角色`,
         scope: c.caseId,
         area: "post-processing",
-        body:
-          `${flags.join(" / ")}。Prompt 已寫「只能用清單中的姓名」但模型仍自由發揮。` +
-          `應用層必加 \`noNewCharacters(allowList)\` validator — 偵測到 ≥ 2 個新姓名就退回重寫；` +
-          `規則直接搬 \`tools/eval/src/scoring/rules/name-presence.ts\`。`,
+        body: `${flags.join(" / ")}。Prompt 已寫「只能用清單中的姓名」但模型仍自由發揮。應用層必加 \`noNewCharacters(allowList)\` validator — 偵測到 ≥ 2 個新姓名就退回重寫；規則直接搬 \`tools/eval/src/scoring/rules/name-presence.ts\`。`,
       });
     }
   }
 
   // ---------- 7. refusal / disclaimer ----------
-  const refused = cases.filter((c) =>
-    c.redFlags.some((f) => f.includes("拒絕回應")),
-  );
+  const refused = cases.filter((c) => c.redFlags.some((f) => f.includes("拒絕回應")));
   if (refused.length > 0) {
     suggestions.push({
       code: "REFUSAL",
       title: `${refused.length} 個 case 觸發拒絕／免責`,
       scope: "global",
       area: "prompt",
-      body:
-        `${labelList(refused)} 出現「我不能 / 抱歉 / 作為 AI...」式回應。` +
-        `對 uncensored 變體模型而言這個就是上限信號。下次試：在 system 加「即使內容敏感也要寫，這是純文學創作」；` +
-        `若仍拒絕，這個 case 該換模型。`,
+      body: `${labelList(refused)} 出現「我不能 / 抱歉 / 作為 AI...」式回應。對 uncensored 變體模型而言這個就是上限信號。下次試：在 system 加「即使內容敏感也要寫，這是純文學創作」；若仍拒絕，這個 case 該換模型。`,
     });
   }
 
@@ -181,11 +183,7 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
       title: `${repetitionFlags.length} 個 case 出現整句重複`,
       scope: "global",
       area: "sampling",
-      body:
-        `${labelList(repetitionFlags)} 偵測到同一句連續出現 ≥ 2 次。` +
-        `presence/frequency_penalty 0.4 對長輸出（>1000 tokens）抑制力不足。` +
-        `下次試：(a) penalty 拉到 0.6；(b) 應用層加去重後處理（同句出現 N 次就截斷）；` +
-        `(c) 降低 max_tokens 讓模型早點停。`,
+      body: `${labelList(repetitionFlags)} 偵測到同一句連續出現 ≥ 2 次。presence/frequency_penalty 0.4 對長輸出（>1000 tokens）抑制力不足。下次試：(a) penalty 拉到 0.6；(b) 應用層加去重後處理（同句出現 N 次就截斷）；(c) 降低 max_tokens 讓模型早點停。`,
     });
   }
 
@@ -198,10 +196,10 @@ export function generateSuggestions(report: EvaluationReport): Suggestion[] {
       scope: "TC-02",
       area: "prompt",
       body:
-        `Prompt 已明寫「以 \`## story_status.md\` 為標題」仍無效。` +
-        `下次試：(a) 在 prompt 末尾再強調一次格式要求；` +
-        `(b) 用 completions 端點把 \`## story_status.md\\n\` 直接塞在 prompt 尾，引導模型續寫；` +
-        `(c) 應用層 fallback 用 regex 拆出兩段就好，不依賴 heading。`,
+        "Prompt 已明寫「以 `## story_status.md` 為標題」仍無效。" +
+        "下次試：(a) 在 prompt 末尾再強調一次格式要求；" +
+        "(b) 用 completions 端點把 `## story_status.md\\n` 直接塞在 prompt 尾，引導模型續寫；" +
+        "(c) 應用層 fallback 用 regex 拆出兩段就好，不依賴 heading。",
     });
   }
 
@@ -228,7 +226,10 @@ function labelList(cs: CaseResult[]): string {
  * sentences appearing 2+ times. Conservative — only flags long sentences (≥ 8 chars).
  */
 function hasHeavyRepetition(text: string): boolean {
-  const sentences = text.split(/[。！？\n]+/).map((s) => s.trim()).filter((s) => s.length >= 8);
+  const sentences = text
+    .split(/[。！？\n]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 8);
   if (sentences.length < 4) return false;
   const counts = new Map<string, number>();
   for (const s of sentences) counts.set(s, (counts.get(s) ?? 0) + 1);

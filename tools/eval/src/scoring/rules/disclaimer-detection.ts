@@ -1,4 +1,4 @@
-import { AutoScore } from "../../types.js";
+import type { AutoScore } from "../../types.js";
 
 const REFUSAL_PATTERNS = [
   /我不能/,
@@ -26,14 +26,7 @@ const DISCLAIMER_PATTERNS = [
   /希望(?:這|這樣)/,
 ];
 
-const NOISE_PREFIXES = [
-  /^\s*```/,
-  /^\s*以下是/,
-  /^\s*這是/,
-  /^\s*"/,
-  /^\s*「/,
-  /^\s*改寫後[:：]/,
-];
+const NOISE_PREFIXES = [/^\s*```/, /^\s*以下是/, /^\s*這是/, /^\s*"/, /^\s*「/, /^\s*改寫後[:：]/];
 
 export interface DisclaimerScan {
   refusal: boolean;
@@ -82,7 +75,7 @@ export function scoreNotRefused(text: string): AutoScore {
   if (s.refusal && s.disclaimers.length > 0) {
     return {
       score: 1,
-      explanation: `1/5 — 拒絕回應 + disclaimer`,
+      explanation: "1/5 — 拒絕回應 + disclaimer",
       evidence: s.disclaimers,
     };
   }
@@ -114,7 +107,7 @@ export function scoreCleanRewrite(text: string, original: string): AutoScore {
   if (s.disclaimers.length > 0 || cleanedOf) {
     return {
       score: 3,
-      explanation: `3/5 — 有改寫但帶廢話／引號／fence`,
+      explanation: "3/5 — 有改寫但帶廢話／引號／fence",
       evidence: s.disclaimers,
     };
   }

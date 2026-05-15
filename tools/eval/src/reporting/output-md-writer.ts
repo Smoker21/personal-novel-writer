@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 
-import { CaseResult, EvaluationReport } from "../types.js";
+import type { CaseResult, EvaluationReport } from "../types.js";
 import { fmtDuration } from "../utils/logger.js";
 
 export interface WriteOutputMdOpts {
@@ -22,7 +22,9 @@ export function renderOutputMarkdown(opts: WriteOutputMdOpts): string {
   lines.push(`> Runtime: ${report.runtime.name} @ ${report.runtime.endpoint}`);
   lines.push(`> Total cases: ${report.cases.length}`);
   lines.push("");
-  lines.push("> 此檔自動產出，每個 case 包含 system prompt / user prompt / 模型輸出 / 取樣參數 / 自動評分。");
+  lines.push(
+    "> 此檔自動產出，每個 case 包含 system prompt / user prompt / 模型輸出 / 取樣參數 / 自動評分。",
+  );
   lines.push("> Scorecard（評分摘要）見同名的 result markdown。");
   lines.push("");
   lines.push("## 目錄");
@@ -64,10 +66,7 @@ function renderCase(c: CaseResult): string[] {
   // Sampling + usage
   const s = c.sampling;
   lines.push(
-    `**Sampling**: temperature=${s.temperature}, top_p=${s.topP}` +
-      (s.presencePenalty != null ? `, presence_penalty=${s.presencePenalty}` : "") +
-      (s.frequencyPenalty != null ? `, frequency_penalty=${s.frequencyPenalty}` : "") +
-      `, max_tokens=${c.maxTokens}`,
+    `**Sampling**: temperature=${s.temperature}, top_p=${s.topP}${s.presencePenalty != null ? `, presence_penalty=${s.presencePenalty}` : ""}${s.frequencyPenalty != null ? `, frequency_penalty=${s.frequencyPenalty}` : ""}, max_tokens=${c.maxTokens}`,
   );
   lines.push(
     `**Usage**: in=${c.usage.inputTokens} tokens, out=${c.usage.outputTokens} tokens, duration=${fmtDuration(c.durationMs)}, finish=${c.finishReason}`,
@@ -92,9 +91,7 @@ function renderCase(c: CaseResult): string[] {
     for (let i = 0; i < c.runs.length; i++) {
       const r = c.runs[i];
       lines.push(`### Model output — Run ${i + 1}`);
-      lines.push(
-        `*duration ${fmtDuration(r.durationMs)}, out=${r.usage.outputTokens} tokens*`,
-      );
+      lines.push(`*duration ${fmtDuration(r.durationMs)}, out=${r.usage.outputTokens} tokens*`);
       lines.push("");
       lines.push(fence(r.output));
       lines.push("");

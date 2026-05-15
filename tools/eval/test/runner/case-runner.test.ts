@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runCase } from "../../src/runner/case-runner.js";
-import { ChatRequest, ChatResponse, Runtime } from "../../src/runtimes/runtime.js";
-import { TestCaseRun } from "../../src/types.js";
+import type { ChatRequest, ChatResponse, Runtime } from "../../src/runtimes/runtime.js";
+import type { TestCaseRun } from "../../src/types.js";
 
 class MockRuntime implements Runtime {
   readonly name = "mock";

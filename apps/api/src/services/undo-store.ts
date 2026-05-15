@@ -43,7 +43,7 @@ export async function createUndoEntry(
 export async function getUndoEntry(projectHash: string, id: string): Promise<UndoEntry | null> {
   const db = await getDb(projectHash);
   const row = db
-    .prepare(`SELECT * FROM undo_entries WHERE id = ? AND project_hash = ?`)
+    .prepare("SELECT * FROM undo_entries WHERE id = ? AND project_hash = ?")
     .get(id, projectHash) as Record<string, unknown> | undefined;
   if (!row) return null;
   const draftIdRaw = row["draft_id"] as string | null;
@@ -64,7 +64,7 @@ export async function getUndoEntry(projectHash: string, id: string): Promise<Und
 export async function markUndone(projectHash: string, id: string): Promise<boolean> {
   const db = await getDb(projectHash);
   const result = db
-    .prepare(`UPDATE undo_entries SET undone = 1 WHERE id = ? AND project_hash = ? AND undone = 0`)
+    .prepare("UPDATE undo_entries SET undone = 1 WHERE id = ? AND project_hash = ? AND undone = 0")
     .run(id, projectHash);
   return result.changes > 0;
 }

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("設定頁", () => {
   test("設定頁顯示 LLM Providers", async ({ page }) => {

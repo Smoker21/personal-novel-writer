@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderOutputMarkdown } from "../../src/reporting/output-md-writer.js";
-import { CaseResult, EvaluationReport } from "../../src/types.js";
+import type { CaseResult, EvaluationReport } from "../../src/types.js";
 
 function mkResult(over: Partial<CaseResult>): CaseResult {
   return {
@@ -14,8 +14,8 @@ function mkResult(over: Partial<CaseResult>): CaseResult {
     durationMs: 12345,
     finishReason: "end",
     scores: {
-      "不新增未提供角色": { score: 5, explanation: "5/5 — 無新角色" },
-      "角色屬性貼合卡片": { score: null, explanation: "_/5 — 待人工" },
+      不新增未提供角色: { score: 5, explanation: "5/5 — 無新角色" },
+      角色屬性貼合卡片: { score: null, explanation: "_/5 — 待人工" },
     },
     redFlags: [],
     ...over,

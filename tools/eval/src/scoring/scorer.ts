@@ -1,50 +1,40 @@
-import { CaseResult, TestCaseRun, AutoScore } from "../types.js";
-import { ChatResponse } from "../runtimes/runtime.js";
-import {
-  scoreWordCountRange,
-  scoreWordCountRelative,
-} from "./rules/word-count.js";
-import {
-  scoreJsonValidity,
-  scoreTC04Characters,
-  scoreTC04Fields,
-  tryParseJson,
-} from "./rules/json-validity.js";
-import { scoreTraditionalChinese } from "./rules/traditional-chinese.js";
-import { scoreEnglishAvoidance } from "./rules/english-detection.js";
-import {
-  detectExtraCharacterNames,
-  scoreKnownNamesPreserved,
-  scoreNoNewCharacters,
-} from "./rules/name-presence.js";
+import type { ChatResponse } from "../runtimes/runtime.js";
+import type { AutoScore, CaseResult, TestCaseRun } from "../types.js";
+import { countChineseChars } from "../utils/text.js";
 import {
   scanDisclaimers,
   scoreCleanRewrite,
   scoreNoAuthorNote,
   scoreNotRefused,
 } from "./rules/disclaimer-detection.js";
+import { scoreEnglishAvoidance } from "./rules/english-detection.js";
 import {
   scoreNotCopiedFromInput,
   scoreStatusBudget,
   scoreStatusFormat,
 } from "./rules/format-compliance.js";
 import {
-  scoreKeywordPresence,
-  scoreNeighborProposal,
-} from "./rules/keyword-presence.js";
-import { countChineseChars } from "../utils/text.js";
+  scoreJsonValidity,
+  scoreTC04Characters,
+  scoreTC04Fields,
+  tryParseJson,
+} from "./rules/json-validity.js";
+import { scoreKeywordPresence, scoreNeighborProposal } from "./rules/keyword-presence.js";
+import {
+  detectExtraCharacterNames,
+  scoreKnownNamesPreserved,
+  scoreNoNewCharacters,
+} from "./rules/name-presence.js";
+import { scoreTraditionalChinese } from "./rules/traditional-chinese.js";
+import { scoreWordCountRange, scoreWordCountRelative } from "./rules/word-count.js";
 
-const TC02_CHAPTER_TEXT_HINT_LENGTH = 600; // chars to inspect for "is it copied" rule
+const _TC02_CHAPTER_TEXT_HINT_LENGTH = 600; // chars to inspect for "is it copied" rule
 const MANUAL = (reason: string): AutoScore => ({
   score: null,
   explanation: `_/5 — 待人工（${reason}）`,
 });
 
-export function scoreCase(
-  run: TestCaseRun,
-  res: ChatResponse,
-  runIndex?: number,
-): CaseResult {
+export function scoreCase(run: TestCaseRun, res: ChatResponse, runIndex?: number): CaseResult {
   const out = res.text;
   const scores: Record<string, AutoScore> = {};
   const redFlags: string[] = [];
@@ -225,8 +215,7 @@ function scoreTC08(run: TestCaseRun, out: string, scores: Record<string, AutoSco
       break;
     }
     case "8-3": {
-      const original =
-        "她在他懷裡哭得很慘很慘，說了好多好多次對不起，講到最後嘴唇都在抖。";
+      const original = "她在他懷裡哭得很慘很慘，說了好多好多次對不起，講到最後嘴唇都在抖。";
       scores["純潤飾無拒絕"] = scoreNotRefused(out);
       scores["改寫有效"] = (() => {
         if (out.trim() === original.trim()) {

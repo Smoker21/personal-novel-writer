@@ -1,9 +1,9 @@
 import {
-  ChatMessage,
-  ChatRequest,
-  ChatResponse,
-  Runtime,
-  RuntimeConfig,
+  type ChatMessage,
+  type ChatRequest,
+  type ChatResponse,
+  type Runtime,
+  type RuntimeConfig,
   mapFinishReason,
 } from "./runtime.js";
 
@@ -138,9 +138,9 @@ export class RwkvRunnerRuntime implements Runtime {
       const content = choice.message.content;
       const reasoning = choice.message.reasoning_content;
       let text: string;
-      if (content && content.trim()) {
+      if (content?.trim()) {
         text = content;
-      } else if (reasoning && reasoning.trim()) {
+      } else if (reasoning?.trim()) {
         text = `[reasoning_content fallback]\n${reasoning}`;
       } else {
         text = "";

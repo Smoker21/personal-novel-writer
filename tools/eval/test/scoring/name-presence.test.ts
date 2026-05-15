@@ -7,15 +7,11 @@ import {
 
 describe("detectExtraCharacterNames", () => {
   it("returns empty when only known names appear", () => {
-    expect(
-      detectExtraCharacterNames("蘇晴點點頭，林書言遞茶過來。"),
-    ).toEqual([]);
+    expect(detectExtraCharacterNames("蘇晴點點頭，林書言遞茶過來。")).toEqual([]);
   });
   it("flags repeated new surname-led names", () => {
     expect(
-      detectExtraCharacterNames(
-        "蘇晴與張小華一起走出書店。張小華笑了笑。後來張小華又走回來。",
-      ),
+      detectExtraCharacterNames("蘇晴與張小華一起走出書店。張小華笑了笑。後來張小華又走回來。"),
     ).toContain("張小華");
   });
   it("ignores generic role words like 老闆 / 客人", () => {
@@ -42,7 +38,8 @@ describe("detectExtraCharacterNames", () => {
     expect(found).toEqual([]);
   });
   it("does NOT flag 牛仔褲 / 高中老 / 方便敘 (3-char phrase denylist)", () => {
-    const text = "他穿著牛仔褲。她也穿著牛仔褲。回到高中老校友會。高中老校友的聚會。為了方便敘述，故事從這裡開始。方便敘述如下。";
+    const text =
+      "他穿著牛仔褲。她也穿著牛仔褲。回到高中老校友會。高中老校友的聚會。為了方便敘述，故事從這裡開始。方便敘述如下。";
     const found = detectExtraCharacterNames(text);
     expect(found).not.toContain("牛仔褲");
     expect(found).not.toContain("高中老");
@@ -64,8 +61,7 @@ describe("detectExtraCharacterNames", () => {
   });
 
   it("DOES flag a genuinely invented character that recurs (e.g. 趙立志 helper)", () => {
-    const text =
-      "趙立志走進辦公室。趙立志拿起報紙。後來趙立志對林書言說了幾句話。趙立志笑了起來。";
+    const text = "趙立志走進辦公室。趙立志拿起報紙。後來趙立志對林書言說了幾句話。趙立志笑了起來。";
     expect(detectExtraCharacterNames(text)).toContain("趙立志");
   });
 });
@@ -75,21 +71,16 @@ describe("scoreNoNewCharacters", () => {
     expect(scoreNoNewCharacters("蘇晴與林書言對話。").score).toBe(5);
   });
   it("3/5 for one repeated extra name", () => {
-    expect(
-      scoreNoNewCharacters("蘇晴遇見了陳大寶。陳大寶說話了。陳大寶又笑了。").score,
-    ).toBe(3);
+    expect(scoreNoNewCharacters("蘇晴遇見了陳大寶。陳大寶說話了。陳大寶又笑了。").score).toBe(3);
   });
   it("1/5 for many distinct extras", () => {
     expect(
-      scoreNoNewCharacters(
-        "蘇晴遇見陳大寶。陳大寶後來又遇到張小芳。張小芳跟陳大寶聊了很久。",
-      ).score,
+      scoreNoNewCharacters("蘇晴遇見陳大寶。陳大寶後來又遇到張小芳。張小芳跟陳大寶聊了很久。")
+        .score,
     ).toBe(1);
   });
   it("5/5 when only one-shot false positives appear (no real names)", () => {
-    expect(
-      scoreNoNewCharacters("感謝誇獎，馬上準備離開，工程系上課了。").score,
-    ).toBe(5);
+    expect(scoreNoNewCharacters("感謝誇獎，馬上準備離開，工程系上課了。").score).toBe(5);
   });
 });
 

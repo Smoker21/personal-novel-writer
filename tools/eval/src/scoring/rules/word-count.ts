@@ -1,4 +1,4 @@
-import { AutoScore } from "../../types.js";
+import type { AutoScore } from "../../types.js";
 import { countChineseChars } from "../../utils/text.js";
 
 export interface RangeRuleOpts {
@@ -57,7 +57,7 @@ export function scoreWordCountRelative(
   tolerancePct = 30,
 ): AutoScore {
   const n = countChineseChars(text);
-  const diffPct = Math.abs(n - baseline) / baseline * 100;
+  const diffPct = (Math.abs(n - baseline) / baseline) * 100;
   if (diffPct <= tolerancePct / 2) {
     return {
       score: 5,

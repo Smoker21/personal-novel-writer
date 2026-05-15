@@ -1,8 +1,5 @@
-import { describe, expect, it, beforeEach, vi, afterEach } from "vitest";
-import {
-  RwkvRunnerRuntime,
-  formatRwkvCompletionsPrompt,
-} from "../../src/runtimes/rwkv-runner.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RwkvRunnerRuntime, formatRwkvCompletionsPrompt } from "../../src/runtimes/rwkv-runner.js";
 
 const ENDPOINT = "http://test.local/v1";
 
@@ -19,9 +16,11 @@ describe("RwkvRunnerRuntime", () => {
   });
 
   it("health() returns ok when /models is 200", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response("ok-models-list", { status: 200 }),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("ok-models-list", { status: 200 }),
+      ) as unknown as typeof fetch;
     const r = new RwkvRunnerRuntime({ endpoint: ENDPOINT });
     const h = await r.health();
     expect(h.ok).toBe(true);
@@ -29,9 +28,11 @@ describe("RwkvRunnerRuntime", () => {
   });
 
   it("health() returns not-ok on 503", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response("nope", { status: 503, statusText: "Service Unavailable" }),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("nope", { status: 503, statusText: "Service Unavailable" }),
+      ) as unknown as typeof fetch;
     const r = new RwkvRunnerRuntime({ endpoint: ENDPOINT });
     const h = await r.health();
     expect(h.ok).toBe(false);
@@ -39,7 +40,9 @@ describe("RwkvRunnerRuntime", () => {
   });
 
   it("health() returns not-ok on network error", async () => {
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED")) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockRejectedValue(new Error("ECONNREFUSED")) as unknown as typeof fetch;
     const r = new RwkvRunnerRuntime({ endpoint: ENDPOINT });
     const h = await r.health();
     expect(h.ok).toBe(false);
@@ -84,7 +87,7 @@ describe("RwkvRunnerRuntime", () => {
     expect(res.finishReason).toBe("end");
     expect(res.durationMs).toBeGreaterThanOrEqual(0);
     expect(captured.url).toBe(`${ENDPOINT}/chat/completions`);
-    const body = JSON.parse(captured.init!.body as string);
+    const body = JSON.parse(captured.init?.body as string);
     expect(body.temperature).toBe(1.0);
     expect(body.top_p).toBe(0.6);
     expect(body.presence_penalty).toBe(0.4);
@@ -131,9 +134,9 @@ describe("RwkvRunnerRuntime", () => {
   });
 
   it("chat() throws on non-200", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response("oops", { status: 500 }),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response("oops", { status: 500 })) as unknown as typeof fetch;
     const r = new RwkvRunnerRuntime({ endpoint: ENDPOINT });
     await expect(
       r.chat({
@@ -156,9 +159,7 @@ describe("formatRwkvCompletionsPrompt", () => {
   });
 
   it("appends Assistant: marker when no assistant turn yet", () => {
-    const p = formatRwkvCompletionsPrompt([
-      { role: "user", content: "hello" },
-    ]);
+    const p = formatRwkvCompletionsPrompt([{ role: "user", content: "hello" }]);
     expect(p.endsWith("\n\nAssistant:")).toBe(true);
   });
 

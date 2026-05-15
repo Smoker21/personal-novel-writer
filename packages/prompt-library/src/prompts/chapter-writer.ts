@@ -66,11 +66,11 @@ export function buildChapterWriterRequest(
   parts.push(`\n${wordCountDesc}`);
 
   // Synopsis
-  parts.push("\n## 故事簡介\n\n" + context.synopsis);
+  parts.push(`\n## 故事簡介\n\n${context.synopsis}`);
 
   // Story status
   if (context.storyStatus.trim()) {
-    parts.push("\n## 目前故事狀態\n\n" + context.storyStatus);
+    parts.push(`\n## 目前故事狀態\n\n${context.storyStatus}`);
   }
 
   // Character statuses
@@ -99,14 +99,14 @@ export function buildChapterWriterRequest(
 
   // Outline
   if (context.currentOutline) {
-    parts.push("\n## 本章大綱\n\n" + context.currentOutline);
+    parts.push(`\n## 本章大綱\n\n${context.currentOutline}`);
   } else {
     parts.push("\n## 本章大綱\n\n（未提供大綱；請在符合故事狀態的前提下自由發揮）");
   }
 
   // Previous chapter
   if (context.previousChapterFullText) {
-    parts.push("\n## 上一章完整內容\n\n" + context.previousChapterFullText);
+    parts.push(`\n## 上一章完整內容\n\n${context.previousChapterFullText}`);
   } else {
     parts.push("\n## 上一章完整內容\n\n（這是第一章，無前章內容）");
   }
@@ -117,9 +117,7 @@ export function buildChapterWriterRequest(
   }
 
   parts.push(
-    "\n---\n\n現在，請開始撰寫第 " +
-      chapterNumber +
-      " 章的草稿。本章從新進度繼續，不重述前章。只輸出章節正文。",
+    `\n---\n\n現在，請開始撰寫第 ${chapterNumber} 章的草稿。本章從新進度繼續，不重述前章。只輸出章節正文。`,
   );
 
   const userPrompt = parts.join("\n");

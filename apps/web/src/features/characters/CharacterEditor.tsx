@@ -486,37 +486,34 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
       {/* Footer */}
       <div className="flex justify-between items-center p-4 border-t border-neutral-700 shrink-0">
         <div>
-          {!isNew && (
-            <>
-              {deleteConfirm ? (
-                <div className="flex gap-2 items-center">
-                  <span className="text-xs text-red-400">確定刪除？</span>
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    className="text-xs text-red-400 hover:text-red-300"
-                  >
-                    確認
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteConfirm(false)}
-                    className="text-xs text-neutral-400 hover:text-neutral-200"
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
+          {!isNew &&
+            (deleteConfirm ? (
+              <div className="flex gap-2 items-center">
+                <span className="text-xs text-red-400">確定刪除？</span>
                 <button
                   type="button"
-                  onClick={() => setDeleteConfirm(true)}
-                  className="text-xs text-red-500 hover:text-red-400"
+                  onClick={handleDelete}
+                  className="text-xs text-red-400 hover:text-red-300"
                 >
-                  刪除角色
+                  確認
                 </button>
-              )}
-            </>
-          )}
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(false)}
+                  className="text-xs text-neutral-400 hover:text-neutral-200"
+                >
+                  取消
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(true)}
+                className="text-xs text-red-500 hover:text-red-400"
+              >
+                刪除角色
+              </button>
+            ))}
         </div>
         <div className="flex gap-2">
           <button

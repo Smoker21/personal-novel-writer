@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { writeFile, readFile, mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { runEvaluation } from "../../src/runner/orchestrator.js";
-import { ChatRequest, ChatResponse, Runtime } from "../../src/runtimes/runtime.js";
+import type { ChatRequest, ChatResponse, Runtime } from "../../src/runtimes/runtime.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEST_CASES_DIR = resolve(

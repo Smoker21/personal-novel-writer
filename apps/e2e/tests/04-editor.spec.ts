@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 // 使用已存在的「校園奇遇」專案做測試
 // hash 需要從 settings.yaml 讀取，先用 API 查詢
@@ -26,8 +26,16 @@ test.describe("章節編輯器", () => {
     await page.screenshot({ path: "test-results/editor.png" });
 
     // 應有 Novel Writer 或章節相關元素
-    const hasEditor = await page.locator('.cm-editor, [class*="editor"], [class*="Editor"]').first().isVisible().catch(() => false);
-    const hasToolbar = await page.locator('button, [role="toolbar"]').first().isVisible().catch(() => false);
+    const hasEditor = await page
+      .locator('.cm-editor, [class*="editor"], [class*="Editor"]')
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasToolbar = await page
+      .locator('button, [role="toolbar"]')
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(hasEditor || hasToolbar).toBeTruthy();
   });
 
@@ -78,7 +86,11 @@ test.describe("章節編輯器", () => {
     await page.waitForTimeout(2000);
     await page.screenshot({ path: "test-results/characters-page.png" });
     // 應有角色管理相關元素
-    const hasCharUI = await page.getByText(/角色|Character/).first().isVisible().catch(() => false);
+    const hasCharUI = await page
+      .getByText(/角色|Character/)
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(hasCharUI).toBeTruthy();
   });
 });

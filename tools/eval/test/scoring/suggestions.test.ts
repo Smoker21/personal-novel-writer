@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateSuggestions } from "../../src/scoring/suggestions.js";
-import { CaseResult, EvaluationReport } from "../../src/types.js";
+import type { CaseResult, EvaluationReport } from "../../src/types.js";
 
 function mkResult(over: Partial<CaseResult>): CaseResult {
   return {
@@ -54,13 +54,9 @@ describe("generateSuggestions", () => {
 
   it("flags degenerate short output on long-form cases", () => {
     const r = generateSuggestions(
-      mkReport([
-        mkResult({ caseId: "TC-03", usage: { inputTokens: 100, outputTokens: 16 } }),
-      ]),
+      mkReport([mkResult({ caseId: "TC-03", usage: { inputTokens: 100, outputTokens: 16 } })]),
     );
-    expect(
-      r.find((s) => s.code === "SHORT_OUTPUT_TC-03")?.area,
-    ).toBe("endpoint");
+    expect(r.find((s) => s.code === "SHORT_OUTPUT_TC-03")?.area).toBe("endpoint");
   });
 
   it("flags TC-04 4-1 JSON parse failure", () => {
@@ -99,24 +95,20 @@ describe("generateSuggestions", () => {
 
   it("flags word-count overrun on TC-05", () => {
     const out = "啊".repeat(400);
-    const r = generateSuggestions(
-      mkReport([mkResult({ caseId: "TC-05", output: out })]),
-    );
+    const r = generateSuggestions(mkReport([mkResult({ caseId: "TC-05", output: out })]));
     expect(r.some((s) => s.code === "WORDCOUNT_TC-05")).toBe(true);
   });
 
   it("flags refusal pattern", () => {
     const r = generateSuggestions(
-      mkReport([
-        mkResult({ caseId: "TC-08", subtest: "8-1", redFlags: ["拒絕回應 / 過度免責"] }),
-      ]),
+      mkReport([mkResult({ caseId: "TC-08", subtest: "8-1", redFlags: ["拒絕回應 / 過度免責"] })]),
     );
     expect(r.some((s) => s.code === "REFUSAL")).toBe(true);
   });
 
   it("flags heavy repetition on long output with duplicated sentences", () => {
     const sentence = "就在此時一隻黃鶯從樹上飛過。";
-    const out = (sentence + "她走進房間。").repeat(20);
+    const out = `${sentence}她走進房間。`.repeat(20);
     const r = generateSuggestions(
       mkReport([
         mkResult({

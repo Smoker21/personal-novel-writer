@@ -639,9 +639,7 @@
           "explanation": "_/5 — 待人工（語意）"
         }
       },
-      "redFlags": [
-        "疑似新角色姓名：朱唇"
-      ]
+      "redFlags": ["疑似新角色姓名：朱唇"]
     }
   ],
   "architectureObs": {

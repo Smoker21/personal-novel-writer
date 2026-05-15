@@ -177,7 +177,7 @@ app.post("/", zValidator("json", createSchema), async (c) => {
       fields.consolidatedAt = new Date().toISOString();
       fields.consolidatedBy = routingConf.primary;
       fields.manuallyEdited = false;
-    } catch (err) {
+    } catch (_err) {
       // Consolidate failed — still create the character with placeholder
       charBody = "(尚未統整)";
     }

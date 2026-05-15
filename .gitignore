@@ -52,6 +52,7 @@ package-lock.json
 # Playwright E2E artifacts — 每次跑都變動，不該 commit
 **/test-results/
 **/playwright-report/
+.playwright-mcp/
 
 # Temp / logs
 *.tmp

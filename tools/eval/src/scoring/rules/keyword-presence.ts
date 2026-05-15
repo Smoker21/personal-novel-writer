@@ -1,4 +1,4 @@
-import { AutoScore } from "../../types.js";
+import type { AutoScore } from "../../types.js";
 
 export interface KeywordRule {
   /** Phrase to find */
@@ -6,10 +6,7 @@ export interface KeywordRule {
   description: string;
 }
 
-export function scoreKeywordPresence(
-  text: string,
-  rule: KeywordRule,
-): AutoScore {
+export function scoreKeywordPresence(text: string, rule: KeywordRule): AutoScore {
   if (rule.pattern.test(text)) {
     return { score: 5, explanation: `5/5 — 偵測到「${rule.description}」` };
   }

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { MessageStreamEvent } from "@anthropic-ai/sdk/resources/messages.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Use vi.hoisted() to define mocks that are available when vi.mock() factory
@@ -99,9 +99,9 @@ vi.mock("@anthropic-ai/sdk", () => {
   };
 });
 
+import { LLMError } from "../error.js";
 // NOW import provider (after mock is in place)
 import { AnthropicProvider } from "./anthropic.js";
-import { LLMError } from "../error.js";
 
 // ---------------------------------------------------------------------------
 // Helper: build an async-iterable from a fixed array of events
@@ -379,7 +379,9 @@ describe("AnthropicProvider", () => {
           modelId: "anthropic:claude-haiku-4-5",
           systemPrompt: "s",
           messages: [{ role: "user", content: "hi" }],
-        })) { /* noop */ }
+        })) {
+          /* noop */
+        }
       } catch (e) {
         caught = e;
       }
@@ -400,7 +402,9 @@ describe("AnthropicProvider", () => {
           modelId: "anthropic:claude-haiku-4-5",
           systemPrompt: "s",
           messages: [{ role: "user", content: "hi" }],
-        })) { /* noop */ }
+        })) {
+          /* noop */
+        }
       } catch (e) {
         caught = e;
       }
@@ -422,7 +426,9 @@ describe("AnthropicProvider", () => {
           modelId: "anthropic:claude-haiku-4-5",
           systemPrompt: "s",
           messages: [{ role: "user", content: "hi" }],
-        })) { /* noop */ }
+        })) {
+          /* noop */
+        }
       } catch (e) {
         caught = e;
       }
@@ -442,7 +448,9 @@ describe("AnthropicProvider", () => {
           modelId: "anthropic:claude-haiku-4-5",
           systemPrompt: "s",
           messages: [{ role: "user", content: "hi" }],
-        })) { /* noop */ }
+        })) {
+          /* noop */
+        }
       } catch (e) {
         caught = e;
       }
@@ -507,7 +515,10 @@ describe("AnthropicProvider", () => {
                 const value = events[eventIndex++]!;
                 return Promise.resolve({ value, done: false });
               }
-              return Promise.resolve({ value: undefined as unknown as MessageStreamEvent, done: true });
+              return Promise.resolve({
+                value: undefined as unknown as MessageStreamEvent,
+                done: true,
+              });
             },
           };
         },

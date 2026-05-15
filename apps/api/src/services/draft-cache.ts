@@ -115,7 +115,7 @@ export async function deleteDraft(projectHash: string, chapterNumber: number): P
   try {
     await rm(dir, { recursive: true, force: true });
     const db = await getDb(projectHash);
-    db.prepare(`DELETE FROM drafts WHERE project_hash=? AND chapter_number=?`).run(
+    db.prepare("DELETE FROM drafts WHERE project_hash=? AND chapter_number=?").run(
       projectHash,
       chapterNumber,
     );

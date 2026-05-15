@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { existsSync } from "node:fs";
+import { describe, expect, it } from "vitest";
 
 // Re-implement the tiny helpers here to keep them under unit test without
 // exporting from cli.ts (which has a top-level commander side effect).
@@ -30,9 +30,7 @@ describe("withRunIndex", () => {
     expect(withRunIndex("/a/b/foo.md", 7)).toBe("/a/b/foo.007.md");
   });
   it("works for multi-dot filenames (handles last ext only)", () => {
-    expect(withRunIndex("/a/b/foo.report.json", 12)).toBe(
-      "/a/b/foo.report.012.json",
-    );
+    expect(withRunIndex("/a/b/foo.report.json", 12)).toBe("/a/b/foo.report.012.json");
   });
 });
 

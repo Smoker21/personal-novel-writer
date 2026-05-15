@@ -17,7 +17,7 @@ const MAX_RETRIES = 3;
  * Returns a jobId immediately; client subscribes to GET /jobs/:jobId/events for progress.
  */
 export async function triggerStatusUpdate(
-  projectHash: string,
+  _projectHash: string,
   projectPath: string,
   chapterNumber: number,
   reason: UpdateReason,

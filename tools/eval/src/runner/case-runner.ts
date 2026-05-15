@@ -1,6 +1,6 @@
-import { Runtime } from "../runtimes/runtime.js";
-import { CaseResult, TestCaseRun } from "../types.js";
+import type { Runtime } from "../runtimes/runtime.js";
 import { scoreCase } from "../scoring/scorer.js";
+import type { CaseResult, TestCaseRun } from "../types.js";
 
 export async function runCase(
   runtime: Runtime,
@@ -47,9 +47,7 @@ export async function runCase(
       aggregated.durationMs += r.durationMs;
     }
     aggregated.runIndex = subResults.length;
-    aggregated.output = subResults
-      .map((r, idx) => `### Run ${idx + 1}\n${r.output}`)
-      .join("\n\n");
+    aggregated.output = subResults.map((r, idx) => `### Run ${idx + 1}\n${r.output}`).join("\n\n");
     aggregated.scores = subResults[0]?.scores ?? {};
     aggregated.redFlags = subResults.flatMap((r) => r.redFlags);
     aggregated.runs = subResults;

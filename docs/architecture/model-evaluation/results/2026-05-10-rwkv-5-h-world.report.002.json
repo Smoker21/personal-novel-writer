@@ -69,9 +69,7 @@
       "durationMs": 0,
       "finishReason": "error",
       "scores": {},
-      "redFlags": [
-        "Runtime error: fetch failed"
-      ]
+      "redFlags": ["Runtime error: fetch failed"]
     },
     {
       "caseId": "TC-08",

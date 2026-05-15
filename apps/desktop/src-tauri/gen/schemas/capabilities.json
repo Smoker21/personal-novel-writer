@@ -1,1 +1,9 @@
-{"default":{"identifier":"default","description":"default permissions for Novel Writer","local":true,"windows":["main"],"permissions":["core:default","dialog:default"]}}
+{
+  "default": {
+    "identifier": "default",
+    "description": "default permissions for Novel Writer",
+    "local": true,
+    "windows": ["main"],
+    "permissions": ["core:default", "dialog:default"]
+  }
+}

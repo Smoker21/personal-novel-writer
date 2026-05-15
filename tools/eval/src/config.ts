@@ -1,5 +1,5 @@
-import { CaseId, SamplingProfile } from "./types.js";
-import { InferenceMode } from "./runtimes/runtime.js";
+import type { InferenceMode } from "./runtimes/runtime.js";
+import type { CaseId, SamplingProfile } from "./types.js";
 
 export const SAMPLING_PROFILES = {
   creative: {
@@ -85,8 +85,18 @@ export const RUNTIME_PROFILES: Record<string, RuntimeProfile> = {
     mode: "chat", // Qwen / Llama via LM Studio use proper chat templates
     // Transformer (Qwen / Llama / etc.) friendly defaults — see runtimes/rwkv-runner.md §4
     samplingOverrides: {
-      creative: { temperature: 0.7, topP: 0.9, presencePenalty: undefined, frequencyPenalty: undefined },
-      instruct: { temperature: 0.2, topP: 0.9, presencePenalty: undefined, frequencyPenalty: undefined },
+      creative: {
+        temperature: 0.7,
+        topP: 0.9,
+        presencePenalty: undefined,
+        frequencyPenalty: undefined,
+      },
+      instruct: {
+        temperature: 0.2,
+        topP: 0.9,
+        presencePenalty: undefined,
+        frequencyPenalty: undefined,
+      },
     },
     // Qwen3 / Qwen3.5 default to "thinking mode" which fills `reasoning_content`.
     // We try the standard toggle, but the Aggressive Qwen3.5-35B-A3B variant
@@ -103,8 +113,18 @@ export const RUNTIME_PROFILES: Record<string, RuntimeProfile> = {
     endpoint: "http://localhost:11434/v1",
     defaultProfile: "creative",
     samplingOverrides: {
-      creative: { temperature: 0.7, topP: 0.9, presencePenalty: undefined, frequencyPenalty: undefined },
-      instruct: { temperature: 0.2, topP: 0.9, presencePenalty: undefined, frequencyPenalty: undefined },
+      creative: {
+        temperature: 0.7,
+        topP: 0.9,
+        presencePenalty: undefined,
+        frequencyPenalty: undefined,
+      },
+      instruct: {
+        temperature: 0.2,
+        topP: 0.9,
+        presencePenalty: undefined,
+        frequencyPenalty: undefined,
+      },
     },
   },
 };
