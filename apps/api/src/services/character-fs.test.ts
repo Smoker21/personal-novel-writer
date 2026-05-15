@@ -228,8 +228,57 @@ describe("character-fs", () => {
   });
 
   it("deleteCharacter returns false for non-existent character", async () => {
-    const result = await deleteCharacter(tmpDir, "不存在");
+    const result = await deleteCharacter(tmpDir, "不存在")
     expect(result).toBe(false);
+  });
+
+  // ── Regression（手測抓到）: 空 manualDescription 不應被寫成 placeholder ───
+  it("create with empty manualDescription does NOT write '(尚未填寫角色描述)' into .md", async () => {
+    await createCharacter(tmpDir, {
+      slug: "空描述角色",
+      fields: minimalFields("空描述角色"),
+      manualDescription: "",
+      aiSummary: "",
+      oneLineSummary: "",
+    });
+    const raw = await readFile(join(tmpDir, "characters", "空描述角色.md"), "utf-8");
+    expect(raw).not.toContain("(尚未填寫");
+    expect(raw).not.toContain("(尚未統整");
+
+    const result = await readCharacter(tmpDir, "空描述角色");
+    expect(result?.manualDescription).toBe("");
+    expect(result?.aiSummary).toBe("");
+  });
+
+  it("read of legacy '(尚未統整)' / '(尚未填寫角色描述)' placeholder body returns empty", async () => {
+    const legacyM3 = `---
+name: 舊角色M3
+---
+
+(尚未統整)
+`;
+    const legacyM5Buggy = `---
+name: 舊角色M5
+---
+
+## 角色描述（手動）
+
+(尚未填寫角色描述)
+
+## AI 統整敘述
+
+`;
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(join(tmpDir, "characters", "舊角色M3.md"), legacyM3, "utf-8");
+    await writeFile(join(tmpDir, "characters", "舊角色M5.md"), legacyM5Buggy, "utf-8");
+
+    const m3 = await readCharacter(tmpDir, "舊角色M3");
+    expect(m3?.manualDescription).toBe("");
+    expect(m3?.aiSummary).toBe("");
+
+    const m5 = await readCharacter(tmpDir, "舊角色M5");
+    expect(m5?.manualDescription).toBe("");
+    expect(m5?.aiSummary).toBe("");
   });
 
   // M5: migration — 舊 schema 讀容錯

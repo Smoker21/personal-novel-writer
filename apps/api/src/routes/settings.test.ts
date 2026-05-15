@@ -82,4 +82,59 @@ describe("settings routes", () => {
     const res = await settings.request("/secret/badname");
     expect(res.status).toBe(400);
   });
+
+  // ── Regression（手測抓到）: routing 5 個 key 不被 zod schema strip ─────────
+  it("PUT / preserves all 5 routing keys (regression: zod stripped non-listed keys)", async () => {
+    const payload = {
+      schemaVersion: 1,
+      providers: {
+        anthropic: { enabled: true, apiKey: "sk-ant-real", defaultModel: "claude-haiku-4-5" },
+        openai: { enabled: false },
+        google: { enabled: false },
+        xai: { enabled: false },
+        ollama: { enabled: false },
+        lmstudio: { enabled: false },
+        "rwkv-runner": { enabled: false },
+      },
+      routing: {
+        chapterWriter: { primary: "anthropic:claude-haiku-4-5", fallbacks: [] },
+        characterCardConsolidator: { primary: "anthropic:claude-haiku-4-5", fallbacks: [] },
+        characterImageExtractor: { primary: "anthropic:claude-haiku-4-5", fallbacks: [] },
+        statusUpdater: { primary: "anthropic:claude-haiku-4-5", fallbacks: [] },
+        statusShortener: { primary: "anthropic:claude-haiku-4-5", fallbacks: [] },
+      },
+      recentProjects: [],
+      meta: { firstLaunchWarningAcknowledged: false },
+    };
+    const putRes = await settings.request("/", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    expect(putRes.status).toBe(200);
+
+    const getRes = await settings.request("/");
+    const body = (await getRes.json()) as { routing: Record<string, unknown> };
+    expect(Object.keys(body.routing).sort()).toEqual(
+      [
+        "chapterWriter",
+        "characterCardConsolidator",
+        "characterImageExtractor",
+        "statusShortener",
+        "statusUpdater",
+      ].sort(),
+    );
+    expect(body.routing["characterCardConsolidator"]).toEqual({
+      primary: "anthropic:claude-haiku-4-5",
+      fallbacks: [],
+    });
+    expect(body.routing["characterImageExtractor"]).toEqual({
+      primary: "anthropic:claude-haiku-4-5",
+      fallbacks: [],
+    });
+    expect(body.routing["statusShortener"]).toEqual({
+      primary: "anthropic:claude-haiku-4-5",
+      fallbacks: [],
+    });
+  });
 });
