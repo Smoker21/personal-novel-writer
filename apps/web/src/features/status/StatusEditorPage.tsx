@@ -14,7 +14,9 @@ export function StatusEditorPage() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [mtime, setMtime] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Try to read the file via git show HEAD
@@ -29,20 +31,55 @@ export function StatusEditorPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setSaved(false);
+    setError(null);
+    setSavedAt(null);
     try {
-      // Use manual commit endpoint to save the file
-      await fetch(`/api/projects/${hash}/status/update-from-chapter`, {
+      const body: {
+        fileType: "story" | "character";
+        content: string;
+        characterSlug?: string;
+        expectedMtime?: string;
+      } = {
+        fileType: isStory ? "story" : "character",
+        content,
+      };
+      if (!isStory && slug) body.characterSlug = slug;
+      if (mtime) body.expectedMtime = mtime;
+
+      const res = await fetch(`/api/projects/${hash}/status/write`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chapterNumber: 0, reason: "manual" }),
-      }).catch(() => {});
-      // Note: Direct file write endpoint not available yet; copy to clipboard as fallback
-      await navigator.clipboard.writeText(content).catch(() => {});
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
+        if (err.code === "MTIME_MISMATCH") {
+          setError("檔案已被外部修改，請重新載入後再儲存");
+        } else if (err.code === "CHARACTER_NOT_FOUND") {
+          setError("找不到此角色檔案");
+        } else {
+          setError(err.message ?? "儲存失敗");
+        }
+        return;
+      }
+
+      const data = (await res.json()) as { mtime: string };
+      setMtime(data.mtime);
+      setSavedAt(Date.now());
+      setTimeout(() => setSavedAt(null), 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+    } catch {
+      // Clipboard API may fail in non-secure contexts; ignore silently
     }
   };
 
@@ -75,20 +112,34 @@ export function StatusEditorPage() {
         />
         <button
           type="button"
+          onClick={handleCopy}
+          title="複製到剪貼簿"
+          className="rounded border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800 transition-colors"
+        >
+          複製
+        </button>
+        <button
+          type="button"
           onClick={handleSave}
           disabled={saving}
           className="rounded bg-indigo-600 px-3 py-1.5 text-xs text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
         >
-          {saved ? "✓ 已複製" : saving ? "處理中…" : "複製內容"}
+          {savedAt !== null ? "✓ 已儲存" : saving ? "儲存中…" : "儲存"}
         </button>
       </div>
+
+      {error && (
+        <div className="px-4 py-2 bg-red-900/40 border-b border-red-800 text-xs text-red-300">
+          {error}
+        </div>
+      )}
 
       {/* Editor */}
       <div className="flex-1 overflow-hidden p-4">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={`${title} 內容…\n\n提示：修改後點「複製內容」，再貼到對應的 .md 檔案。`}
+          placeholder={`${title} 內容…\n\n直接編輯後點「儲存」會寫入 .md 並 git commit。`}
           className="w-full h-full rounded border border-neutral-700 bg-neutral-900 p-3 text-sm text-neutral-200 font-mono resize-none focus:outline-none focus:border-neutral-500 placeholder:text-neutral-600"
         />
       </div>
