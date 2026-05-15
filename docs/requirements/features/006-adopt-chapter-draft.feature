@@ -68,12 +68,46 @@ Feature: 採用 AI 草稿並歸檔
     And git commit「chapter: adopt AI draft for chapter 1 ... (re-adopt)」
     And status-updater 再次觸發
 
-  Scenario: 編輯器中有 dirty browser draft 時點採用
-    Given 我在第一章編輯器手動寫了一段「使用者親筆段落」
-    And 該段落已 autosave 到 browser storage（狀態「編輯中」）
-    And 我同時透過「AI 撰寫本章」產出了草稿
+  # M5 PM Round 2/3：原單按鈕確認改為三選一 modal（UX-7）— 正本行為見 Spec 006
+
+  Scenario: 採用前 dirty browser draft 三選一 modal — 先儲存編輯（M5 UX-7）
+    Given 我在第一章編輯器手寫了一段「使用者親筆段落」並 autosave 到 IndexedDB
+    And IndexedDB draftRow 比當前 .md 新（dirty 狀態）
+    And 我同時透過 build-prompt + generate 產出了 AI 草稿
     When 我點「採用」
-    Then UI 二次確認對話框警告「採用會覆蓋您手寫的『使用者親筆段落』，git 歷史可還原。是否繼續？」
-    And 我按「確認」後正常完成採用流程
-    And browser draft「使用者親筆段落」被清除
-    And git 歷史中可看到「該章在採用前是手寫內容」（因為 Story 003 的儲存按鈕也會 commit；如果使用者沒按過儲存，git 中就沒有這份手寫內容）
+    Then 前端開啟三選一 modal「⚠️ 您有未儲存的編輯」
+    And modal 顯示 dirty draft 前 100 字預覽
+    And 三個按鈕：[先儲存編輯] [採用並丟棄編輯] [取消]
+    When 我點「先儲存編輯」
+    Then 前端先呼 PUT /chapters/:n 儲存 IndexedDB draft 內容
+    And 主檔被寫入「使用者親筆段落」
+    And 接著繼續 adopt 流程
+    When DRAFT_STALE 因 contextHash 變動觸發
+    Then 顯示 stale 確認對話框（既有邏輯）
+    And 使用者可選 force=true 繼續
+
+  Scenario: 採用前 dirty browser draft 三選一 modal — 採用並丟棄編輯（M5 UX-7）
+    Given 我在第一章編輯器有 dirty IndexedDB draft
+    And AI 草稿已備妥
+    When 我點「採用」
+    Then 三選一 modal 開啟
+    When 我點「採用並丟棄編輯」
+    Then IndexedDB 對應 draftRow 被刪除
+    And adopt 流程正常進行（AI 草稿覆蓋主檔）
+    And 我的手寫內容**未進入** git 歷史（因為沒按儲存）
+
+  Scenario: 採用前 dirty browser draft 三選一 modal — 取消（M5 UX-7）
+    Given 我在第一章編輯器有 dirty IndexedDB draft
+    And AI 草稿已備妥
+    When 我點「採用」
+    Then 三選一 modal 開啟
+    When 我點「取消」或按 ESC 或點 backdrop（dismissable modality）
+    Then modal 關閉
+    And 沒有任何操作發生（draft 仍 dirty、AI 草稿仍存在 cache、主檔不變）
+
+  Scenario: 採用前無 dirty draft 直接走 adopt（M5 UX-7）
+    Given 我在第一章編輯器，IndexedDB 無對應 draftRow 或 draft 與主檔一致
+    And AI 草稿已備妥
+    When 我點「採用」
+    Then 前端**不**彈三選一 modal
+    And adopt 流程直接啟動（既有 11 步事務）

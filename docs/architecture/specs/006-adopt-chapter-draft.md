@@ -108,6 +108,40 @@
 5. **不**回退 status-updater（已執行的狀態更新保留；下一次採用會 overwrite）
 6. commitIfChanged（prompt.md 的 Undo 備註）
 
+## 採用前置：dirty browser draft 確認（M5 PM Round 2 — UX-7）
+
+採用流程啟動前，**前端**檢查 IndexedDB 中該章是否有 dirty browser draft（依 Spec 003 的「browser draft」邏輯，比對 IndexedDB `draftRow.content` 與當前 `.md` content / mtime）：
+
+- **無 dirty draft** → 直接走 adopt 流程
+- **有 dirty draft** → 開三選一 modal（dismissable modality）：
+
+| 選項 | 行為 |
+|---|---|
+| 先儲存編輯 | 先呼 `PUT /chapters/:n` 儲存 browser draft → 成功後才繼續 adopt 流程（adopt 看到的「主檔」變成使用者剛存的版本，但 Spec 006 的 DRAFT_STALE 檢查可能因 contextHash 不符而觸發 — 這是正確行為，使用者需再次確認）|
+| 採用並丟棄編輯 | 刪除 IndexedDB draft row → 繼續 adopt（AI 草稿覆蓋主檔）|
+| 取消 | 兩個操作都不發生 |
+
+此確認屬於**前端責任** — adopt API 本身**不**檢查 dirty draft（避免 server 端要查 IndexedDB，違反前後端關注點分離）。
+
+### Modal 文案
+
+```
+┌─ ⚠️ 您有未儲存的編輯 ───────────────────────────┐
+│ 編輯器中還有 <N> 字尚未儲存到 .md：              │
+│ ┌──────────────────────────────────────────┐    │
+│ │ [browser draft 前 100 字預覽…]            │    │
+│ └──────────────────────────────────────────┘    │
+│                                                  │
+│ 採用 AI 草稿會覆蓋章節主檔。請選擇：              │
+│                                                  │
+│ [先儲存編輯] [採用並丟棄編輯] [取消]             │
+└──────────────────────────────────────────────────┘
+```
+
+### Spec 003 reference
+
+對應 [spec 003 §「兩階段 Generate 流程」](./003-edit-chapter-basic.md#6-兩階段-generate-流程)末段「採用前若有 dirty browser draft」— 該段為前端編輯器頁面對此確認的「介面位置」描述；本段為「行為定義」正本，採用流程歸 spec 006 管。
+
 ## 採用事務 — 詳細步驟
 
 ```
@@ -361,3 +395,6 @@ client                apps/api              ContextCollector  fs/cache  status-u
   - prompt.md 渲染改為「使用者送出的 promptText」（不是 server auto-built）+ 摺疊區保留 auto-built 版本以利對比
   - prompt.md frontmatter 補 `userEdited` / `participants` / `outline` / `requirements` / `temperature`
   - DRAFT_STALE 比對的 contextHash 涵蓋 participants / outline / requirements（隨 Spec 005 ChapterContext 修訂自然繼承）
+- `2026-05-15`（深夜 — PM Round 3 收尾）：
+  - 新增「採用前置：dirty browser draft 確認」段為**正本**位置（UX-7）；spec 003 該段內容簡化為 cross-reference 回本 spec
+  - 對應 006.feature 補 scenario「採用前 dirty draft 三選一 modal」

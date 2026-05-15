@@ -140,12 +140,12 @@ ChapterEditor / Character / Settings。M5 = 走完整 spec 流程重設計這三
 
 | Spec | 修訂狀態 | PM 簽核 | 對應 .feature 草稿 |
 |---|---|---|---|
-| 003 + 005（章節編輯器重設計） | ✅ Draft (2026-05-15) | ⬜ | ✅ 003.feature + 005.feature 草稿 |
-| **006**（採用流程串接 003+005）| ✅ Draft (2026-05-15) | ⬜ | （沿用既有 006.feature；M6 視需要補）|
-| 002（角色卡 portrait grid + 手動為主） | ✅ Draft (2026-05-15) | ⬜ | ✅ 002.feature 草稿 |
-| 009（設定強化）| ✅ Draft (2026-05-15) | ⬜ | ✅ 009.feature 草稿（含 TD-9 Story 032 修訂）|
-| 007 微調（TD-1） | ✅ Draft (2026-05-15) | ⬜ | ✅ 007.feature 草稿 |
-| 008 微調（TD-2/3） | ✅ Draft (2026-05-15) | ⬜ | ✅ 008.feature 草稿 |
+| 003 + 005（章節編輯器重設計） | ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 003.feature + 005.feature 草稿（R3 補 UX-6 toast scenario）|
+| **006**（採用流程串接 003+005）| ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 006.feature 補 dirty draft 三選一 scenarios |
+| 002（角色卡 portrait grid + 手動為主） | ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 002.feature 草稿（R3 補 AI 統整 dialog 語意 + UX-6 inline scenarios）|
+| 009（設定強化）| ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 009.feature 草稿（R3 補 UX-6 modal scenario）|
+| 007 微調（TD-1） | ✅ Draft (2026-05-15) | ⬜ Round 3 review | ✅ 007.feature 草稿 |
+| 008 微調（TD-2/3） | ✅ Draft (2026-05-15) | ⬜ Round 3 review | ✅ 008.feature 草稿 |
 | ~~032 微調（TD-9）~~ | ✅ 併入 spec 009 | ⬜ | （已在 009.feature） |
 
 **spec-architect 修訂筆記（2026-05-15）**：
@@ -355,11 +355,20 @@ spec 003 line 318~322 改寫為：
 
 ### Round 3 完成定義
 
-- [ ] B / C / D 三項修訂完成
-- [ ] A 變更紀錄加註
-- [ ] 跨 spec 一致性（spec 003 ↔ 006 互引用）正確
-- [ ] M5-Handover-instruction.md 進度表全部 ✅
-- [ ] 推 commit + 通知 PM 進 Round 3 review（**可能直接轉 Ready**，視 PM 滿意度）
+- [x] B / C / D 三項修訂完成
+- [x] A 變更紀錄加註
+- [x] 跨 spec 一致性（spec 003 ↔ 006 互引用）正確
+- [x] M5-Handover-instruction.md 進度表全部 ✅
+- [x] 推 commit + 通知 PM 進 Round 3 review（**可能直接轉 Ready**，視 PM 滿意度）
+
+### Round 3 修訂落點對照（2026-05-15 深夜）
+
+| # | 修訂項 | 落在哪 |
+|---|---|---|
+| A | spec 002 變更紀錄加註 PM Round 2 認可 | spec 002 變更紀錄 |
+| B | AI 統整 dialog 語意修正 | spec 002 PUT API 段：刪除「也寫入手動段」語意；POST consolidate 段：新增「『✨ AI 統整』按鈕前端觸發規則」段（dialog 觸發條件 = aiSummary textarea 既有內容非空）|
+| C | dirty draft 確認搬到 spec 006 為正本 | spec 006 新增「採用前置：dirty browser draft 確認」段；spec 003 對應段改為 cross-ref；006.feature 重寫既有 dirty draft scenario 為 3 個三選一 scenarios + 1 個無 dirty 直接走 adopt scenario |
+| D | 補 UX-6 Error 三層 BDD scenarios | 002.feature × 2（inline：姓名空白 / AI 統整失敗）；003.feature × 1（toast：儲存失敗）；009.feature × 1（modal：routing 未設定）|
 
 ### Round 3 不在範圍
 
@@ -375,3 +384,4 @@ spec 003 line 318~322 改寫為：
 - 2026-05-15：M5 開工指令初版。PM 拍板「直接進 M5、全部走 spec」+ 追加 portrait grid + 本章角色挑選器。
 - 2026-05-15（晚）：PM Round 1 review 完成。Q1=(a) 雙 TextArea / Q2=(A) 預設摺疊 / Q3=(A) 重產回 build-prompt。UX 一致性 7 項修訂指令交回 spec-architect 進第二輪。
 - 2026-05-15（深夜）：PM Round 2 review 完成。Round 2 修訂品質高、80% 一致性。四項拍板（A 認可擴大 / B AI 統整 dialog 語意修正 / C spec 006 補 dirty draft / D 補 UX-6 BDD scenarios）交 spec-architect 進第三輪收尾。
+- 2026-05-15（深夜末）：spec-architect Round 3 收尾完成。A/B/C/D 全部落地。等 PM Round 3 review；若無新發現，可直接轉 status=Ready 進 dev Phase 2。

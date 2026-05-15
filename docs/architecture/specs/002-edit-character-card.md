@@ -89,8 +89,8 @@
 `manuallyEditedSections`（取代 `manuallyEdited: boolean`）：
 - 使用者改 `manualDescription` → `manuallyEditedSections.manualDescription: true`
 - 使用者改 `aiSummary` → `manuallyEditedSections.aiSummary: true`
-- 跑 `consolidate` → 只寫 `aiSummary` 段；`manualDescription` 段**完全不動**
-- 若 `manualDescription` 為空且使用者按了 `consolidate` 並要求「也寫入手動段」（UI dialog 後）→ 才寫；預設不寫
+- 跑 `consolidate` → 只寫 `aiSummary` textarea；`manualDescription` 段**完全不動**（Q1=a 鐵則）
+- AI 統整不會自動寫入 `manualDescription`，**沒有**「也寫入手動段」這種選項（Round 3 刪除此語意）
 
 ### DELETE .../:slug
 
@@ -125,6 +125,39 @@
 - consolidate API 回應**不直接寫入** `.md`；前端把它放到 textarea 預覽 → 使用者可微調 → 按「儲存」才送 PUT 寫入 `aiSummary` 欄位
 - consolidate 永遠**不**寫入「## 角色描述（手動）」段（使用者手動段 sacrosanct）
 - AI 統整失敗時 UI 不 disable 任何其他按鈕（M4 bug：失敗時整個按鈕無法點 → 修）；失敗訊息以 inline error 顯示在 AI 統整區，其餘 UI 正常
+
+#### 「✨ AI 統整」按鈕的前端觸發規則（M5 PM Round 3）
+
+按下按鈕時，前端依 `aiSummary` textarea 當前內容決定流程：
+
+```
+使用者按「✨ AI 統整」
+  │
+  ▼
+aiSummary textarea 是否有既有內容（非空）？
+  │
+  ├─ 否（textarea 空）→ 直接呼 consolidate API → 結果寫入 textarea（不彈 dialog）
+  │
+  └─ 是（textarea 已有 N 字）→ 彈二次確認 dialog：
+       ┌─ ⚠️ 覆蓋既有 AI 統整內容？──────────────────┐
+       │ 「AI 統整敘述」textarea 目前有 <N> 字內容。   │
+       │ 新的 AI 統整結果會覆蓋這些內容。              │
+       │                                              │
+       │ 若上一次的結果你想保留，可：                   │
+       │ • 取消後，先複製 textarea 內容到別處          │
+       │ • 或將該段內容移到「## 角色描述（手動）」     │
+       │                                              │
+       │        [取消]  [覆蓋並重新統整]              │
+       └──────────────────────────────────────────────┘
+```
+
+- dialog modality：dismissable（ESC + click backdrop = 取消，與 FirstLaunchWarning 不同）
+- 「取消」→ 不呼 API、textarea 不變、無副作用
+- 「覆蓋並重新統整」→ 呼 consolidate API → 結果寫入 textarea（覆蓋舊內容）；按「儲存」前都仍可手動微調
+- **不**檢查「textarea 內容是 AI 上次寫的還是使用者手寫的」— 一律視為「使用者眼中的既有內容」，需保護
+- **不**檢查「手動段內容」（Q1=a 鐵則：AI 統整永不動手動段，故無覆蓋風險）
+
+設計理由：dialog 純粹保護「aiSummary textarea 已輸入的內容（不管來源）」不被新一輪粗糙的 AI 統整無聲覆蓋；它**不是**為了警告手動段被改（Q1=a 已根本性保證不互覆）。
 
 **Errors:**
 
@@ -945,3 +978,7 @@ consolidator skill
   - tabs 從 6 → 5：合併身分 + 外貌為「身分外貌」tab（身分區 collapsible，預設摺疊）
   - 所有輸入欄位補 placeholder sample data（PM UX review「填寫內容需要灰色內容輔助輸入」P1）
   - 新增「Shared UI components」段：`ExpandableTextarea`（UX-1）/ `Spinner`（UX-5）/ Error 三層（UX-6）— canonical 規格放本 spec，spec 003 / 007 / 009 reference
+- `2026-05-15`（晚 — PM Round 2 認可）: PM 認可 Round 2 對 UX-2 的擴大：核心區固定在上、6→5 tabs 合併（身分外貌）、全欄位 placeholder sample data、default portrait 搬核心區。
+- `2026-05-15`（深夜 — PM Round 3 收尾）: PM Round 2 review 拍板四項：
+  - **B**：AI 統整 dialog 語意修正 — dialog 觸發條件從「手動段被覆蓋」改為「aiSummary textarea 既有內容非空」；對應文案改寫。原 spec 002 line 95 舊條文（與 Q1=a 矛盾）已刪除。
+  - **D**：補 UX-6 Error 三層 BDD scenarios（002 inline × 2 / 003 toast × 1 / 009 modal × 1）。

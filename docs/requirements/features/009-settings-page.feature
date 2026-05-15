@@ -189,3 +189,19 @@ Feature: 設定頁（LLM provider / 預設模型 / 個人偏好）
     When 我在 modal 編輯後按 ESC
     Then modal 關閉，inline textarea 顯示完整編輯內容
     And 字數計數即時更新
+
+  # === UX-6 Error 三層（PM Round 3 補）===
+
+  Scenario: chapter-writer routing 未設定時阻擋 modal（UX-6 — modal 層）
+    Given 我在編輯器，settings.agents.chapter-writer.routing.primary 為空
+    When 我點「生成本章」
+    Then build-prompt API 回 400 ROUTING_NOT_CONFIGURED
+    And 前端開啟中央 modal「⚠️ chapter-writer 模型尚未設定」
+    And modal 內文「請先到設定頁啟用一個 provider 並指定 chapter-writer 的預設模型。」
+    And modal 含兩按鈕：[取消] [前往設定頁]
+    And modal 為 dismissable（ESC 可取消）
+    When 我點「前往設定頁」
+    Then 前端 route 到設定頁
+    And 設定頁高亮 chapter-writer 的 AgentRoutingCard
+    When 我改點「取消」或按 ESC
+    Then modal 關閉，編輯器停留在原位

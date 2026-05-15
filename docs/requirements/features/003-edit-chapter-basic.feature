@@ -198,6 +198,7 @@ Feature: 章節編輯器：開啟、編輯、自動儲存（含 browser 草稿�
     And 寫作參數 / 大綱 / 需求 / participants / 我先前編輯過的 promptText **全部保留**（給我重調機會）
     And **不**直接重送 LLM（不會無聲消耗額度）
 
+  # 行為定義正本見 spec 006 §「採用前置：dirty browser draft 確認」；本 scenario 驗證編輯器頁面 UI 觸發點
   Scenario: 採用前若有 dirty browser draft 先確認（UX-7）
     Given 第 7 章主編輯區我手打了「她推開門。」並 autosave 到 IndexedDB（dirty browser draft）
     And AI 已生出草稿待採用
@@ -221,3 +222,16 @@ Feature: 章節編輯器：開啟、編輯、自動儲存（含 browser 草稿�
     And 我輸入的內容即時同步到 inline textarea
     When 我按 ESC
     Then modal 關閉，內容保留在 inline textarea
+
+  # === UX-6 Error 三層（PM Round 3 補）===
+
+  Scenario: 儲存章節失敗顯示 toast（UX-6 — toast 層）
+    Given 我在第 7 章編輯器，按了「儲存」
+    And server 回 500 IO_ERROR（如磁碟滿 / 權限問題）
+    Then 右下角彈出 toast「✗ 儲存失敗：<reason>」+「重試」按鈕
+    And toast 5 秒後自動消失（或手動點 ✕ 關閉）
+    And toast 不阻擋 — 我可繼續編輯 textarea 內容
+    And IndexedDB browser draft **保留**（內容未丟失）
+    And editor 右上角狀態 indicator 變紅「🔴 儲存失敗」
+    When 我點 toast「重試」
+    Then 系統重發 PUT /chapters/:n

@@ -319,7 +319,9 @@ POST /api/projects/:hash/chapters/:n/generate
 
 「退回」= 丟棄 draft（DELETE draft），不影響 frontmatter。
 
-「採用」= 既有 Spec 006 流程；採用後 prompt 寫入 `chapter_<NNNN>_prompt.md`（即 ChapterPromptHistory，見下節）。**M5 Round 2 補（UX-7）**：採用前若 editor 主編輯區有 dirty browser draft（使用者打了字未存）→ 顯示 modal「您有未儲存的編輯，採用 AI 草稿會丟棄這些變更。請選擇：先儲存編輯 / 採用並丟棄編輯 / 取消」三選一。
+「採用」= 既有 Spec 006 流程；採用後 prompt 寫入 `chapter_<NNNN>_prompt.md`（即 ChapterPromptHistory，見下節）。
+
+> **採用前置 dirty draft 確認**：當前編輯器頁面在使用者點「採用」時觸發確認 modal — 行為定義正本見 [Spec 006 §「採用前置：dirty browser draft 確認」](./006-adopt-chapter-draft.md#採用前置dirty-browser-draft-確認m5-pm-round-2--ux-7)。本 spec 只描述「驗證點仍在編輯器頁面」，不重複正本 modal 文案。
 
 ### 7. ChapterPromptHistory（沿用既有 `chapter_<NNNN>_prompt.md`）
 

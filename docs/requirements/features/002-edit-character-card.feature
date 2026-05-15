@@ -220,6 +220,31 @@ Feature: 新增 / 編輯角色卡（欄位輸入 + AI 統整）
     And 字數計數右下顯示「500 字」
     And **不**需按「儲存」— 內容已即時同步
 
+  # === UX-6 Error 三層（PM Round 3 補）===
+
+  Scenario: 角色姓名空白時 inline 紅字（UX-6 — inline 層）
+    Given 我在新建角色 dialog
+    And 「姓名」欄位為空
+    When 我點「儲存」
+    Then 「姓名」input 邊框變紅
+    And 欄位下方顯示紅字「姓名為必填」
+    And 「儲存」按鈕**不**被 disable（讓使用者改完再按）
+    And 其他欄位仍可編輯（紅字只在「姓名」欄位下方）
+    When 我在「姓名」輸入「蘇晴」
+    Then 紅字消失，邊框恢復正常
+
+  Scenario: AI 統整失敗時 inline error 不擋其他按鈕（UX-6 — inline 層；M5 完整 bug 修）
+    Given 我在蘇晴編輯器，aiSummary textarea 為空
+    When 我點「✨ AI 統整」
+    And LLMRouter 所有 fallback 都失敗回 502 LLM_FAILED
+    Then 「AI 統整敘述」段顯示 inline error「✗ AI 統整失敗：<message>。[重試]」
+    And 「✨ AI 統整」按鈕恢復 enabled 狀態（**不** disable）
+    And 其他 tabs（個性 / 對話 / 關係 / 性愛場景表現 / 身分外貌）全部可點切換
+    And 核心區「角色描述（手動）」textarea 可繼續編輯
+    And 「儲存」「刪除」「歷史」按鈕全部可點
+    When 我點 inline error 中「重試」
+    Then 系統再次呼叫 consolidate API
+
   Scenario: AI 統整 Spinner 規格（M5 Round 2 — UX-5）
     Given 我點「✨ AI 統整」按鈕
     Then 按鈕變為 disabled 狀態
