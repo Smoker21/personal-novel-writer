@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import { buildChapterWriterRequest } from "@novel-writer/prompt-library";
+import type { GenerateRequest } from "@novel-writer/llm-adapter";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { listChapters } from "../services/chapter-fs.js";
-import { collectChapterContext } from "../services/context-collector.js";
 import {
   abortDraft,
   appendDraftText,
@@ -18,11 +17,37 @@ import { resolveProjectPath } from "../services/project-resolver.js";
 import { buildRouter, toRouterPolicy } from "../services/router-factory.js";
 import { readSettings } from "../services/settings-store.js";
 
+// M5 (Spec 005): new request shape — user-edited prompt + audit metadata
 const generateSchema = z.object({
-  agentName: z.literal("chapter-writer"),
+  promptText: z.string().min(1),
+  contextHash: z.string(),
+  participants: z.array(z.string()),
+  outline: z.string().nullable(),
+  requirements: z.string().nullable(),
   modelOverride: z.string().optional(),
-  userIntent: z.string().optional(),
+  temperatureOverride: z.number().min(0).max(2).optional(),
 });
+
+/**
+ * Split a build-prompt promptText back into systemPrompt + userPrompt.
+ * The build-prompt endpoint outputs: "# System Prompt\n\n<sys>\n\n---\n\n# User Prompt\n\n<user>"
+ * If user kept the markers, we split cleanly; if they edited away the markers,
+ * the entire promptText is sent as user message (no system prompt).
+ */
+function splitPromptText(promptText: string): { systemPrompt: string; userPrompt: string } {
+  const sysHeader = "# System Prompt\n\n";
+  const sep = "\n\n---\n\n# User Prompt\n\n";
+  if (promptText.startsWith(sysHeader)) {
+    const sepIdx = promptText.indexOf(sep, sysHeader.length);
+    if (sepIdx > -1) {
+      return {
+        systemPrompt: promptText.slice(sysHeader.length, sepIdx),
+        userPrompt: promptText.slice(sepIdx + sep.length),
+      };
+    }
+  }
+  return { systemPrompt: "", userPrompt: promptText };
+}
 
 const app = new Hono();
 
@@ -72,24 +97,11 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
         abortController.abort();
       });
 
-      // 1. Collect context
-      let context: Awaited<ReturnType<typeof collectChapterContext>>;
-      try {
-        context = await collectChapterContext({ projectPath, chapterNumber });
-      } catch (e: unknown) {
-        const err = e as { code?: string; message?: string };
-        await stream.writeSSE({
-          event: "error",
-          data: JSON.stringify({
-            code: err.code ?? "MISSING_CONTEXT",
-            message: err.message ?? String(e),
-            retryable: false,
-          }),
-        });
-        return;
-      }
+      // M5: context already collected in build-prompt stage; promptText is user-edited.
+      // We trust the client's contextHash + audit fields (participants/outline/requirements)
+      // as a record of what the prompt was based on.
 
-      // 2. Create draft record
+      // 1. Create draft record
       await createDraft({
         draftId,
         projectHash,
@@ -97,7 +109,7 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
         chapterTitle: chapter.title,
         agentName: "chapter-writer",
         modelId: policy.primary,
-        contextHash: context.contextHash,
+        contextHash: body.contextHash,
         status: "running",
         createdAt: new Date().toISOString(),
         totalChars: 0,
@@ -105,18 +117,19 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
 
       await stream.writeSSE({
         event: "started",
-        data: JSON.stringify({ draftId, model: policy.primary, contextHash: context.contextHash }),
+        data: JSON.stringify({ draftId, model: policy.primary, contextHash: body.contextHash }),
       });
 
-      // 3. Stream from LLM
-      const writerInput = {
-        context,
-        chapterNumber,
-        chapterTitle: chapter.title,
-        ...(body.userIntent !== undefined ? { userIntent: body.userIntent } : {}),
+      // 2. Build LLM request from user-edited promptText
+      const { systemPrompt, userPrompt } = splitPromptText(body.promptText);
+      const req: GenerateRequest = {
+        modelId: policy.primary,
+        systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+        maxOutputTokens: 4096,
+        temperature: body.temperatureOverride ?? 0.7,
+        abortSignal: abortController.signal,
       };
-      const req = buildChapterWriterRequest(writerInput, policy.primary);
-      req.abortSignal = abortController.signal;
 
       const router = buildRouter(settings);
       let inputTokens = 0;
