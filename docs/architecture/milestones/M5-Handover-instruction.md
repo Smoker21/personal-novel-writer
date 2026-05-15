@@ -255,7 +255,123 @@ PM Round 1 完成後，spec-architect 重跑進度表並推 commit。完成後**
 
 ---
 
+## PM Review Round 2（2026-05-15 晚）— 第三輪收尾指令
+
+PM 已 review Round 2 修訂（commit `9814033`）。整體 ✅ 完整品質高，跨 spec 一致性 80%。四個拍板交給 spec-architect 進**第三輪收尾**：
+
+### PM Round 2 拍板
+
+| # | PM 決策 | 動作 | 影響檔 |
+|---|---|---|---|
+| **A** | **認可 spec-architect 擴大**（核心區固定在上 / 6→5 tabs / 全欄位 placeholder / default portrait 搬核心區） | 變更紀錄段加註「PM Round 2 認可此擴大」 | spec 002 |
+| **B** | **保留 AI 統整 dialog，但語意修正**：dialog **不是**為了保護「手動段被覆蓋」（因為 Q1=a 雙 textarea 已保證不互覆），而是為了保護「**aiSummary textarea 既有內容不被新一次糟糕的 AI 統整蓋掉**」 | 改寫 consolidate dialog 觸發條件 + 文案 | spec 002 + 002.feature |
+| **C** | **補足 spec 006 dirty draft 確認** | spec 006 加正本段落；spec 003 改為 reference 回 spec 006 | spec 006 + spec 003 + 006.feature |
+| **D** | **同意增加 UX-6 BDD scenarios** | 補 3~4 個 Error 三層 typical scenarios | 002.feature / 003.feature / 009.feature |
+
+### 第三輪具體指令
+
+#### B. AI 統整覆蓋 dialog（語意修正）
+
+**舊規定（要改）**：spec 002 line 95 寫「**若手動內容已存在**，AI 統整需經 dialog 確認才覆蓋」← 這條與 Q1=a 矛盾，刪掉。
+
+**新規定**：
+
+```
+觸發條件：使用者按「✨ AI 統整」按鈕，且 aiSummary textarea **既有內容**（不論是上次 AI 統整或使用者手動微調）非空。
+
+行為：開 dialog 二次確認 —
+
+┌─ ⚠️ 覆蓋既有 AI 統整內容？──────────────────┐
+│ 「AI 統整敘述」textarea 目前有 <N> 字內容。   │
+│ 新的 AI 統整結果會覆蓋這些內容。              │
+│                                              │
+│ 若上一次的結果你想保留，可：                   │
+│ • 取消後，先複製 textarea 內容到別處          │
+│ • 或將該段內容移到「## 角色描述（手動）」     │
+│                                              │
+│        [取消]  [覆蓋並重新統整]              │
+└──────────────────────────────────────────────┘
+
+若 aiSummary 為空 → 不彈 dialog，直接跑 consolidate（與目前一致）。
+```
+
+**程式行為**：
+- consolidate API response 仍然寫入「AI 統整敘述」textarea（不直接寫檔，使用者按儲存才寫）
+- 「## 角色描述（手動）」永遠不被 AI 動到（Q1=a 鐵則）
+- dialog 只在「aiSummary textarea **既有內容**」時觸發
+
+對應 002.feature 既有 scenario 全部複查 — 把舊 dialog 提到「手動內容覆蓋」的 scenario 改為「aiSummary 覆蓋」語意。
+
+#### C. spec 006 補足 dirty draft 確認
+
+**搬遷**：spec 003 line 318~322 補的「採用前若有 dirty browser draft → 三選一 modal」這段 ── 移到 spec 006 為**正本**位置（adopt 流程歸 spec 006 管），spec 003 改成 cross-reference 回 spec 006。
+
+**正本位置**：spec 006 「採用流程」段（或新增「採用前置條件」段）加：
+
+```
+### 採用前置：dirty browser draft 確認（M5 PM Round 2 — UX-7）
+
+採用流程啟動前，前端檢查 IndexedDB 中該章是否有 dirty browser draft（baseMtime 不等於當前 .md mtime）：
+
+- 無 dirty draft → 直接走 adopt 流程
+- 有 dirty draft → 開三選一 modal：
+  | 選項 | 行為 |
+  |---|---|
+  | 先儲存編輯 | 先呼 PUT /chapters/:n 儲存 browser draft，成功後才繼續 adopt |
+  | 採用並丟棄編輯 | 刪除 IndexedDB draft，繼續 adopt（AI 草稿覆蓋主檔）|
+  | 取消 | 兩個操作都不發生 |
+
+此確認屬於前端責任 — adopt API 本身不檢查 dirty draft（避免 server 端要查 IndexedDB）。
+```
+
+對應 006.feature 加 scenario「採用前 dirty draft 三選一 modal」。
+
+spec 003 line 318~322 改寫為：
+
+```
+> **採用前置 dirty draft 確認**：見 [spec 006 §「採用前置」](./006-adopt-chapter-draft.md#採用前置-dirty-browser-draft-確認)
+```
+
+003.feature 的對應 scenario **保留**（驗證點仍在編輯器頁面），但在 spec 注釋指出「行為定義在 spec 006」。
+
+#### D. UX-6 Error 三層 BDD scenarios
+
+在以下 .feature 各補 1 個典型 scenario：
+
+| .feature | Scenario | 對應層 |
+|---|---|---|
+| 003 | 儲存章節失敗時右下角顯示 toast 含「重試」按鈕 | toast |
+| 002 | 角色名稱欄位空白時 inline 紅字 + 紅色邊框 | inline |
+| 009 | chapter-writer routing 未設定時 modal 含「前往設定頁」連結 | modal |
+| 002 | AI 統整失敗時 inline error 顯示在 AI 統整段，不擋其他按鈕（已有部分 M5 修 bug，補完整 scenario） | inline |
+
+#### A. spec 002 變更紀錄加註
+
+在 spec 002 變更紀錄 `2026-05-15（晚）` 那條後加一行：
+
+```
+- `2026-05-15`（晚 — PM Round 2 認可）: PM 認可 Round 2 對 UX-2 的擴大：核心區固定在上、6→5 tabs 合併（身分外貌）、全欄位 placeholder sample data、default portrait 搬核心區。
+```
+
+### Round 3 完成定義
+
+- [ ] B / C / D 三項修訂完成
+- [ ] A 變更紀錄加註
+- [ ] 跨 spec 一致性（spec 003 ↔ 006 互引用）正確
+- [ ] M5-Handover-instruction.md 進度表全部 ✅
+- [ ] 推 commit + 通知 PM 進 Round 3 review（**可能直接轉 Ready**，視 PM 滿意度）
+
+### Round 3 不在範圍
+
+- ExpandableTextarea anchor 中文字問題（E1）— 等實作時再決定
+- 核心區 portrait API 影響說明（E2）— spec 002b 不需動 API，spec 002 補一行即可（spec-architect 自決）
+- 開發任務拆解 6 → 5 tabs 同步（E3）— 不嚴重
+- ExpandableTextarea label/ariaLabel 慣例（E4）— dev 階段決定
+
+---
+
 ## 變更紀錄
 
 - 2026-05-15：M5 開工指令初版。PM 拍板「直接進 M5、全部走 spec」+ 追加 portrait grid + 本章角色挑選器。
 - 2026-05-15（晚）：PM Round 1 review 完成。Q1=(a) 雙 TextArea / Q2=(A) 預設摺疊 / Q3=(A) 重產回 build-prompt。UX 一致性 7 項修訂指令交回 spec-architect 進第二輪。
+- 2026-05-15（深夜）：PM Round 2 review 完成。Round 2 修訂品質高、80% 一致性。四項拍板（A 認可擴大 / B AI 統整 dialog 語意修正 / C spec 006 補 dirty draft / D 補 UX-6 BDD scenarios）交 spec-architect 進第三輪收尾。
