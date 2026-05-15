@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { logger } from "./lib/logger.js";
 import { writeRuntimeInfo } from "./lib/runtime-info.js";
 import { adoptRouter } from "./routes/adopt.js";
+import { buildPromptRouter } from "./routes/build-prompt.js";
 import { chapters } from "./routes/chapters.js";
 import { charactersRouter } from "./routes/characters.js";
 import { draftRouter } from "./routes/draft.js";
@@ -28,6 +29,7 @@ const app = new Hono()
   .route("/api/projects/:hash/chapters", chapters)
   .route("/api/projects/:hash/characters", charactersRouter)
   .route("/api/projects/:hash/characters/:slug/portraits", portraitsRouter)
+  .route("/api/projects/:hash/chapters/:chapterNumber/build-prompt", buildPromptRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/generate", generateRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/draft", draftRouter)
   .route("/api/projects/:hash/chapters/:chapterNumber/adopt", adoptRouter)

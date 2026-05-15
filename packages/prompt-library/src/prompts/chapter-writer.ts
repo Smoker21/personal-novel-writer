@@ -43,18 +43,34 @@ export interface ChapterWriterInput {
   chapterTitle: string;
   targetWordCount?: { min: number; max: number };
   userIntent?: string;
+  /** M5 (Spec 005): 本章覆寫 system prompt，疊加在 style.md 之後 */
+  systemPromptOverrideForChapter?: string;
+  /** M5: temperature 覆寫；undefined = 用 default 0.7 */
+  temperatureOverride?: number;
 }
 
 export function buildChapterWriterRequest(
   input: ChapterWriterInput,
   modelId: string,
 ): GenerateRequest {
-  const { context, chapterNumber, chapterTitle, targetWordCount, userIntent } = input;
+  const {
+    context,
+    chapterNumber,
+    chapterTitle,
+    targetWordCount,
+    userIntent,
+    systemPromptOverrideForChapter,
+    temperatureOverride,
+  } = input;
 
   const hasStyle = context.writingStyle.trim().length > 0;
-  const systemPrompt = hasStyle
+  let systemPrompt = hasStyle
     ? `${SYSTEM_PROMPT_BASE}\n\n${SYSTEM_PROMPT_WITH_STYLE_HEADER}---\n寫作風格指南（來自 style.md）：\n\n${context.writingStyle}\n---`
     : SYSTEM_PROMPT_BASE;
+  // M5: append per-chapter system prompt override at the end
+  if (systemPromptOverrideForChapter && systemPromptOverrideForChapter.trim().length > 0) {
+    systemPrompt += `\n\n---\n本章特別指示（per-chapter override）：\n\n${systemPromptOverrideForChapter.trim()}\n---`;
+  }
 
   const wordCountDesc = targetWordCount
     ? `目標字數：${targetWordCount.min}~${targetWordCount.max} 中文字`
@@ -104,6 +120,11 @@ export function buildChapterWriterRequest(
     parts.push("\n## 本章大綱\n\n（未提供大綱；請在符合故事狀態的前提下自由發揮）");
   }
 
+  // M5: 本章寫作需求
+  if (context.currentRequirements && context.currentRequirements.trim().length > 0) {
+    parts.push(`\n## 本章寫作需求\n\n${context.currentRequirements.trim()}`);
+  }
+
   // Previous chapter
   if (context.previousChapterFullText) {
     parts.push(`\n## 上一章完整內容\n\n${context.previousChapterFullText}`);
@@ -127,6 +148,6 @@ export function buildChapterWriterRequest(
     systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
     maxOutputTokens: 4096,
-    temperature: 0.7,
+    temperature: temperatureOverride ?? 0.7,
   };
 }
