@@ -11,7 +11,7 @@ const SYSTEM_PROMPT = `你是小說人物設定的統整員。讀使用者填的
 3. **繁體中文**：避免簡體字、大陸用語、英文夾雜
 4. **不加 disclaimer**：不寫「以下是角色設定…」「希望這個描述符合您…」之類
 5. **不寫小說正文**：本任務是「設定敘述」，不是小說片段
-6. **親密欄位的處理**：intimateAppendix 為 null 或有內容時，均不寫入 body
+6. **性愛場景欄位的處理**：sexualScenePerformance 為 null 或有內容時，均不寫入 aiSummary
 7. **避免「標籤式」描寫**：不直接列 personalityTags，改為描述具體行為和習慣
 8. **wordingPreference / writingAvoid 必須轉述為描述**
 
@@ -19,9 +19,9 @@ const SYSTEM_PROMPT = `你是小說人物設定的統整員。讀使用者填的
 
 回傳 JSON（不加 markdown code fence；不加說明文字；直接回 JSON）：
 
-{"body":"<3-4 段中文敘述>","oneLineSummary":"<一句話，<40 字>"}
+{"aiSummary":"<3-4 段中文敘述>","oneLineSummary":"<一句話，<40 字>"}
 
-【body 結構建議】3-4 段，200-500 中文字：
+【aiSummary 結構建議】3-4 段，200-500 中文字：
 - 段 1：個性與行為模式
 - 段 2：容貌剪影
 - 段 3：文化 / 背景（若欄位有填才寫）
@@ -107,7 +107,7 @@ export function buildConsolidatorRequest(
 ${fieldsToYaml(fields)}
 \`\`\`
 
-請根據以上欄位產出 JSON：{"body":"...","oneLineSummary":"..."}`;
+請根據以上欄位產出 JSON：{"aiSummary":"...","oneLineSummary":"..."}`;
 
   return {
     modelId,

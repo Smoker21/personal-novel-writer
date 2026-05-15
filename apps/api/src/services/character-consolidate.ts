@@ -36,7 +36,8 @@ export async function consolidateCharacter(opts: ConsolidateOptions): Promise<Co
     });
     retryReq.messages.push({
       role: "user",
-      content: '請只回傳 JSON，格式：{"body":"...","oneLineSummary":"..."}，不要加任何說明。',
+      content:
+        '請只回傳 JSON，格式：{"aiSummary":"...","oneLineSummary":"..."}，不要加任何說明。',
     });
     const retry = await router.generate(retryReq, policy);
     const retryText = retry.text
@@ -47,14 +48,19 @@ export async function consolidateCharacter(opts: ConsolidateOptions): Promise<Co
   }
 
   const obj = parsed as Record<string, unknown>;
+  // M5 容錯：允許舊 schema "body" 鍵當作 aiSummary
+  const aiSummaryRaw = obj["aiSummary"] ?? obj["body"];
   if (
     typeof parsed !== "object" ||
     parsed === null ||
-    typeof obj["body"] !== "string" ||
+    typeof aiSummaryRaw !== "string" ||
     typeof obj["oneLineSummary"] !== "string"
   ) {
     throw new Error("Consolidator output does not match expected schema");
   }
 
-  return { body: obj["body"] as string, oneLineSummary: obj["oneLineSummary"] as string };
+  return {
+    aiSummary: aiSummaryRaw as string,
+    oneLineSummary: obj["oneLineSummary"] as string,
+  };
 }

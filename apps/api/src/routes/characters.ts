@@ -20,7 +20,7 @@ import { readSettings } from "../services/settings-store.js";
 const app = new Hono();
 
 // ---------------------------------------------------------------------------
-// Zod schemas
+// Zod schemas (M5)
 // ---------------------------------------------------------------------------
 
 const personalityTagsSchema = z.array(z.string());
@@ -30,12 +30,19 @@ const portraitSchema = z.object({
   byChapter: z.record(z.string()).optional(),
 });
 
-const intimateSchema = z
+const sexualScenePerformanceSchema = z
   .object({
     bodyMeasurements: z.string().nullable().optional(),
     preferences: z.string().nullable().optional(),
   })
   .nullable()
+  .optional();
+
+const manuallyEditedSectionsSchema = z
+  .object({
+    manualDescription: z.boolean(),
+    aiSummary: z.boolean(),
+  })
   .optional();
 
 const fieldsSchema = z.object({
@@ -61,21 +68,28 @@ const fieldsSchema = z.object({
   wordingPreference: z.string().nullable().optional(),
   writingAvoid: z.string().nullable().optional(),
   relations: z.string().nullable().optional(),
-  intimateAppendix: intimateSchema,
+  sexualScenePerformance: sexualScenePerformanceSchema,
   consolidatedAt: z.string().nullable().optional(),
   consolidatedBy: z.string().nullable().optional(),
-  manuallyEdited: z.boolean().optional(),
+  manuallyEditedSections: manuallyEditedSectionsSchema,
 });
 
 const createSchema = z.object({
   name: z.string().min(1),
   fields: fieldsSchema,
+  /** M5: 新角色建立時的「## 角色描述（手動）」段內容 */
+  manualDescription: z.string().optional(),
+  /** M5: 新角色建立時的「## AI 統整敘述」段內容 */
+  aiSummary: z.string().optional(),
   consolidate: z.boolean().optional(),
 });
 
 const updateSchema = z.object({
   fields: fieldsSchema.partial().optional(),
-  body: z.string().optional(),
+  /** M5: 「## 角色描述（手動）」段 */
+  manualDescription: z.string().optional(),
+  /** M5: 「## AI 統整敘述」段 */
+  aiSummary: z.string().optional(),
   consolidate: z.boolean().optional(),
   rename: z.string().optional(),
 });
@@ -84,10 +98,6 @@ const consolidateSchema = z.object({
   modelOverride: z.string().optional(),
 });
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 async function getProjectPath(c: { req: { param: (k: string) => string | undefined } }): Promise<
   string | null
 > {
@@ -95,9 +105,25 @@ async function getProjectPath(c: { req: { param: (k: string) => string | undefin
   return resolveProjectPath(hash);
 }
 
-// ---------------------------------------------------------------------------
-// Routes
-// ---------------------------------------------------------------------------
+function responseFor(char: {
+  slug: string;
+  fields: CharacterFields;
+  body: string;
+  manualDescription: string;
+  aiSummary: string;
+}, _slugForPath?: string) {
+  const slugForPath = _slugForPath ?? char.slug;
+  return {
+    slug: char.slug,
+    path: `characters/${slugForPath}.md`,
+    fields: char.fields,
+    body: char.body,
+    manualDescription: char.manualDescription,
+    aiSummary: char.aiSummary,
+    consolidatedAt: char.fields.consolidatedAt,
+    consolidatedBy: char.fields.consolidatedBy,
+  };
+}
 
 // GET /api/projects/:projectHash/characters
 app.get("/", async (c) => {
@@ -119,14 +145,7 @@ app.get("/:slug", async (c) => {
   if (!char) {
     return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
   }
-  return c.json({
-    slug: char.slug,
-    path: char.path,
-    fields: char.fields,
-    body: char.body,
-    consolidatedAt: char.fields.consolidatedAt,
-    consolidatedBy: char.fields.consolidatedBy,
-  });
+  return c.json(responseFor(char));
 });
 
 // POST /api/projects/:projectHash/characters
@@ -137,7 +156,6 @@ app.post("/", zValidator("json", createSchema), async (c) => {
   }
   const body = c.req.valid("json");
 
-  // Merge name into fields
   const fields = {
     ...buildEmptyFields(body.name),
     ...body.fields,
@@ -147,10 +165,11 @@ app.post("/", zValidator("json", createSchema), async (c) => {
     appearanceByChapter: body.fields.appearanceByChapter ?? {},
     consolidatedAt: null,
     consolidatedBy: null,
-    manuallyEdited: false,
+    manuallyEditedSections: { manualDescription: false, aiSummary: false },
   } as CharacterFields;
 
-  let charBody = "(尚未統整)";
+  let manualDescription = body.manualDescription ?? "";
+  let aiSummary = body.aiSummary ?? "";
   let oneLineSummary = fields.name;
 
   if (body.consolidate) {
@@ -172,14 +191,14 @@ app.post("/", zValidator("json", createSchema), async (c) => {
         policy: toRouterPolicy(routingConf),
         fields,
       });
-      charBody = result.body;
+      // M5: consolidate 結果只進 aiSummary，不動 manualDescription
+      aiSummary = result.aiSummary;
       oneLineSummary = result.oneLineSummary;
       fields.consolidatedAt = new Date().toISOString();
       fields.consolidatedBy = routingConf.primary;
-      fields.manuallyEdited = false;
     } catch (_err) {
-      // Consolidate failed — still create the character with placeholder
-      charBody = "(尚未統整)";
+      // M5: consolidate 失敗仍建立角色（fallback 空 aiSummary，使用者後續可手動觸發）
+      aiSummary = "";
     }
   }
 
@@ -193,20 +212,16 @@ app.post("/", zValidator("json", createSchema), async (c) => {
     );
   }
 
-  const char = await createCharacter(projectPath, { slug, fields, body: charBody, oneLineSummary });
+  const char = await createCharacter(projectPath, {
+    slug,
+    fields,
+    manualDescription,
+    aiSummary,
+    oneLineSummary,
+  });
   await commitIfChanged(projectPath, "character", `create ${slug}`);
 
-  return c.json(
-    {
-      slug: char.slug,
-      path: `characters/${slug}.md`,
-      fields: char.fields,
-      body: char.body,
-      consolidatedAt: char.fields.consolidatedAt,
-      consolidatedBy: char.fields.consolidatedBy,
-    },
-    201,
-  );
+  return c.json(responseFor(char, slug), 201);
 });
 
 // PUT /api/projects/:projectHash/characters/:slug
@@ -247,17 +262,9 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
       return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
     }
     await commitIfChanged(projectPath, "character", `rename ${slug} to ${newSlug}`);
-    return c.json({
-      slug: renamed.slug,
-      path: `characters/${renamed.slug}.md`,
-      fields: renamed.fields,
-      body: renamed.body,
-      consolidatedAt: renamed.fields.consolidatedAt,
-      consolidatedBy: renamed.fields.consolidatedBy,
-    });
+    return c.json(responseFor(renamed, renamed.slug));
   }
 
-  // Handle field/body update
   const existing = await readCharacter(projectPath, slug);
   if (!existing) {
     return c.json({ code: "CHARACTER_NOT_FOUND", message: "Character not found" }, 404);
@@ -266,12 +273,23 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
   let updatedFields: CharacterFields = body.fields
     ? ({ ...existing.fields, ...body.fields } as CharacterFields)
     : existing.fields;
-  let updatedBody = body.body !== undefined ? body.body : existing.body;
 
-  if (body.body !== undefined) {
-    updatedFields = { ...updatedFields, manuallyEdited: true };
+  // M5: per-section dirty flags
+  const editedManual = body.manualDescription !== undefined;
+  const editedAi = body.aiSummary !== undefined;
+  if (editedManual || editedAi) {
+    updatedFields = {
+      ...updatedFields,
+      manuallyEditedSections: {
+        manualDescription: editedManual || updatedFields.manuallyEditedSections.manualDescription,
+        aiSummary: editedAi || updatedFields.manuallyEditedSections.aiSummary,
+      },
+    };
   }
 
+  let newManualDescription =
+    body.manualDescription !== undefined ? body.manualDescription : existing.manualDescription;
+  let newAiSummary = body.aiSummary !== undefined ? body.aiSummary : existing.aiSummary;
   let oneLineSummary: string | undefined;
 
   if (body.consolidate) {
@@ -293,13 +311,17 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
         policy: toRouterPolicy(routingConf),
         fields: updatedFields,
       });
-      updatedBody = result.body;
+      // M5: consolidate 只覆寫 aiSummary，永不動 manualDescription
+      newAiSummary = result.aiSummary;
       oneLineSummary = result.oneLineSummary;
       updatedFields = {
         ...updatedFields,
         consolidatedAt: new Date().toISOString(),
         consolidatedBy: routingConf.primary,
-        manuallyEdited: false,
+        manuallyEditedSections: {
+          ...updatedFields.manuallyEditedSections,
+          aiSummary: false, // consolidate 寫入後 aiSummary 視為「AI 來源」（直到使用者再次編輯）
+        },
       };
     } catch (err) {
       return c.json(
@@ -311,7 +333,8 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
 
   const updated = await updateCharacter(projectPath, slug, {
     fields: updatedFields,
-    body: updatedBody,
+    manualDescription: newManualDescription,
+    aiSummary: newAiSummary,
     ...(oneLineSummary !== undefined ? { oneLineSummary } : {}),
   });
 
@@ -321,14 +344,7 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
 
   await commitIfChanged(projectPath, "character", `edit ${slug}`);
 
-  return c.json({
-    slug: updated.slug,
-    path: `characters/${slug}.md`,
-    fields: updated.fields,
-    body: updated.body,
-    consolidatedAt: updated.fields.consolidatedAt,
-    consolidatedBy: updated.fields.consolidatedBy,
-  });
+  return c.json(responseFor(updated, slug));
 });
 
 // DELETE /api/projects/:projectHash/characters/:slug
@@ -391,18 +407,15 @@ app.post("/:slug/consolidate", zValidator("json", consolidateSchema), async (c) 
     );
   }
 
+  // M5: 此端點不寫檔，前端 textarea 預覽 → 使用者按儲存才送 PUT
   return c.json({
-    body: result.body,
+    aiSummary: result.aiSummary,
     oneLineSummary: result.oneLineSummary,
     consolidatedAt: new Date().toISOString(),
     consolidatedBy: effectivePolicy.primary,
     usage: { inputTokens: 0, outputTokens: 0 },
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helper: build empty CharacterFields
-// ---------------------------------------------------------------------------
 
 function buildEmptyFields(name: string): CharacterFields {
   return {
@@ -428,10 +441,10 @@ function buildEmptyFields(name: string): CharacterFields {
     wordingPreference: null,
     writingAvoid: null,
     relations: null,
-    intimateAppendix: null,
+    sexualScenePerformance: null,
     consolidatedAt: null,
     consolidatedBy: null,
-    manuallyEdited: false,
+    manuallyEditedSections: { manualDescription: false, aiSummary: false },
   };
 }
 

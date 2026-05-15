@@ -74,8 +74,8 @@ export interface CharacterFields {
   // 5. 與其他角色的關係
   relations: string | null;
 
-  // 6. 親密場景描寫參考（可選，預設摺疊）
-  intimateAppendix: {
+  // 6. 性愛場景表現（M5 rename 自 intimateAppendix）
+  sexualScenePerformance: {
     bodyMeasurements: string | null;
     preferences: string | null;
   } | null;
@@ -83,7 +83,11 @@ export interface CharacterFields {
   // AI 統整 metadata
   consolidatedAt: string | null;
   consolidatedBy: string | null;
-  manuallyEdited: boolean;
+  /** M5: per-section dirty flag — 取代 manuallyEdited boolean */
+  manuallyEditedSections: {
+    manualDescription: boolean;
+    aiSummary: boolean;
+  };
 }
 
 // ── CharacterCard ─────────────────────────────────────────────────────────
@@ -91,7 +95,12 @@ export interface CharacterFields {
 export interface CharacterCard {
   slug: string;
   fields: CharacterFields;
+  /** Server-assembled body containing both sections (含 headings)；前端可直接顯示或解析 */
   body: string;
+  /** M5: 「## 角色描述（手動）」段內容（不含 heading） */
+  manualDescription: string;
+  /** M5: 「## AI 統整敘述」段內容（不含 heading） */
+  aiSummary: string;
 }
 
 // ── CharacterListItem（列表簡要，供角色面板用） ────────────────────────────
@@ -113,7 +122,8 @@ export interface ConsolidatorInput {
 }
 
 export interface ConsolidatorOutput {
-  body: string;
+  /** M5: 對應「## AI 統整敘述」段 — 不直接寫檔，前端 textarea 預覽後使用者按儲存才送 PUT */
+  aiSummary: string;
   oneLineSummary: string;
 }
 
@@ -137,7 +147,10 @@ export interface CreateCharacterRequest {
 
 export interface UpdateCharacterRequest {
   fields?: Partial<CharacterFields>;
-  body?: string;
+  /** M5: 「## 角色描述（手動）」段；undefined = 不動；空字串 = 清空 */
+  manualDescription?: string;
+  /** M5: 「## AI 統整敘述」段；undefined = 不動；空字串 = 清空 */
+  aiSummary?: string;
   consolidate?: boolean;
   rename?: string;
 }
@@ -147,6 +160,8 @@ export interface CharacterResponse {
   path: string;
   fields: CharacterFields;
   body: string;
+  manualDescription: string;
+  aiSummary: string;
   consolidatedAt: string | null;
   consolidatedBy: string | null;
 }
@@ -160,7 +175,7 @@ export interface ConsolidateRequest {
 }
 
 export interface ConsolidateResponse {
-  body: string;
+  aiSummary: string;
   oneLineSummary: string;
   consolidatedAt: string;
   consolidatedBy: string;

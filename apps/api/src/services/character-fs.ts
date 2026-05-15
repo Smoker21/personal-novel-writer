@@ -7,25 +7,70 @@ import { atomicWriteFile } from "./atomic-fs.js";
 const CHARACTERS_DIR = "characters";
 const ASSETS_DIR = join("characters", "_assets");
 const INDEX_FILE = join("characters", "_index.md");
-const PLACEHOLDER_BODY = "(尚未統整)";
 
-// ---------------------------------------------------------------------------
-// Frontmatter helpers
-// ---------------------------------------------------------------------------
+// M5 (spec 002): body 兩段 section heading
+const MANUAL_HEADING = "## 角色描述（手動）";
+const AI_HEADING = "## AI 統整敘述";
+const MANUAL_HEADING_RE = /^##\s+角色描述（手動）\s*$/m;
+const AI_HEADING_RE = /^##\s+AI 統整敘述\s*$/m;
+const MANUAL_PLACEHOLDER = "(尚未填寫角色描述)";
+
+/**
+ * M5: Split body into manualDescription + aiSummary sections.
+ * Migration policy: missing any `##` heading → treat all as manualDescription.
+ */
+export function splitBody(body: string): { manualDescription: string; aiSummary: string } {
+  const manualMatch = body.match(MANUAL_HEADING_RE);
+  const aiMatch = body.match(AI_HEADING_RE);
+
+  if (!manualMatch && !aiMatch) {
+    // Migration: 無 heading → 整段視為 manualDescription
+    return { manualDescription: body.trim(), aiSummary: "" };
+  }
+
+  if (manualMatch && aiMatch && (manualMatch.index ?? 0) < (aiMatch.index ?? 0)) {
+    const manualStart = (manualMatch.index ?? 0) + manualMatch[0].length;
+    const manual = body.slice(manualStart, aiMatch.index ?? body.length).trim();
+    const aiStart = (aiMatch.index ?? 0) + aiMatch[0].length;
+    const ai = body.slice(aiStart).trim();
+    return { manualDescription: manual, aiSummary: ai };
+  }
+  if (manualMatch && !aiMatch) {
+    const manualStart = (manualMatch.index ?? 0) + manualMatch[0].length;
+    return { manualDescription: body.slice(manualStart).trim(), aiSummary: "" };
+  }
+  if (!manualMatch && aiMatch) {
+    const aiStart = (aiMatch.index ?? 0) + aiMatch[0].length;
+    return {
+      manualDescription: body.slice(0, aiMatch.index ?? 0).trim(),
+      aiSummary: body.slice(aiStart).trim(),
+    };
+  }
+  return { manualDescription: body.trim(), aiSummary: "" };
+}
+
+/** M5: assemble body from two sections, always writing both headings (even if empty). */
+export function joinBody(manualDescription: string, aiSummary: string): string {
+  return `${MANUAL_HEADING}\n\n${manualDescription}\n\n${AI_HEADING}\n\n${aiSummary}`.trim();
+}
 
 /** Parse the YAML frontmatter + body from a .md file string. */
-function parseMd(raw: string): { fields: CharacterFields; body: string } {
+function parseMd(raw: string): {
+  fields: CharacterFields;
+  manualDescription: string;
+  aiSummary: string;
+} {
   const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
-    return {
-      fields: emptyFields(""),
-      body: raw.trim(),
-    };
+    const body = raw.trim();
+    const { manualDescription, aiSummary } = splitBody(body);
+    return { fields: emptyFields(""), manualDescription, aiSummary };
   }
   const yamlStr = match[1] ?? "";
   const body = (match[2] ?? "").trim();
   const parsed = (yamlParse(yamlStr) as Record<string, unknown>) ?? {};
-  return { fields: yamlToFields(parsed), body };
+  const { manualDescription, aiSummary } = splitBody(body);
+  return { fields: yamlToFields(parsed), manualDescription, aiSummary };
 }
 
 export function emptyFields(name: string): CharacterFields {
@@ -52,10 +97,10 @@ export function emptyFields(name: string): CharacterFields {
     wordingPreference: null,
     writingAvoid: null,
     relations: null,
-    intimateAppendix: null,
+    sexualScenePerformance: null,
     consolidatedAt: null,
     consolidatedBy: null,
-    manuallyEdited: false,
+    manuallyEditedSections: { manualDescription: false, aiSummary: false },
   };
 }
 
@@ -90,7 +135,21 @@ function coerceRecord(v: unknown): Record<number, string> {
 
 function yamlToFields(y: Record<string, unknown>): CharacterFields {
   const portrait = y["portrait"] as Record<string, unknown> | null | undefined;
-  const intimate = y["intimateAppendix"] as Record<string, unknown> | null | undefined;
+  // M5 migration: 讀容錯 intimateAppendix → sexualScenePerformance
+  const sexualSrc =
+    (y["sexualScenePerformance"] as Record<string, unknown> | null | undefined) ??
+    (y["intimateAppendix"] as Record<string, unknown> | null | undefined);
+  // M5 migration: manuallyEdited boolean → manuallyEditedSections object
+  const mesSrc = y["manuallyEditedSections"] as Record<string, unknown> | null | undefined;
+  const manuallyEditedSections = mesSrc
+    ? {
+        manualDescription: Boolean(mesSrc["manualDescription"]),
+        aiSummary: Boolean(mesSrc["aiSummary"]),
+      }
+    : {
+        manualDescription: Boolean(y["manuallyEdited"]),
+        aiSummary: false,
+      };
   return {
     name: String(y["name"] ?? ""),
     age: coerceNumber(y["age"]),
@@ -117,15 +176,15 @@ function yamlToFields(y: Record<string, unknown>): CharacterFields {
     wordingPreference: coerceString(y["wordingPreference"]),
     writingAvoid: coerceString(y["writingAvoid"]),
     relations: coerceString(y["relations"]),
-    intimateAppendix: intimate
+    sexualScenePerformance: sexualSrc
       ? {
-          bodyMeasurements: coerceString(intimate["bodyMeasurements"]),
-          preferences: coerceString(intimate["preferences"]),
+          bodyMeasurements: coerceString(sexualSrc["bodyMeasurements"]),
+          preferences: coerceString(sexualSrc["preferences"]),
         }
       : null,
     consolidatedAt: coerceString(y["consolidatedAt"]),
     consolidatedBy: coerceString(y["consolidatedBy"]),
-    manuallyEdited: Boolean(y["manuallyEdited"]),
+    manuallyEditedSections,
   };
 }
 
@@ -153,15 +212,21 @@ function fieldsToYaml(fields: CharacterFields): string {
     wordingPreference: fields.wordingPreference,
     writingAvoid: fields.writingAvoid,
     relations: fields.relations,
-    intimateAppendix: fields.intimateAppendix,
+    sexualScenePerformance: fields.sexualScenePerformance,
     consolidatedAt: fields.consolidatedAt,
     consolidatedBy: fields.consolidatedBy,
-    manuallyEdited: fields.manuallyEdited,
+    manuallyEditedSections: fields.manuallyEditedSections,
   });
   return yamlStringify(doc);
 }
 
-export function buildMd(fields: CharacterFields, body: string): string {
+/** Build .md file content (frontmatter + body 兩 section). */
+export function buildMd(
+  fields: CharacterFields,
+  manualDescription: string,
+  aiSummary: string,
+): string {
+  const body = joinBody(manualDescription || MANUAL_PLACEHOLDER, aiSummary);
   return `---\n${fieldsToYaml(fields)}---\n\n${body}\n`;
 }
 
@@ -225,7 +290,12 @@ export function buildStatusMd(name: string): string {
 export interface ReadCharacterResult {
   slug: string;
   fields: CharacterFields;
+  /** Server-assembled full body (含兩段 headings)；給 chapter-writer 與 grep 友善 */
   body: string;
+  /** 「## 角色描述（手動）」段內容（不含 heading） */
+  manualDescription: string;
+  /** 「## AI 統整敘述」段內容（不含 heading） */
+  aiSummary: string;
   path: string;
 }
 
@@ -240,8 +310,15 @@ export async function readCharacter(
   } catch {
     return null;
   }
-  const { fields, body } = parseMd(raw);
-  return { slug, fields, body, path: filePath };
+  const { fields, manualDescription, aiSummary } = parseMd(raw);
+  return {
+    slug,
+    fields,
+    body: joinBody(manualDescription, aiSummary),
+    manualDescription,
+    aiSummary,
+    path: filePath,
+  };
 }
 
 export async function listCharacters(projectPath: string): Promise<CharacterListItem[]> {
@@ -283,7 +360,9 @@ export async function listCharacters(projectPath: string): Promise<CharacterList
 export interface CreateCharacterOptions {
   slug: string;
   fields: CharacterFields;
-  body: string;
+  /** M5 兩段 body */
+  manualDescription: string;
+  aiSummary: string;
   oneLineSummary: string;
 }
 
@@ -291,7 +370,7 @@ export async function createCharacter(
   projectPath: string,
   opts: CreateCharacterOptions,
 ): Promise<CharacterCard> {
-  const { slug, fields, body, oneLineSummary } = opts;
+  const { slug, fields, manualDescription, aiSummary, oneLineSummary } = opts;
 
   const charPath = join(projectPath, CHARACTERS_DIR, `${slug}.md`);
   const statusPath = join(projectPath, CHARACTERS_DIR, `${slug}_status.md`);
@@ -299,7 +378,7 @@ export async function createCharacter(
   await mkdir(join(projectPath, CHARACTERS_DIR), { recursive: true });
 
   await Promise.all([
-    atomicWriteFile(charPath, buildMd(fields, body || PLACEHOLDER_BODY)),
+    atomicWriteFile(charPath, buildMd(fields, manualDescription, aiSummary)),
     atomicWriteFile(statusPath, buildStatusMd(fields.name)),
   ]);
 
@@ -307,12 +386,21 @@ export async function createCharacter(
   index.set(slug, oneLineSummary);
   await writeIndex(projectPath, index);
 
-  return { slug, fields, body: body || PLACEHOLDER_BODY };
+  return {
+    slug,
+    fields,
+    body: joinBody(manualDescription || MANUAL_PLACEHOLDER, aiSummary),
+    manualDescription,
+    aiSummary,
+  };
 }
 
 export interface UpdateCharacterOptions {
   fields?: Partial<CharacterFields>;
-  body?: string;
+  /** M5: 改「## 角色描述（手動）」段；undefined = 不動 */
+  manualDescription?: string;
+  /** M5: 改「## AI 統整敘述」段；undefined = 不動 */
+  aiSummary?: string;
   oneLineSummary?: string;
 }
 
@@ -327,10 +415,12 @@ export async function updateCharacter(
   const mergedFields: CharacterFields = opts.fields
     ? { ...existing.fields, ...opts.fields }
     : existing.fields;
-  const newBody = opts.body !== undefined ? opts.body : existing.body;
+  const newManual =
+    opts.manualDescription !== undefined ? opts.manualDescription : existing.manualDescription;
+  const newAiSummary = opts.aiSummary !== undefined ? opts.aiSummary : existing.aiSummary;
 
   const charPath = join(projectPath, CHARACTERS_DIR, `${slug}.md`);
-  await atomicWriteFile(charPath, buildMd(mergedFields, newBody));
+  await atomicWriteFile(charPath, buildMd(mergedFields, newManual, newAiSummary));
 
   if (opts.oneLineSummary !== undefined) {
     const index = await readIndex(projectPath);
@@ -338,7 +428,13 @@ export async function updateCharacter(
     await writeIndex(projectPath, index);
   }
 
-  return { slug, fields: mergedFields, body: newBody };
+  return {
+    slug,
+    fields: mergedFields,
+    body: joinBody(newManual || MANUAL_PLACEHOLDER, newAiSummary),
+    manualDescription: newManual,
+    aiSummary: newAiSummary,
+  };
 }
 
 export async function renameCharacter(
@@ -380,7 +476,10 @@ export async function renameCharacter(
   const finalFields = updatePortraitPaths(updatedFields);
 
   // Write updated frontmatter + rename files
-  await atomicWriteFile(newMd, buildMd(finalFields, existing.body));
+  await atomicWriteFile(
+    newMd,
+    buildMd(finalFields, existing.manualDescription, existing.aiSummary),
+  );
 
   try {
     await rename(oldStatus, newStatus);
@@ -404,7 +503,13 @@ export async function renameCharacter(
   index.set(newSlug, summary);
   await writeIndex(projectPath, index);
 
-  return { slug: newSlug, fields: finalFields, body: existing.body };
+  return {
+    slug: newSlug,
+    fields: finalFields,
+    body: joinBody(existing.manualDescription || MANUAL_PLACEHOLDER, existing.aiSummary),
+    manualDescription: existing.manualDescription,
+    aiSummary: existing.aiSummary,
+  };
 }
 
 export async function deleteCharacter(projectPath: string, slug: string): Promise<boolean> {
@@ -440,8 +545,17 @@ export async function updatePortraitFields(
   if (!existing) return null;
   const updatedFields = updater(existing.fields);
   const charPath = join(projectPath, CHARACTERS_DIR, `${slug}.md`);
-  await atomicWriteFile(charPath, buildMd(updatedFields, existing.body));
-  return { slug, fields: updatedFields, body: existing.body };
+  await atomicWriteFile(
+    charPath,
+    buildMd(updatedFields, existing.manualDescription, existing.aiSummary),
+  );
+  return {
+    slug,
+    fields: updatedFields,
+    body: joinBody(existing.manualDescription || MANUAL_PLACEHOLDER, existing.aiSummary),
+    manualDescription: existing.manualDescription,
+    aiSummary: existing.aiSummary,
+  };
 }
 
 // ── lookupAppearance（供 ContextCollector 使用；Spec 002b 算法）─────────────

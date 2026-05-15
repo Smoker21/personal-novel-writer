@@ -46,8 +46,9 @@ function buildIndexMd(characters: InitialCharacterCard[]): string {
 function buildCharacterMd(c: InitialCharacterCard): string {
   // Use the same YAML frontmatter format as M2 character management,
   // so newly created characters can be opened/edited via the character editor.
+  // M5: description 預設放入 manualDescription 段，aiSummary 空。
   const fields = emptyFields(c.name);
-  return buildMd(fields, c.description);
+  return buildMd(fields, c.description, "");
 }
 
 export async function createProjectFiles(

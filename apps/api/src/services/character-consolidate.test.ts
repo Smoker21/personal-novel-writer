@@ -40,39 +40,48 @@ const fields: CharacterFields = {
   wordingPreference: null,
   writingAvoid: null,
   relations: null,
-  intimateAppendix: null,
+  sexualScenePerformance: null,
   consolidatedAt: null,
   consolidatedBy: null,
-  manuallyEdited: false,
+  manuallyEditedSections: { manualDescription: false, aiSummary: false },
 };
 
 describe("consolidateCharacter", () => {
-  it("parses clean JSON response", async () => {
+  it("parses clean JSON response with aiSummary key", async () => {
     const result = await consolidateCharacter({
-      router: makeRouter('{"body":"她是個內向的人","oneLineSummary":"30 歲女作家"}'),
+      router: makeRouter('{"aiSummary":"她是個內向的人","oneLineSummary":"30 歲女作家"}'),
       policy,
       fields,
     });
-    expect(result.body).toBe("她是個內向的人");
+    expect(result.aiSummary).toBe("她是個內向的人");
     expect(result.oneLineSummary).toBe("30 歲女作家");
+  });
+
+  it("accepts legacy body key as aiSummary (backwards compat)", async () => {
+    const result = await consolidateCharacter({
+      router: makeRouter('{"body":"舊鍵","oneLineSummary":"compat"}'),
+      policy,
+      fields,
+    });
+    expect(result.aiSummary).toBe("舊鍵");
   });
 
   it("strips markdown code fence from response", async () => {
     const result = await consolidateCharacter({
-      router: makeRouter('```json\n{"body":"body text","oneLineSummary":"summary"}\n```'),
+      router: makeRouter('```json\n{"aiSummary":"body text","oneLineSummary":"summary"}\n```'),
       policy,
       fields,
     });
-    expect(result.body).toBe("body text");
+    expect(result.aiSummary).toBe("body text");
   });
 
   it("strips plain code fence without language tag", async () => {
     const result = await consolidateCharacter({
-      router: makeRouter('```\n{"body":"no lang fence","oneLineSummary":"ok"}\n```'),
+      router: makeRouter('```\n{"aiSummary":"no lang fence","oneLineSummary":"ok"}\n```'),
       policy,
       fields,
     });
-    expect(result.body).toBe("no lang fence");
+    expect(result.aiSummary).toBe("no lang fence");
   });
 
   it("retries on invalid JSON and succeeds on second attempt", async () => {
@@ -86,7 +95,7 @@ describe("consolidateCharacter", () => {
           modelId: "test:model",
         })
         .mockResolvedValueOnce({
-          text: '{"body":"retry body","oneLineSummary":"retry summary"}',
+          text: '{"aiSummary":"retry body","oneLineSummary":"retry summary"}',
           usage: { inputTokens: 10, outputTokens: 50 },
           finishReason: "end",
           modelId: "test:model",
@@ -95,14 +104,14 @@ describe("consolidateCharacter", () => {
     } as unknown as LLMRouter;
 
     const result = await consolidateCharacter({ router, policy, fields });
-    expect(result.body).toBe("retry body");
+    expect(result.aiSummary).toBe("retry body");
     expect(router.generate as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(2);
   });
 
   it("throws on invalid schema (missing oneLineSummary)", async () => {
     const router = {
       generate: vi.fn().mockResolvedValue({
-        text: '{"body":"body only"}',
+        text: '{"aiSummary":"body only"}',
         usage: { inputTokens: 10, outputTokens: 20 },
         finishReason: "end",
         modelId: "test:model",

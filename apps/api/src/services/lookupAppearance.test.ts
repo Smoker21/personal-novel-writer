@@ -26,10 +26,10 @@ function makeFields(overrides: Partial<CharacterFields> = {}): CharacterFields {
     wordingPreference: null,
     writingAvoid: null,
     relations: null,
-    intimateAppendix: null,
+    sexualScenePerformance: null,
     consolidatedAt: null,
     consolidatedBy: null,
-    manuallyEdited: false,
+    manuallyEditedSections: { manualDescription: false, aiSummary: false },
     ...overrides,
   };
 }
