@@ -14,6 +14,19 @@ export function FirstLaunchWarningDialog() {
       });
   }, []);
 
+  // M5 TD-9: 鎖 ESC（使用者按 ESC 不該關掉首次警語對話框）
+  useEffect(() => {
+    if (acknowledged !== false) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [acknowledged]);
+
   async function handleAcknowledge() {
     if (!settings) return;
     const next = {
@@ -41,9 +54,19 @@ export function FirstLaunchWarningDialog() {
   if (acknowledged !== false) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="first-launch-title"
+      // M5 TD-9: 鎖 backdrop click — 防止意外點擊外圍關閉對話框
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="bg-white rounded-lg p-6 max-w-md space-y-4">
-        <h2 className="text-lg font-semibold">使用前須知</h2>
+        <h2 id="first-launch-title" className="text-lg font-semibold">
+          使用前須知
+        </h2>
         <ul className="text-sm space-y-2 list-disc ml-5">
           <li>Novel Writer 是個人本機工具，無雲端帳號，無資料同步服務。</li>
           <li>你的小說內容存在你選擇的資料夾，包含 git 版本歷史。</li>
