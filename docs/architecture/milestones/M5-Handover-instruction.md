@@ -199,6 +199,50 @@ PM 簽核後改 status=Ready，dev 才能動工。
 
 ---
 
+---
+
+## PM Review Round 1（2026-05-15）— 第二輪修訂指令
+
+PM 已 review 第一輪 6 份 spec drafts。三項拍板 + 七項 UX 一致性修訂如下，請 spec-architect 進第二輪修訂後再交回 PM 簽核。
+
+### PM 拍板
+
+| # | 議題 | 決策 | 影響 spec |
+|---|---|---|---|
+| Q1 | 「整理進人員狀態」語意 | (a) 泛稱角色資料，**使用兩個 TextArea**（手動 + AI 並存不互覆） | 002 已對齊，無需動 |
+| Q2 | 上下文預覽預設展開 vs 摺疊 | (A) **預設摺疊**（一頁整合 ≠ 全部同時可見） | 003 line 251 維持 |
+| Q3 | 「重產」語意 | (A) **回 build-prompt 階段**，使用者重調參數+ prompt 後再生成 | 003 + 005 確認 |
+
+### UX 一致性修訂（PM 授權「仔細審核」後產出，全部進本輪）
+
+| # | 修訂項 | 內容 | 影響 spec |
+|---|---|---|---|
+| UX-1 | **ExpandableTextarea 共用元件** | 抽 `<ExpandableTextarea>`：右上角 ⛶ icon → modal 全螢幕（80vh × 80vw）編輯 → 收回 inline；字數計數右下；ESC 可收回（非 lock dialog） | 002 / 003 / 007 / 009 在 UI 規格段加引用 |
+| UX-2 | **CharacterEditor 結構澄清** | 6 個 tabs = 編 frontmatter 結構化欄位；**body 兩個 textarea（手動 + AI）為 tabs 外的固定區**（不是每個 tab 各自 2 個）；點任一 tab 不影響 body 兩 textarea 顯示 | 002 line 425 改寫；補一張結構圖 |
+| UX-3 | **status-updater 採用後通知** | 維持自動寫 status 檔（ergonomics 不擋），但採用後 toast「status 已更新（[查看 diff]）」連結 git history 面板；配合 TD-1 直接寫檔允許隨時干預 | 007 |
+| UX-4 | **AI 精簡 status 走 draft→review** | status-shortener AI 精簡：response **不寫檔**，進 textarea preview → 使用者編輯/確認 → 按儲存才寫；與 002 consolidate 流程對齊 | 007 |
+| UX-5 | **Loading state 共用規格** | 抽 `<Spinner>` 元件：< 3s 行內 spinner；3~15s 加「處理中...（約 N 秒）」；> 15s 加進度文字 + 取消按鈕。spec 標註每個操作的預期時長 | 002（consolidate 8~20s）/ 009（test-provider 5s / list-models 3s） |
+| UX-6 | **Error 三層呈現規範** | (a) inline 紅字 = 欄位驗證錯誤；(b) toast = 操作失敗（非阻擋）；(c) modal = 阻擋性錯誤（衝突、未設定）。每個 error code 對應到一層 | 003 / 005 / 009 |
+| UX-7 | **採用前確認補完** | (a) 採用 AI 章節若 editor 內有 dirty browser draft，先 dialog 「您有未儲存的編輯，採用會丟棄這些變更，繼續？」；(b) settings reset 加 dialog 二次確認（spec 009 line 237 補上） | 003 + 009 |
+
+### 修訂後進度表
+
+PM Round 1 完成後，spec-architect 重跑進度表並推 commit。完成後**通知 PM 進 Round 2 review**（不直接轉 Ready）。
+
+### 不在本輪範圍
+
+- 親密 tab 改名為「性愛場景表現」+ 預設展開（已在 spec 002 第一輪寫入，不重做）
+- 系統提示詞 per-routing-slot vs per-provider 決策（已在 spec 009 第一輪定案）
+- Spec 006 PromptSnapshot 渲染（已在 spec-architect 第一輪追加 advisor 修訂）
+
+### 開放問題 — 第二輪不擋
+
+- spec 003 第一輪「OPEN」（重產語意）已由 Q3=A 關閉
+- 若第二輪修訂中發現新跨 spec 一致性問題，spec-architect 自行記錄並在進度表標 ⚠️ 留 PM Round 2 處理（不擋本輪 commit）
+
+---
+
 ## 變更紀錄
 
 - 2026-05-15：M5 開工指令初版。PM 拍板「直接進 M5、全部走 spec」+ 追加 portrait grid + 本章角色挑選器。
+- 2026-05-15（晚）：PM Round 1 review 完成。Q1=(a) 雙 TextArea / Q2=(A) 預設摺疊 / Q3=(A) 重產回 build-prompt。UX 一致性 7 項修訂指令交回 spec-architect 進第二輪。
