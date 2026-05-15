@@ -161,3 +161,31 @@ Feature: 設定頁（LLM provider / 預設模型 / 個人偏好）
     When 我連續按 Tab 鍵循環
     Then 焦點只在對話框內可 focus 元素之間循環
     And 不會 escape 到對話框外的元素
+
+  # === M5 PM Round 2（UX-1 / UX-7）===
+
+  Scenario: 重設為出廠預設前先彈二次確認 modal（UX-7）
+    Given 我已設定多個 provider 與 routing
+    When 我點「重設為出廠預設」按鈕
+    Then 開啟確認 modal，標題「⚠️ 重設為出廠預設」
+    And modal 列出影響範圍：
+      | 影響 | 細節 |
+      | 清除 | 所有 provider API key、Agent routing、system prompt 覆寫 |
+      | 重新顯示 | 首次啟動警語 |
+      | 保留 | 「最近開啟」清單 |
+    And modal 含 [取消] [確認重設] 兩按鈕
+    And modal 為 dismissable（ESC / click backdrop 可取消，與 FirstLaunchWarning 不同）
+    When 我點「取消」或按 ESC
+    Then settings.yaml 不變
+    When 我重新打開 modal 並點「確認重設」
+    Then 系統呼叫 POST /api/settings/reset
+    And settings.yaml 被覆寫為初始狀態
+    And recentProjects 保留
+
+  Scenario: systemPromptOverride 用 ExpandableTextarea（UX-1）
+    Given 我在設定頁的 chapter-writer 卡片
+    When 我點「系統提示詞覆寫」textarea 右上角 ⛶ icon
+    Then 開啟 modal，textarea 撐 80vh × 80vw
+    When 我在 modal 編輯後按 ESC
+    Then modal 關閉，inline textarea 顯示完整編輯內容
+    And 字數計數即時更新

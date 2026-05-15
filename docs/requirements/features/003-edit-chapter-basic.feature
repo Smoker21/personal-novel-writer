@@ -187,3 +187,37 @@ Feature: 章節編輯器：開啟、編輯、自動儲存（含 browser 草稿�
     When 我加入 participants 並按儲存
     Then chapter 主檔變為「frontmatter + 正文」格式
     And hasFrontmatter 之後為 true
+
+  # === M5 PM Round 2（Q3=A / UX-7 / UX-1）===
+
+  Scenario: 重產回 build-prompt 階段（Q3=A 拍板）
+    Given AI 已產出第 7 章草稿，草稿面板顯示
+    When 我點「⛢ 重產」
+    Then 系統回到 build-prompt 階段
+    And PromptPreviewModal 重新開啟
+    And 寫作參數 / 大綱 / 需求 / participants / 我先前編輯過的 promptText **全部保留**（給我重調機會）
+    And **不**直接重送 LLM（不會無聲消耗額度）
+
+  Scenario: 採用前若有 dirty browser draft 先確認（UX-7）
+    Given 第 7 章主編輯區我手打了「她推開門。」並 autosave 到 IndexedDB（dirty browser draft）
+    And AI 已生出草稿待採用
+    When 我點「採用」
+    Then 系統偵測到 dirty browser draft
+    And 開啟 modal「您有未儲存的編輯，採用 AI 草稿會丟棄這些變更」
+    And modal 有三個選項：[先儲存編輯] [採用並丟棄編輯] [取消]
+    When 我點「先儲存編輯」
+    Then 先執行儲存 chapter 流程（PUT chapter）
+    And 儲存成功後才繼續採用流程
+    When 我改點「採用並丟棄編輯」
+    Then IndexedDB draft 被刪除
+    And 採用流程正常進行（AI 草稿覆蓋主檔）
+    When 我改點「取消」
+    Then 兩個操作都不發生
+
+  Scenario: 本章劇情大綱用 ExpandableTextarea（UX-1）
+    Given 我在第 7 章編輯器
+    When 我點「本章劇情大綱」textarea 右上角 ⛶ icon
+    Then 開啟 modal，textarea 撐 80vh × 80vw
+    And 我輸入的內容即時同步到 inline textarea
+    When 我按 ESC
+    Then modal 關閉，內容保留在 inline textarea

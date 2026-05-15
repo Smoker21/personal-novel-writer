@@ -140,3 +140,53 @@ Feature: 故事與人物狀態更新（status-updater）
     Then story/story_status.md 仍會被更新
     And 不動任何 character_status 檔
     And UI 顯示提示「此章節未指定參與角色 — 角色狀態未更新」
+
+  # === M5 PM Round 2（UX-3 / UX-4）===
+
+  Scenario: 採用後 status 更新完成右下角 toast（UX-3）
+    Given 我採用了第 7 章草稿，status-updater 自動觸發
+    When 系統 SSE 收到 `event: completed`
+    Then 右下角顯示 toast「✓ 故事狀態已更新 [查看 diff]」
+    And toast 預設 6 秒後自動消失
+    And toast 不阻擋我繼續編輯第 7 章主檔
+    When 我點 toast 中「查看 diff」
+    Then 開啟 git 歷史面板（Spec 010）並 filter 至此次 status commit
+
+  Scenario: status-updater 失敗顯示永久側邊 banner（UX-3）
+    Given 我採用了第 7 章，status-updater 觸發
+    When LLM 連續 3 次重試都失敗
+    And 系統 SSE 收到 `event: failed`
+    Then 編輯器側邊顯示永久 banner「⚠️ status 更新失敗：<reason>。[重試]」
+    And banner 不自動消失，必須使用者明確操作（重試 / 關閉）
+    And 不影響我繼續寫 / 採用其他章節
+
+  Scenario: AI 精簡 status 走 draft → review → save（UX-4）
+    Given 我在 StatusEditorPage 編輯 story_status.md
+    When 我點「AI 精簡」按鈕
+    Then 系統呼叫 POST /status/shorten
+    And response 含 shortenedContent（**不**自動寫檔）
+    And 前端開啟 ReviewModal 顯示原文 vs 精簡後對比
+    And ReviewModal 含 textarea（使用者可微調精簡後內容）+ 「✗ 取消」「↻ 重新精簡」「✓ 接受並儲存」三按鈕
+
+  Scenario: 「重新精簡」不需先取消再重打開（UX-4）
+    Given AI 精簡 ReviewModal 顯示中，內容為第一次精簡結果
+    When 我點「↻ 重新精簡」
+    Then 系統重呼 POST /status/shorten（可帶 modelOverride）
+    And ReviewModal 內容更新為新結果（不關閉 modal）
+    And 我可繼續比較、再次精簡或接受
+
+  Scenario: 「接受並儲存」走 /status/write 寫檔（UX-4）
+    Given AI 精簡 ReviewModal 顯示中，使用者已微調內容
+    When 我點「✓ 接受並儲存」
+    Then 系統呼叫 POST /status/write（沿用 TD-1 endpoint）
+    And status/story_status.md 寫入精簡後內容
+    And git 記錄 commit「status: AI 精簡 story」
+    And 顯示 toast「已儲存」
+    And ReviewModal 關閉
+
+  Scenario: 「取消」精簡 status 不變（UX-4）
+    Given AI 精簡 ReviewModal 顯示中
+    When 我點「✗ 取消」
+    Then ReviewModal 關閉
+    And status/story_status.md **未被修改**
+    And StatusEditorPage textarea 內容保留我手寫的版本

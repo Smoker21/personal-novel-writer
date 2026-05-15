@@ -229,6 +229,19 @@ PM 已 review 第一輪 6 份 spec drafts。三項拍板 + 七項 UX 一致性�
 
 PM Round 1 完成後，spec-architect 重跑進度表並推 commit。完成後**通知 PM 進 Round 2 review**（不直接轉 Ready）。
 
+#### Round 2 修訂落點對照（2026-05-15 晚）
+
+| # | 修訂項 | 落在哪 |
+|---|---|---|
+| Q3=A | 重產回 build-prompt 階段 | spec 003 §「重產」與「丟棄」段（OPEN 已關閉）+ 003.feature 新 scenario |
+| UX-1 ExpandableTextarea | canonical 規格放 spec 002 「Shared UI components」段；spec 003 / 007 / 009 cross-reference | 002 / 003 / 007 / 009 + 全部 .feature 對應 scenario |
+| UX-2 CharacterEditor 5 tabs | spec 002 「編輯模式」段整段重寫；6 → 5 tabs（合併身分外貌）；body 兩段為固定區；補 placeholder sample data | 002.feature 4 個新 scenario |
+| UX-3 status-updater toast | spec 007 「三個觸發點」段加「完成後通知」小節 | 007.feature 2 個新 scenario |
+| UX-4 status-shortener review | spec 007 `POST /status/shorten` 補「draft → review → save 流程」 | 007.feature 4 個新 scenario |
+| UX-5 Spinner | canonical 規格放 spec 002；spec 009 cross-reference + 各操作預期時長 | 002 / 009 + 002.feature 1 scenario |
+| UX-6 Error 三層 | canonical 規格放 spec 002；spec 003 / 005 / 009 cross-reference + 各 error code 分類 | 005 / 009 變更紀錄 |
+| UX-7 確認 modal | spec 003「採用」流程補 dirty draft 確認；spec 009 reset endpoint 補二次確認 modal | 003.feature 1 scenario + 009.feature 1 scenario |
+
 ### 不在本輪範圍
 
 - 親密 tab 改名為「性愛場景表現」+ 預設展開（已在 spec 002 第一輪寫入，不重做）

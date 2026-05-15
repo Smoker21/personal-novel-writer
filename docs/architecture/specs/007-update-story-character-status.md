@@ -35,6 +35,20 @@
 
 前兩個觸發點由後端直接呼叫 service（不走 HTTP），不進 queue；第三個由前端 HTTP 呼叫。所有觸發點都會回傳 `jobId` 供前端訂閱 SSE 進度。
 
+### 完成後通知（M5 Round 2 — UX-3）
+
+`auto-after-adopt` 與 `auto-after-save` 觸發完成（`event: completed` 收到）後，前端顯示**右下角 toast**：
+
+```
+✓ 故事狀態已更新       [查看 diff]    [✕]
+```
+
+- toast 預設 6 秒消失（操作非阻擋）；可手動關閉
+- 「查看 diff」連到 Spec 010 git 歷史面板，預先 filter 在「status: update after <reason> chapter <N>」commit
+- 失敗（`event: failed`）改顯示**側邊永久 banner**（既有設計，spec 既有 stat-fe-4 任務）
+
+設計理由：使用者在 ergonomics 上不希望被擋住寫作流程；但採用後 status 自動寫檔的行為對使用者來說是隱形動作，**至少要一個非阻擋通知**讓他知道「剛剛 AI 動了什麼」，並提供干預入口（→ diff → 手動 status/write 修正）。
+
 ## API 合約
 
 所有路徑前綴 `/api/projects/:projectHash/`。
@@ -163,10 +177,41 @@ AI 精簡 status 檔（對應「AI 精簡」按鈕）。
 **Response 200:**
 ```ts
 {
-  shortenedContent: string;     // 精簡後的完整內容（不自動寫檔；前端 textarea 預覽後使用者儲存）
+  shortenedContent: string;     // 精簡後的完整內容；server **不**自動寫檔
   preservedSections: string[];  // 哪些 heading 被保留
 }
 ```
+
+#### M5 Round 2（UX-4）— draft → review → save 流程
+
+> 對齊 Spec 002 `consolidate` 流程：AI 產出**不**直接寫檔，先給使用者 review。
+
+```
+使用者按「AI 精簡」
+  │
+  ▼
+POST /status/shorten → response.shortenedContent
+  │
+  ▼
+前端開啟 ReviewModal：
+  ┌─ AI 精簡結果預覽 ─────────────────────────────┐
+  │ [diff view：原文 ←→ 精簡後]  或  [純精簡後 textarea]│
+  │ <ExpandableTextarea>（可編輯 — 使用者微調）        │
+  │ ────────────────────────────────────────── │
+  │ [✗ 取消] [↻ 重新精簡] [✓ 接受並儲存]               │
+  └────────────────────────────────────────────────┘
+  │
+  ├─ 取消 → modal 關閉，原 status 檔不變
+  ├─ 重新精簡 → 重呼 POST /status/shorten（modelOverride 可調整）
+  └─ 接受並儲存 → POST /status/write（沿用 TD-1 endpoint）寫入
+                  → git commit「status: AI 精簡 <fileType>[/<slug>]」
+                  → toast「已儲存」
+```
+
+設計理由：
+- AI 精簡是有破壞性的（會刪內容），使用者必須先看到結果才能放心儲存
+- 走 `/status/write` 而非另開 endpoint：保持寫檔路徑單一（與 TD-1 同 endpoint）
+- 「重新精簡」不耗額外步驟（不需先取消再重打開）
 
 ## 上下文蒐集
 
@@ -389,3 +434,6 @@ emit StatusJobEvent("completed") → client SSE 收到
 - `2026-05-15`: M5 微調（待 PM 簽核轉 Ready）：
   - TD-1：新增 `POST /status/write` endpoint，給 StatusEditorPage「儲存」按鈕用，取代 M4「複製內容」
   - 「相關角色」篩選改用 chapter front-matter `participants`（取代 substring matching；對齊 Spec 003 / 005）
+- `2026-05-15`（晚）: M5 PM Round 2 修訂：
+  - UX-3：status-updater 採用後 toast 通知（「✓ 故事狀態已更新 [查看 diff]」）+ 失敗時改側邊 banner
+  - UX-4：status-shortener 改 draft→review→save 流程（response 不直接寫檔；ReviewModal 預覽 → 接受才寫，沿用 `/status/write`）— 對齊 Spec 002 consolidate UX

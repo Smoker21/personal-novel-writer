@@ -255,25 +255,25 @@ UI 為摺疊面板（accordion），預設摺疊。展開時顯示前 200 字摘
 
 ### 2. 寫作參數 inline 編輯
 
-| 欄位 | 預設來源 | 覆寫範圍 |
-|---|---|---|
-| Model | settings.agents.chapter-writer.routing.primary | 本章 build-prompt + generate 期間生效，不寫進 chapter front-matter（每次重新展開預設拉 settings） |
-| Temperature | settings.agents.chapter-writer.routing.temperature | 同上；空白 = null = 用 settings |
-| System prompt 本章覆寫 | （無） | 與 settings.systemPromptOverride 兩階段 concat（settings 先、本章後）；空白 = 不疊加 |
+| 欄位 | 預設來源 | 覆寫範圍 | UI 元件 |
+|---|---|---|---|
+| Model | settings.agents.chapter-writer.routing.primary | 本章 build-prompt + generate 期間生效，不寫進 chapter front-matter（每次重新展開預設拉 settings） | 兩段下拉（provider → model）|
+| Temperature | settings.agents.chapter-writer.routing.temperature | 同上；空白 = null = 用 settings | number input + slider |
+| System prompt 本章覆寫 | （無） | 與 settings.systemPromptOverride 兩階段 concat（settings 先、本章後）；空白 = 不疊加 | `<ExpandableTextarea>`（spec 002）|
 
 「本章覆寫」是 ephemeral state — 切章 / reload 後消失。原因：使用者在嘗試不同寫法時不應污染 chapter front-matter；要持久化請改 settings。
 
 ### 3. 本章劇情大綱（持久化）
 
-- textarea，多行
+- 用 `<ExpandableTextarea>` 共用元件（spec 細節見 [spec 002 §「Shared UI components」](./002-edit-character-card.md#shared-ui-components-m5-round-2--跨-spec-引用)）— inline 多行 + 右上 `⛶` 切 modal 全螢幕
 - 寫入 `outline` frontmatter 欄位（PUT chapter）
-- 顯示「(來自第 N 章的舊大綱)」如果使用者切到另一章後又切回
+- placeholder grey text：`例：春雨在圖書館找到明哲，請他協助查詢《梅雨草稿》借閱歷史。明哲在館藏系統發現該書曾被列為「待處理」，留下伏筆。`
 
 ### 4. 本章寫作需求（持久化）
 
-- textarea，多行
+- 用 `<ExpandableTextarea>` 共用元件
 - 寫入 `requirements` frontmatter 欄位
-- placeholder 提供範例：「約 N 字、第幾人稱、特殊風格指引、要避免的元素」
+- placeholder grey text：`例：約 1500 字。第三人稱有限視角（以春雨為主）。保留書卷氣的文藝風格；不要過度推進感情線。`
 
 ### 5. 本章角色挑選器（portrait grid）
 
@@ -315,11 +315,11 @@ POST /api/projects/:hash/chapters/:n/generate
 草稿產生 → 採用 / 重產 / 退回
 ```
 
-「重產」= 回到 build-prompt 階段（保留先前的參數值，使用者可再次調整）。
-「退回」= 丟棄 draft（DELETE draft），不影響 frontmatter。
-「採用」= 既有 Spec 006 流程；採用後 prompt 寫入 `chapter_<NNNN>_prompt.md`（即 ChapterPromptHistory，見下節）。
+「重產」= 回到 build-prompt 階段（保留先前的參數值，使用者可再次調整）。**PM Round 1 Q3=A 拍板（2026-05-15）：取此方案，不採「直接重送同 promptText」**。原因：每次 generate 都讓使用者明確確認 prompt，避免一鍵 re-roll 在不知不覺中消耗 LLM 額度且結果不可預期。
 
-> **OPEN（待 PM 確認）**：「重產」語意 — spec-architect 預設為「回 build-prompt 階段（使用者可重調參數再 build）」。替代方案：「直接重送同一 promptText 給 LLM（單純跑第二輪 sampling）」。前者更安全（使用者每次都明確確認 prompt），後者更快（一鍵重 roll）。請 PM 在 review 時拍板。
+「退回」= 丟棄 draft（DELETE draft），不影響 frontmatter。
+
+「採用」= 既有 Spec 006 流程；採用後 prompt 寫入 `chapter_<NNNN>_prompt.md`（即 ChapterPromptHistory，見下節）。**M5 Round 2 補（UX-7）**：採用前若 editor 主編輯區有 dirty browser draft（使用者打了字未存）→ 顯示 modal「您有未儲存的編輯，採用 AI 草稿會丟棄這些變更。請選擇：先儲存編輯 / 採用並丟棄編輯 / 取消」三選一。
 
 ### 7. ChapterPromptHistory（沿用既有 `chapter_<NNNN>_prompt.md`）
 
@@ -697,3 +697,8 @@ git commit 紀錄（Spec 010）
   - ChapterPromptHistory：沿用 Spec 006 既有 `chapter_<NNNN>_prompt.md`（形式化為「採用後 prompt 累積歷史」，不開新檔）
   - DraftRow 補 frontmatter 三欄 autosave（切章不掉）
   - 開發任務拆解：標記 M3/M4 既有任務 + 列 M5 新任務
+- `2026-05-15`（晚）: M5 PM Round 2 修訂：
+  - Q3=A 拍板：「重產」回 build-prompt 階段（取消 OPEN）
+  - UX-7：採用前若有 dirty browser draft → modal 三選一確認
+  - UX-1：「本章劇情大綱」/「本章寫作需求」/「system prompt 本章覆寫」改用 `<ExpandableTextarea>` 共用元件（spec 002 canonical 定義）
+  - placeholder sample data 補上

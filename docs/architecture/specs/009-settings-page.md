@@ -239,6 +239,26 @@ CREATE TABLE provider_models (
 
 **Response 200:** `{ ok: true; resetAt: string }`
 
+**M5 Round 2（UX-7）— 二次確認 modal**：
+
+此 endpoint 為破壞性操作。前端按「重設為出廠預設」**必須**先彈 modal 二次確認：
+
+```
+┌─ ⚠️ 重設為出廠預設 ────────────────────────┐
+│ 此動作會：                                    │
+│ • 清除所有 provider 設定（API key 全部刪除）   │
+│ • 清除所有 Agent routing 設定                  │
+│ • 清除 system prompt 覆寫                      │
+│ • 重新顯示首次啟動警語                          │
+│                                              │
+│ **保留**：「最近開啟」清單                     │
+│                                              │
+│           [取消]  [確認重設]                  │
+└──────────────────────────────────────────────┘
+```
+
+「確認重設」才送 POST；modal 走 dismissable modality（ESC + click-outside 都可取消，與 FirstLaunchWarning 不同）。
+
 ## 連線測試實作
 
 ### 雲端 provider
@@ -509,7 +529,7 @@ export const ROUTING_PRESETS = {
 | Provider「測試連線」失敗訊息 | 顯示「✗ fetch failed」純技術訊息 | 顯示「✗ 無法連線到 `<endpoint>`，請確認 `<server name>` 已啟動」（依 provider 客製） |
 | Provider 預設模型欄位 | 文字輸入 | **下拉選單**，options 從 `/api/settings/provider-models/:providerId` 拉；旁邊放手動「refresh 模型清單」按鈕 |
 | AgentRoutingCard primary | 文字輸入 | 兩段下拉：先選 provider → 再選 model（model 清單依 primary provider 拉） |
-| AgentRoutingCard systemPromptOverride | 不存在 | textarea（多行），高度 4 行，placeholder 顯示預設範例；structured-data Agent 此欄 disable + 顯示說明 |
+| AgentRoutingCard systemPromptOverride | 不存在 | **`<ExpandableTextarea>`** 共用元件（spec 002 canonical 定義）；minRowsInline=4；placeholder 顯示預設範例；structured-data Agent 此欄 disable + 顯示說明 |
 | AgentRoutingCard temperature | 不存在 | number input + slider（0.0–2.0，step 0.1）；空白 = null = 用 Agent 預設 |
 | 「未設定」AgentRoutingCard | 沒視覺警告 | 橘色文字「⚠️ 未設定 — 此 Agent 無法使用」（依 TD-5 即 pol-on-4） |
 
@@ -543,6 +563,16 @@ client (settings page)
 ### 005 / 002 / 007 對「routing 未設定」的引導
 
 當這些 endpoint 偵測到 `settings.agents[<name>]` 不存在或 `routing.primary` 對應 provider 未 enabled，回 400 `ROUTING_NOT_CONFIGURED`，前端顯示「請先到設定頁設定 <Agent name> 的預設模型」+「前往設定頁」連結。
+
+## Shared UI components reference（M5 Round 2）
+
+本 spec UI 使用以下共用元件，canonical 規格見 [spec 002 §「Shared UI components」](./002-edit-character-card.md#shared-ui-components-m5-round-2--跨-spec-引用)：
+
+| 元件 / 慣例 | 本 spec 使用點 |
+|---|---|
+| `<ExpandableTextarea>` | `AgentRoutingCard.systemPromptOverride` textarea |
+| `<Spinner>` | provider test-connection（3~5s）/ provider listModels（1~3s） |
+| Error 三層呈現 | inline：`INVALID_MODEL_ID` / 必填欄；toast：`IO_ERROR` / `LIST_MODELS_FAILED`；modal：reset 二次確認、`ROUTING_NOT_CONFIGURED` 引導 |
 
 ## 安全考量
 
@@ -625,3 +655,8 @@ Story 032 首次警語的「不再顯示」狀態存在 `meta.firstLaunchWarning
   - `agents.character-image-extractor` 納入正式 schema（Spec 002b 引入）
   - 設定頁 UX 規格段：API key 預設顯示、Provider 卡片預設展開、disabled routing 警告
   - TD-9（Story 032）：FirstLaunchWarningDialog ESC + click-outside 行為驗證點補完
+- `2026-05-15`（晚）: M5 PM Round 2 修訂：
+  - UX-1：`systemPromptOverride` textarea 改用 `<ExpandableTextarea>` 共用元件
+  - UX-5：補 Spinner 規格 reference（test-provider 3~5s / listModels 1~3s）
+  - UX-6：補 Error 三層呈現規格 reference（inline / toast / modal 各對應的 error code）
+  - UX-7：`POST /api/settings/reset` 前端必須先彈二次確認 modal（含影響範圍說明）

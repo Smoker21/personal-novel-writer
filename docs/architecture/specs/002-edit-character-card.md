@@ -413,30 +413,229 @@ manuallyEditedSections:
 
 實作：grid CSS layout（`grid-template-columns: repeat(auto-fill, minmax(180px, 1fr))`）；卡片寬 ≥ 180px；portrait aspect-ratio 3:4。
 
-### 編輯模式：6 個 tabs（沿用 M4 結構，M5 調整）
+### 編輯模式（M5 PM Round 2 修正：核心區在上 + tabs 在下）
 
-點 portrait grid 卡進入。Tabs：
+點 portrait grid 卡進入編輯模式。整體佈局：**上層 = 核心區（portrait + 角色描述手動 + AI 統整敘述，永遠顯示）；下層 = 5 個 tabs（結構化補充欄位）。** 切換 tab **不影響核心區**，使用者編輯人物描述的焦點不被打斷。
 
-1. **身分**（既有）
-2. **個性**（既有）
-3. **外貌**（既有）
-4. **對話**（既有）
-5. **關係**（既有）
-6. **性愛場景表現**（M5：tab 改名自「親密」；預設**展開**而非摺疊）
+#### 設計理由
 
-每個 tab 下方有兩個 markdown editor section：
+| 區 | 元素 | 為什麼這樣放 |
+|---|---|---|
+| 核心區（上，固定）| default portrait + 上傳/解析/刪除 + 「## 角色描述（手動）」+「## AI 統整敘述」| 三者都是「這個角色是誰」的本質；chapter-writer 主要看「角色描述（手動）」+「AI 統整」；portrait 是視覺認知；使用者多數時間在編輯這三項，不該被切 tab 打斷焦點 |
+| Tabs 區（下）| 結構化 frontmatter 補充欄位 + 章節版本 portrait | 結構化欄位是 LLM 輔助參考（個性 tags / dialogue pace / 外貌 fallback），偶爾調整不需常駐視野 |
 
-- **「角色描述（手動）」**（M5 新增 — 重點）：textarea / CM6，讓使用者寫該角色的完整文字描述。這是 chapter-writer 主要看的內容。placeholder 引導 grey text：「在這裡寫下此角色的完整描述。不用擔心結構，可以是個性、外貌、口吻、習慣、過去等任何重要資訊。」
-- **「AI 統整敘述」**（M5 新增 — 可折疊）：唯讀 + 「重新統整」按鈕 + 「展開編輯」按鈕；預設摺疊；展開後 textarea 可手動微調
+#### 核心區結構（上，固定）
 
-### 性愛場景表現 tab（M5）
+```
+┌── 核心區（永遠顯示，切 tab 不影響）──────────────────────┐
+│ ┌─────────┐                                                │
+│ │ portrait│  ## 角色描述（手動）— chapter-writer 主要素材  │
+│ │ default │  ┌──────────────────────────────────┐ ⛶        │
+│ │  (圖)  │  │ [使用者輸入角色完整文字描述...]    │          │
+│ │  3:4   │  │                                    │          │
+│ └─────────┘  └──────────────────────────────────┘ 234 字   │
+│ [上傳預設圖]                                                │
+│ [從圖解析]                                                  │
+│ [刪除]                                                      │
+│                                                            │
+│              ## AI 統整敘述        [✨ AI 統整] [展開▼]    │
+│              (預設摺疊；展開後顯示 textarea + 編輯)         │
+└────────────────────────────────────────────────────────────┘
+```
+
+核心區規則：
+
+| 元素 | 規格 |
+|---|---|
+| Default portrait | 左側顯示縮圖（3:4 ratio）；下方三按鈕：上傳預設圖 / 從圖解析 / 刪除；無圖時顯示角色定位 icon fallback（與 portrait grid 卡一致） |
+| 角色描述（手動）| 永遠展開，無摺疊；使用 `<ExpandableTextarea>`；placeholder grey text 引導使用者填寫 |
+| AI 統整敘述 | 預設**摺疊**，只顯示 heading + 「✨ AI 統整」「展開▼」兩按鈕；展開後顯示 `<ExpandableTextarea>` |
+| 為何 default portrait 在這裡而非 tab | default portrait 是「角色身份識別」（與 portrait grid 卡同源），與「這個角色是誰」緊密相連；章節版本 portrait 才是「補充細節」歸 tab |
+
+#### Tabs 結構（下，5 個 tabs）
+
+```
+┌── 結構化補充欄位 ────────────────────────────────────────┐
+│ [身分外貌▼] [個性] [對話] [關係] [性愛場景表現]            │
+│ ───────────────────────────────────────────────────────── │
+│ (當前 tab 內容)                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+| Tab | 內容 | 預設停在 |
+|---|---|---|
+| **[身分外貌]** | 身分區（5 欄位，**collapsible**，預設摺疊）+ 外貌欄位（6 欄位文字輸入）+ 章節版本 portrait（chapter-specific 圖）| ✅ 預設停在此 tab |
+| **[個性]** | 個性標籤 / MBTI / 星座 / 血型 / 文化背景 | |
+| **[對話]** | 對話節奏 / 用詞偏好 / 寫作要避免 | |
+| **[關係]** | 與其他角色關係（多行，支援 `[[wiki-link]]`） | |
+| **[性愛場景表現]** | 身體數據 / 偏好 | rename 自 M4「親密」；預設**展開**內容（spec 002 2.9 反轉）|
+
+#### [身分外貌] tab 範例（身分摺疊狀態）
+
+```
+┌── 結構化欄位 ─────────────────────────────────────────────┐
+│ [身分外貌▼] [個性] [對話] [關係] [性愛場景表現]            │
+│ ───────────────────────────────────────────────────────── │
+│                                                            │
+│ ▶ 身分（5 個欄位）                          (預設摺疊)    │
+│                                                            │
+│ ── 外貌欄位 ──                                              │
+│   身高 [____] cm    體型 [____________]                    │
+│   髮型髮色 [_______________________________]                │
+│   眼睛 [________________________]                          │
+│   服裝 [________________________]                          │
+│   其他特徵 [________________________]                      │
+│                                                            │
+│ ── 章節版本 portrait（chapter-specific）──                 │
+│  ┌───┐ ┌───┐                       [+ 為章節新增照片]      │
+│  │ 1 │ │ 5 │  (預設 portrait 不在此 — 已搬到上方核心區)    │
+│  └───┘ └───┘                                                │
+└────────────────────────────────────────────────────────────┘
+```
+
+身分區展開後：
+
+```
+│ ▼ 身分                                                      │
+│   姓名* [____________]    定位 [主角▼]                      │
+│   年齡  [____]            性別 [____________]               │
+│   代名詞 [____]                                              │
+```
+
+#### 性愛場景表現 tab（M5）
 
 | Item | 規格 |
 |---|---|
 | Tab 名稱 | 「性愛場景表現」（取代 M4「親密」）|
-| 預設摺疊 | **預設展開**（M5；spec 002 2.9 反轉）|
-| 內容 | 既有 `sexualScenePerformance.bodyMeasurements` + `sexualScenePerformance.preferences` 欄位；plus 兩 section markdown body（手動 + AI 統整） |
-| 警告文字 | tab 頂部顯示「此區內容會餵給 chapter-writer。題材不適用時請留空。」（不再像 M4 那樣需要展開才提示）|
+| 預設展開 | **預設展開**（M5；spec 002 2.9 反轉）|
+| 內容 | `sexualScenePerformance.bodyMeasurements` + `sexualScenePerformance.preferences`（兩個 frontmatter 欄位）|
+| 警告文字 | tab 頂部顯示「⚠️ 此區內容會餵給 chapter-writer。題材不適用時請留空。」 |
+
+#### Sample data（placeholder grey text）對應 PM UX review「填寫內容需要灰色內容輔助輸入」P1
+
+| Tab | 欄位 | placeholder |
+|---|---|---|
+| 身分外貌 | 姓名 | `例：蘇晴` |
+| 身分外貌 | 年齡 | `例：30` |
+| 身分外貌 | 性別 | `例：女 / 男 / 非二元 / 自由文字` |
+| 身分外貌 | 代名詞 | `例：她 / 他 / 牠 / 祂` |
+| 身分外貌 | 定位 | 下拉：主角 / 配角 / 反派 / 重要路人 |
+| 身分外貌 | 身高 cm | `例：165` |
+| 身分外貌 | 體型 | `例：中等偏瘦 / 高大壯碩 / 嬌小` |
+| 身分外貌 | 髮型髮色 | `例：黑色長髮，平日綁低馬尾；前額有齊瀏海` |
+| 身分外貌 | 眼睛 | `例：雙眼皮，眼尾微下垂；瞳色棕黑` |
+| 身分外貌 | 服裝 | `例：日常穿針織衫 + 直筒褲；正式場合穿襯衫` |
+| 身分外貌 | 其他特徵 | `例：膚色偏白，鵝蛋臉；左頸有顆小痣` |
+| 個性 | 個性標籤 | `按 Enter 新增。例：內向、敏感、含蓄、堅強、慢熱` |
+| 個性 | MBTI | 下拉（16 型） |
+| 個性 | 星座 | 下拉（12 星座） |
+| 個性 | 血型 | 下拉 A / B / O / AB |
+| 個性 | 文化背景 | `例：台灣台北出生長大，大學文學系；童年喪母由祖母帶大；信奉低調務實` |
+| 對話 | 對話節奏 | 下拉：快 / 穩 / 慢 |
+| 對話 | 用詞偏好 | `例：半句話結尾，不喜歡把話說滿；對熟人會放鬆用語；不太用感嘆詞` |
+| 對話 | 寫作要避免 | `例：避免讓她說過於肯定的句子；不要寫她大笑；少用感嘆號` |
+| 關係 | 與其他角色關係 | `多行文字，可用 [[wiki-link]] 連結其他角色。例：` 換行 `與 [[林書言]] 從一場避雨開始認識，對他有具體好感但保持分寸。` 換行 `與 [[蕭母]] 是養育關係；母親早逝由祖母帶大，相依為命。` |
+| 性愛場景表現 | 身體數據 | `例：B85 / W60 / H88，膚質細緻；題材不適用時請留空。` |
+| 性愛場景表現 | 偏好 | `例：被動但會主動引導；喜歡眼神接觸；場景偏向慢節奏與情感醞釀；題材不適用時請留空。` |
+| Body 固定區 | 角色描述（手動）| `在這裡寫下此角色的完整描述。不用擔心結構 — 可以是個性、外貌、口吻、習慣、過去、價值觀等任何重要資訊。chapter-writer 寫小說時主要看這段。` |
+| Body 固定區 | AI 統整敘述 | （摺疊；展開時）`按上方「✨ AI 統整」會用結構化欄位 + 手動描述產生連貫敘述寫到這裡。可手動微調；下次 AI 統整不會蓋你的手動段。` |
+
+### Shared UI components（M5 Round 2 — 跨 spec 引用）
+
+> 以下三個元件 / 慣例由 spec 002 定義 canonical 規格；spec 003 / 007 / 009 直接 reference。實作放 `apps/web/src/components/`（共用元件目錄，不歸屬任一 feature folder）。
+
+#### ExpandableTextarea（UX-1）
+
+多行 textarea 通用元件，支援 inline ↔ modal 全螢幕切換。
+
+| 屬性 | 行為 |
+|---|---|
+| Inline 模式（預設）| 多行 textarea，`min-rows={minRowsInline}` 預設 6；右上角 `⛶`（lucide-react `Maximize2`）icon；右下角字數計數 `<N> 字` |
+| Expanded 模式 | 點 `⛶` → 開 modal；textarea 撐 **80vh × 80vw**；modal backdrop 略暗（不全黑）；textarea focus 自動移入 |
+| 收回 inline | (a) 點 modal 右上 `⛟`（`Minimize2`）icon；(b) 按 ESC；(c) 點 backdrop（dismissable modality — 與 FirstLaunchWarning lock dialog 對比）|
+| 資料同步 | `onChange` 即時回呼 parent；inline / expanded 共用同一 `value` 來源，編輯內容永遠同步；關 modal **不**丟資料、**不**需「儲存」按鈕 |
+| 字數計數 | 中文字 + 半形字元都算 1 字（沿用 `packages/shared-types/src/text-count.ts`）；超過 `maxLength` 紅字 |
+| placeholder | 灰字輔助文字；對應 PM UX review「填寫內容需要灰色內容輔助輸入」P1 |
+
+Props：
+
+```ts
+interface ExpandableTextareaProps {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+  minRowsInline?: number;        // 預設 6
+  maxLength?: number;            // 預設無限
+  label?: string;                // expanded modal 標題用
+  ariaLabel?: string;
+}
+```
+
+使用位置：
+
+| spec | 位置 |
+|---|---|
+| 002 | 「角色描述（手動）」+「AI 統整敘述」(body 兩段固定區) |
+| 003 | 「本章劇情大綱」+「本章寫作需求」+「system prompt 本章覆寫」+ PromptPreviewModal 內 prompt 編輯區 |
+| 007 | StatusEditorPage 編輯區（story_status / character_status）+ status-shortener review textarea |
+| 009 | `AgentRoutingCard.systemPromptOverride` textarea |
+
+#### Spinner（UX-5）
+
+```ts
+interface SpinnerProps {
+  estimatedSeconds?: number;     // 預估完成秒數；決定顯示形式
+  onCancel?: () => void;         // > 15s 時顯示取消按鈕
+  message?: string;              // 自訂訊息覆寫預設「處理中…」
+}
+```
+
+顯示分級（依 `estimatedSeconds` 與實際經過時間）：
+
+| 經過時間 | 顯示形式 |
+|---|---|
+| < 3s | 行內 `<svg>` 旋轉 spinner（小尺寸）|
+| 3~15s | spinner + 文字「處理中…（約 N 秒）」 |
+| > 15s | spinner + 文字「處理中…（已 M 秒 / 約 N 秒）」+「取消」按鈕（若 `onCancel` 提供） |
+
+各操作預期時長：
+
+| 操作 | 預期 | 取消可用 |
+|---|---|---|
+| character-card-consolidator | 8~20s | 是 |
+| chapter-writer build-prompt | < 200ms | 否（不顯示 spinner） |
+| chapter-writer generate（首 chunk）| 1~3s | 是（中止 SSE）|
+| status-updater | 5~30s | 是 |
+| status-shortener | 5~15s | 是 |
+| character-image-extractor（vision）| 8~30s | 是 |
+| provider test-connection | 3~5s | 是 |
+| provider listModels | 1~3s | 是 |
+| portrait upload + resize | < 2s | 否 |
+
+#### Error 三層呈現（UX-6）
+
+| 層 | 用途 | UI |
+|---|---|---|
+| (a) **inline 紅字** | 欄位驗證錯誤（必填、格式不對、length 超限） | 欄位下方紅字 + 紅色邊框；不阻擋其他欄位 |
+| (b) **toast** | 非阻擋性操作失敗（save 失敗、network blip、AI 統整失敗）| 右下角 toast，自動消失（5s）；可手動 dismiss；含「重試」按鈕 |
+| (c) **modal** | 阻擋性錯誤（衝突、未設定 routing、stale draft 需確認）| 中央 modal，必須使用者明確選擇後才能繼續 |
+
+各 error code 對應層（依 spec API 段所列 4xx/5xx 規範分類）：
+
+| Error code | 層 | 範例 |
+|---|---|---|
+| `INVALID_INPUT` / `INVALID_TITLE` / `INVALID_MODEL_ID` / `INVALID_FORMAT` / zod 驗證錯誤 | inline | 表單欄位下紅字 |
+| `IO_ERROR` / `LLM_FAILED`（非首次嘗試）/ `EXTRACTION_PARSE_FAILED` | toast | 右下「✗ 失敗：<msg>。重試」|
+| `ROUTING_NOT_CONFIGURED` / `DRAFT_STALE` / `MTIME_MISMATCH` / `ADOPT_IN_PROGRESS` / `RENAME_CONFLICT` | modal | 中央對話框含選項按鈕 |
+
+#### Loading state（採用 UX-5 共用 `<Spinner>` 規格）
+
+| 操作 | 預期時長 | Spinner 形式 |
+|---|---|---|
+| AI 統整（character-card-consolidator）| 8~20s（雲端 haiku 或地端 14B） | 進度文字「處理中… 約 N 秒」+ 取消按鈕（> 15s）|
+| portrait 上傳 + resize | < 2s | 行內 spinner |
+| portrait extract（vision LLM）| 8~30s | 進度文字 + 取消按鈕 |
+| character CRUD（不含 consolidate）| < 200ms | 不顯示 spinner |
 
 ## 衍生資料 SQLite cache（M5 新增）
 
@@ -740,3 +939,9 @@ consolidator skill
   - 性愛場景表現 tab 預設**展開**（spec 002 2.9 反轉）+ tab 改名
   - 新增衍生資料 SQLite cache `~/.novel-writer/cache/<projectHash>/character-index.db`
   - 修 M4 bug：AI 統整失敗時 UI 整個鎖住 → 改為 inline error 不擋其他按鈕
+- `2026-05-15`（晚）: M5 PM Round 2 修訂：
+  - 編輯模式 layout 大改：**核心區（portrait + 角色描述手動 + AI 統整敘述）在上、永遠顯示**；**5 個 tabs（結構化補充欄位）在下、切換不影響核心區** — 使用者編輯人物描述焦點不被打斷（user feedback in PM Round 2）
+  - default portrait 從「外貌 tab 內」搬到核心區（與 portrait grid 卡同源，識別性強）；章節版本 portrait 留在「身分外貌」tab
+  - tabs 從 6 → 5：合併身分 + 外貌為「身分外貌」tab（身分區 collapsible，預設摺疊）
+  - 所有輸入欄位補 placeholder sample data（PM UX review「填寫內容需要灰色內容輔助輸入」P1）
+  - 新增「Shared UI components」段：`ExpandableTextarea`（UX-1）/ `Spinner`（UX-5）/ Error 三層（UX-6）— canonical 規格放本 spec，spec 003 / 007 / 009 reference

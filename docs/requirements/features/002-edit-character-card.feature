@@ -161,3 +161,73 @@ Feature: 新增 / 編輯角色卡（欄位輸入 + AI 統整）
     When 應用啟動
     Then 系統全量掃 characters/*.md 重建 character_index.db
     And 即使 cache 整個刪掉，UI 仍可正常運作（只是首次查詢稍慢）
+
+  # === M5 PM Round 2 補（UX-1 / UX-2 / UX-5）===
+
+  Scenario: 角色卡編輯器 tabs 為 5 個（M5 Round 2）
+    Given 我點 portrait grid 上的「蘇晴」卡進入編輯模式
+    Then 我看到 5 個 tabs：[身分外貌] [個性] [對話] [關係] [性愛場景表現]
+    And 「身分」不再是獨立 tab（合併進「身分外貌」）
+
+  Scenario: 「身分外貌」tab 的身分區預設摺疊（M5 Round 2）
+    Given 我在「身分外貌」tab
+    When tab 初次渲染
+    Then 「身分」區為摺疊狀態（顯示 `▶ 身分（5 個欄位）`）
+    And 「外貌」區為展開狀態
+    And 「預設 portrait」與「章節版本 portrait」區為展開狀態
+    When 我點「▶ 身分」標題
+    Then 身分區展開，顯示 5 個欄位（姓名 / 年齡 / 性別 / 代名詞 / 定位）
+
+  Scenario: 核心區（portrait + 兩段描述）永遠顯示在上、切 tab 不影響（M5 Round 2 — UX-2 修正）
+    Given 我在角色編輯器
+    Then 頁面**上層**為核心區，顯示：
+      | 元素 |
+      | default portrait 縮圖 + [上傳預設圖] [從圖解析] [刪除] |
+      | ## 角色描述（手動）— textarea（永遠展開）|
+      | ## AI 統整敘述（預設摺疊，顯示 [✨ AI 統整] [展開▼]）|
+    And 頁面**下層**為 5 個 tabs（結構化補充欄位）
+    When 我切到「個性」tab
+    Then 核心區（portrait + 兩段）**不變**（位置、內容、scroll position 都保留）
+    When 我切到「性愛場景表現」tab
+    Then 核心區仍然顯示在頂部
+    And 我手寫的「角色描述（手動）」內容完全沒變動
+    And textarea 的 caret 位置與選取狀態保留
+
+  Scenario: default portrait 在核心區、章節版本 portrait 在身分外貌 tab（M5 Round 2 修正）
+    Given 我在角色編輯器
+    Then default portrait 顯示在**核心區左側**（不在任何 tab 內）
+    And [上傳預設圖] [從圖解析] [刪除] 三按鈕在 portrait 縮圖下方
+    When 我切到「身分外貌」tab
+    Then 在外貌欄位下方看到「── 章節版本 portrait（chapter-specific）──」區
+    And 該區**不**包含 default portrait（已搬到核心區）
+    And 含 [+ 為章節新增照片] 按鈕
+
+  Scenario: 欄位 placeholder grey text 引導填寫（M5 Round 2）
+    Given 我在新建的角色編輯器，所有欄位為空
+    Then 「姓名」input 顯示 grey placeholder「例：蘇晴」
+    And 「對話節奏」下拉預設值為「快 / 穩 / 慢」option
+    And 「用詞偏好」textarea 顯示 grey placeholder「例：半句話結尾，不喜歡把話說滿；對熟人會放鬆用語；不太用感嘆詞」
+    And 「角色描述（手動）」textarea 顯示 grey placeholder「在這裡寫下此角色的完整描述。...」
+
+  Scenario: ExpandableTextarea 切 modal 全螢幕（M5 Round 2 — UX-1）
+    Given 我在「角色描述（手動）」textarea 寫了 200 字
+    When 我點 textarea 右上角 ⛶ icon
+    Then modal 開啟，textarea 撐 80vh × 80vw
+    And textarea focus 自動移入，文字內容保留
+    When 我在 modal 中繼續輸入到 500 字
+    And 按 ESC
+    Then modal 關閉，inline textarea 顯示完整 500 字
+    And 字數計數右下顯示「500 字」
+    And **不**需按「儲存」— 內容已即時同步
+
+  Scenario: AI 統整 Spinner 規格（M5 Round 2 — UX-5）
+    Given 我點「✨ AI 統整」按鈕
+    Then 按鈕變為 disabled 狀態
+    And 按鈕旁顯示 Spinner
+    When 經過 3 秒後仍未完成
+    Then Spinner 旁出現文字「處理中…（約 8~20 秒）」
+    When 經過 15 秒後仍未完成
+    Then 文字變為「處理中…（已 15 秒 / 約 8~20 秒）」+ 顯示「取消」按鈕
+    When 完成
+    Then Spinner 消失，按鈕恢復 enabled
+    And 「AI 統整敘述」段填入結果
