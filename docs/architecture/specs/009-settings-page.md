@@ -2,7 +2,7 @@
 
 > Story: `docs/requirements/stories/009-settings-page.md`
 > BDD: `docs/requirements/features/009-settings-page.feature`
-> Status: `Draft`（M5 修訂中，待 PM 簽核轉 Ready）
+> Status: `Ready`（PM 於 2026-05-15 拍板核准 M5 Round 3）
 > Owner: `spec-architect`
 > Last updated: `2026-05-15`
 > Depends on ADR: 0001（儲存策略）、0003（技術棧）、0004（LLM adapter）、0006（Tauri）、0008（前端架構）

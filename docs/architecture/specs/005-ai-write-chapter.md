@@ -2,7 +2,7 @@
 
 > Story: `docs/requirements/stories/005-ai-write-chapter.md`
 > BDD: `docs/requirements/features/005-ai-write-chapter.feature`
-> Status: `Draft`（M5 修訂中，待 PM 簽核轉 Ready）
+> Status: `Ready`（PM 於 2026-05-15 拍板核准 M5 Round 3）
 > Owner: `spec-architect`
 > Last updated: `2026-05-15`
 > Depends on ADR: 0001（儲存）、0002（命名）、0003（技術棧）、0004（LLM adapter）

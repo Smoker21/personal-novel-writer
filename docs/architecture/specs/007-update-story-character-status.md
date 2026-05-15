@@ -2,7 +2,7 @@
 
 > Story: `docs/requirements/stories/007-update-story-character-status.md`
 > BDD: `docs/requirements/features/007-update-story-character-status.feature`
-> Status: `Draft`（M5 微調中，待 PM 簽核轉 Ready）
+> Status: `Ready`（PM 於 2026-05-15 拍板核准 M5 Round 3）
 > Owner: `spec-architect`
 > Last updated: `2026-05-15`
 > Depends on ADR: 0001、0003、0004

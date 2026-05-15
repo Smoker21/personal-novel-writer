@@ -2,7 +2,7 @@
 
 > Story: `docs/requirements/stories/002-edit-character-card.md`
 > BDD: `docs/requirements/features/002-edit-character-card.feature`
-> Status: `Draft`（M5 修訂中，待 PM 簽核轉 Ready）
+> Status: `Ready`（PM 於 2026-05-15 拍板核准 M5 Round 3）
 > Owner: `spec-architect`
 > Last updated: `2026-05-15`
 > Depends on ADR: 0001（儲存）、0002（命名）、0003（技術棧）、0004（LLM adapter）、0007（git）、0008（前端架構）

@@ -140,13 +140,15 @@ ChapterEditor / Character / Settings。M5 = 走完整 spec 流程重設計這三
 
 | Spec | 修訂狀態 | PM 簽核 | 對應 .feature 草稿 |
 |---|---|---|---|
-| 003 + 005（章節編輯器重設計） | ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 003.feature + 005.feature 草稿（R3 補 UX-6 toast scenario）|
-| **006**（採用流程串接 003+005）| ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 006.feature 補 dirty draft 三選一 scenarios |
-| 002（角色卡 portrait grid + 手動為主） | ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 002.feature 草稿（R3 補 AI 統整 dialog 語意 + UX-6 inline scenarios）|
-| 009（設定強化）| ✅ Draft Round 3 (2026-05-15) | ⬜ Round 3 review | ✅ 009.feature 草稿（R3 補 UX-6 modal scenario）|
-| 007 微調（TD-1） | ✅ Draft (2026-05-15) | ⬜ Round 3 review | ✅ 007.feature 草稿 |
-| 008 微調（TD-2/3） | ✅ Draft (2026-05-15) | ⬜ Round 3 review | ✅ 008.feature 草稿 |
-| ~~032 微調（TD-9）~~ | ✅ 併入 spec 009 | ⬜ | （已在 009.feature） |
+| 003 + 005（章節編輯器重設計） | ✅ Ready (2026-05-15) | ✅ PM 核准 (2026-05-15) | ✅ 003.feature + 005.feature 完成 |
+| **006**（採用流程串接 003+005）| ✅ Ready (2026-05-15) | ✅ PM 核准 (2026-05-15) | ✅ 006.feature 完成 |
+| 002（角色卡 portrait grid + 手動為主） | ✅ Ready (2026-05-15) | ✅ PM 核准 (2026-05-15) | ✅ 002.feature 完成 |
+| 009（設定強化）| ✅ Ready (2026-05-15) | ✅ PM 核准 (2026-05-15) | ✅ 009.feature 完成 |
+| 007 微調（TD-1） | ✅ Ready (2026-05-15) | ✅ PM 核准 (2026-05-15) | ✅ 007.feature 完成 |
+| 008 微調（TD-2/3） | ✅ Ready (2026-05-15) | ✅ PM 核准 (2026-05-15) | ✅ 008.feature 完成 |
+| ~~032 微調（TD-9）~~ | ✅ 併入 spec 009 | ✅ PM 核准 (2026-05-15) | （已在 009.feature） |
+
+**🎉 spec 階段全部完成（2026-05-15）。可進 dev Phase 2。**
 
 **spec-architect 修訂筆記（2026-05-15）**：
 - spec 032 不開獨立檔（spec 009 既有「對 Story 032 的承擔」段已絕對承擔；TD-9 補在該段「Dialog modality 行為驗證點」小節）
@@ -163,11 +165,11 @@ ChapterEditor / Character / Settings。M5 = 走完整 spec 流程重設計這三
 ## 完成定義（spec 階段）
 
 全部 ✅ 才可進 dev：
-- [ ] 六份 spec 修訂完成
-- [ ] 每份對應 .feature 草稿（最終由 PM 確認）
-- [ ] 跨 spec 一致性已標註（front-matter、context-collector、prompt-library 介面）
-- [ ] PM 對每份 spec 簽核（status=Ready）
-- [ ] 在此檔的進度表全勾
+- [x] 六份 spec 修訂完成（實際 7 份：002 / 003 / 005 / 006 / 007 / 008 / 009）
+- [x] 每份對應 .feature 草稿（最終由 PM 確認）
+- [x] 跨 spec 一致性已標註（front-matter、context-collector、prompt-library 介面）
+- [x] PM 對每份 spec 簽核（status=Ready）✅ 2026-05-15
+- [x] 在此檔的進度表全勾
 
 ---
 
@@ -385,3 +387,4 @@ spec 003 line 318~322 改寫為：
 - 2026-05-15（晚）：PM Round 1 review 完成。Q1=(a) 雙 TextArea / Q2=(A) 預設摺疊 / Q3=(A) 重產回 build-prompt。UX 一致性 7 項修訂指令交回 spec-architect 進第二輪。
 - 2026-05-15（深夜）：PM Round 2 review 完成。Round 2 修訂品質高、80% 一致性。四項拍板（A 認可擴大 / B AI 統整 dialog 語意修正 / C spec 006 補 dirty draft / D 補 UX-6 BDD scenarios）交 spec-architect 進第三輪收尾。
 - 2026-05-15（深夜末）：spec-architect Round 3 收尾完成。A/B/C/D 全部落地。等 PM Round 3 review；若無新發現，可直接轉 status=Ready 進 dev Phase 2。
+- **2026-05-15（拍板）：PM 核准所有提案，7 份 spec 全部轉 status=Ready。可進 dev Phase 2。**

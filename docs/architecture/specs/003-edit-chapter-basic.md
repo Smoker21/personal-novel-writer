@@ -2,7 +2,7 @@
 
 > Story: `docs/requirements/stories/003-edit-chapter-basic.md`
 > BDD: `docs/requirements/features/003-edit-chapter-basic.feature`
-> Status: `Draft`（M5 修訂中，待 PM 簽核轉 Ready）
+> Status: `Ready`（PM 於 2026-05-15 拍板核准 M5 Round 3）
 > Owner: `spec-architect`
 > Last updated: `2026-05-15`
 > Depends on ADR: 0001（儲存）、0003（技術棧）、0005（CM6）、0006（Tauri fs watcher）、0007（git）、0008（前端架構）
