@@ -80,6 +80,7 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [consolidating, setConsolidating] = useState(false);
   const [consolidateError, setConsolidateError] = useState<string | null>(null);
   const [overwriteDialog, setOverwriteDialog] = useState(false);
@@ -150,21 +151,27 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
-      if (isNew) {
-        await fetch(`/api/projects/${projectHash}/characters`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: fields.name, fields, manualDescription, aiSummary }),
-        });
-      } else {
-        await fetch(`/api/projects/${projectHash}/characters/${slug}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fields, manualDescription, aiSummary }),
-        });
+      const url = isNew
+        ? `/api/projects/${projectHash}/characters`
+        : `/api/projects/${projectHash}/characters/${slug}`;
+      const reqBody = isNew
+        ? { name: fields.name, fields, manualDescription, aiSummary }
+        : { fields, manualDescription, aiSummary };
+      const res = await fetch(url, {
+        method: isNew ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reqBody),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
+        setSaveError(`${err.code ?? res.status}: ${err.message ?? "儲存失敗"}`);
+        return;
       }
       onSave();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -585,6 +592,11 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
       </div>
 
       {/* Footer */}
+      {saveError && (
+        <div className="shrink-0 border-t border-red-900 bg-red-950/30 px-4 py-2 text-xs text-red-300">
+          儲存失敗 — {saveError}
+        </div>
+      )}
       <div className="flex shrink-0 items-center justify-between border-t border-neutral-800 px-4 py-3">
         <div>
           {!isNew &&

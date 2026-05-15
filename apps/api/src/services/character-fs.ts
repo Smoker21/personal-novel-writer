@@ -13,7 +13,12 @@ const MANUAL_HEADING = "## 角色描述（手動）";
 const AI_HEADING = "## AI 統整敘述";
 const MANUAL_HEADING_RE = /^##\s+角色描述（手動）\s*$/m;
 const AI_HEADING_RE = /^##\s+AI 統整敘述\s*$/m;
-const MANUAL_PLACEHOLDER = "(尚未填寫角色描述)";
+
+/** Legacy placeholder used before bug fix; treat as empty on read. */
+const LEGACY_PLACEHOLDER_RE = /^\s*\(尚未(?:統整|填寫角色描述)\)\s*$/;
+function stripLegacyPlaceholder(s: string): string {
+  return LEGACY_PLACEHOLDER_RE.test(s) ? "" : s;
+}
 
 /**
  * M5: Split body into manualDescription + aiSummary sections.
@@ -24,8 +29,7 @@ export function splitBody(body: string): { manualDescription: string; aiSummary:
   const aiMatch = body.match(AI_HEADING_RE);
 
   if (!manualMatch && !aiMatch) {
-    // Migration: 無 heading → 整段視為 manualDescription
-    return { manualDescription: body.trim(), aiSummary: "" };
+    return { manualDescription: stripLegacyPlaceholder(body.trim()), aiSummary: "" };
   }
 
   if (manualMatch && aiMatch && (manualMatch.index ?? 0) < (aiMatch.index ?? 0)) {
@@ -33,20 +37,26 @@ export function splitBody(body: string): { manualDescription: string; aiSummary:
     const manual = body.slice(manualStart, aiMatch.index ?? body.length).trim();
     const aiStart = (aiMatch.index ?? 0) + aiMatch[0].length;
     const ai = body.slice(aiStart).trim();
-    return { manualDescription: manual, aiSummary: ai };
+    return {
+      manualDescription: stripLegacyPlaceholder(manual),
+      aiSummary: stripLegacyPlaceholder(ai),
+    };
   }
   if (manualMatch && !aiMatch) {
     const manualStart = (manualMatch.index ?? 0) + manualMatch[0].length;
-    return { manualDescription: body.slice(manualStart).trim(), aiSummary: "" };
+    return {
+      manualDescription: stripLegacyPlaceholder(body.slice(manualStart).trim()),
+      aiSummary: "",
+    };
   }
   if (!manualMatch && aiMatch) {
     const aiStart = (aiMatch.index ?? 0) + aiMatch[0].length;
     return {
-      manualDescription: body.slice(0, aiMatch.index ?? 0).trim(),
-      aiSummary: body.slice(aiStart).trim(),
+      manualDescription: stripLegacyPlaceholder(body.slice(0, aiMatch.index ?? 0).trim()),
+      aiSummary: stripLegacyPlaceholder(body.slice(aiStart).trim()),
     };
   }
-  return { manualDescription: body.trim(), aiSummary: "" };
+  return { manualDescription: stripLegacyPlaceholder(body.trim()), aiSummary: "" };
 }
 
 /** M5: assemble body from two sections, always writing both headings (even if empty). */
@@ -226,7 +236,7 @@ export function buildMd(
   manualDescription: string,
   aiSummary: string,
 ): string {
-  const body = joinBody(manualDescription || MANUAL_PLACEHOLDER, aiSummary);
+  const body = joinBody(manualDescription, aiSummary);
   return `---\n${fieldsToYaml(fields)}---\n\n${body}\n`;
 }
 
@@ -389,7 +399,7 @@ export async function createCharacter(
   return {
     slug,
     fields,
-    body: joinBody(manualDescription || MANUAL_PLACEHOLDER, aiSummary),
+    body: joinBody(manualDescription, aiSummary),
     manualDescription,
     aiSummary,
   };
@@ -431,7 +441,7 @@ export async function updateCharacter(
   return {
     slug,
     fields: mergedFields,
-    body: joinBody(newManual || MANUAL_PLACEHOLDER, newAiSummary),
+    body: joinBody(newManual, newAiSummary),
     manualDescription: newManual,
     aiSummary: newAiSummary,
   };
@@ -506,7 +516,7 @@ export async function renameCharacter(
   return {
     slug: newSlug,
     fields: finalFields,
-    body: joinBody(existing.manualDescription || MANUAL_PLACEHOLDER, existing.aiSummary),
+    body: joinBody(existing.manualDescription, existing.aiSummary),
     manualDescription: existing.manualDescription,
     aiSummary: existing.aiSummary,
   };
@@ -552,7 +562,7 @@ export async function updatePortraitFields(
   return {
     slug,
     fields: updatedFields,
-    body: joinBody(existing.manualDescription || MANUAL_PLACEHOLDER, existing.aiSummary),
+    body: joinBody(existing.manualDescription, existing.aiSummary),
     manualDescription: existing.manualDescription,
     aiSummary: existing.aiSummary,
   };

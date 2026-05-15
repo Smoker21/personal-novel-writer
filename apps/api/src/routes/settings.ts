@@ -22,7 +22,10 @@ const settingsSchema = z.object({
   providers: z.record(providerConfigSchema),
   routing: z.object({
     chapterWriter: routingPolicySchema,
+    characterCardConsolidator: routingPolicySchema,
+    characterImageExtractor: routingPolicySchema,
     statusUpdater: routingPolicySchema,
+    statusShortener: routingPolicySchema,
   }),
   recentProjects: z.array(z.unknown()),
   meta: z.object({ firstLaunchWarningAcknowledged: z.boolean() }),
