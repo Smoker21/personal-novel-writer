@@ -16,7 +16,8 @@
     "test:e2e": "pnpm --filter @novel-writer/e2e test",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "postinstall": "pnpm rebuild better-sqlite3 sharp"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
