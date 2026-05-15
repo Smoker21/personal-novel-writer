@@ -18,10 +18,36 @@ export interface CollectOptions {
   projectPath: string;
   chapterNumber: number;
   modelContextWindow?: number;
+  /**
+   * M5 (Spec 005): only include character cards + statuses for these slugs.
+   * - undefined → fall back to chapter frontmatter `participants` (if any) or all characters (backward compat).
+   * - empty array → no character cards in context.
+   */
+  participantSlugs?: string[];
+  /** M5: override chapter outline (build-prompt request can supply). Falls back to chapter.outline. */
+  outlineOverride?: string | null;
+  /** M5: override chapter requirements. Falls back to chapter.requirements. */
+  requirementsOverride?: string | null;
+}
+
+export class InvalidParticipantError extends Error {
+  code = "INVALID_PARTICIPANT" as const;
+  missingSlugs: string[];
+  constructor(missing: string[]) {
+    super(`Unknown participant slug(s): ${missing.join(", ")}`);
+    this.missingSlugs = missing;
+  }
 }
 
 export async function collectChapterContext(opts: CollectOptions): Promise<ChapterContext> {
-  const { projectPath, chapterNumber, modelContextWindow = 32_768 } = opts;
+  const {
+    projectPath,
+    chapterNumber,
+    modelContextWindow = 32_768,
+    participantSlugs,
+    outlineOverride,
+    requirementsOverride,
+  } = opts;
 
   // Required: synopsis
   const synopsis = await readFileSafe(join(projectPath, "synopsis.md"));
@@ -46,17 +72,43 @@ export async function collectChapterContext(opts: CollectOptions): Promise<Chapt
     }
   }
 
-  // Required: at least one character
+  // Required: at least one character in the project
   if (charList.length === 0) {
     throw Object.assign(new Error("No characters found; add at least one character card"), {
       code: "MISSING_CONTEXT",
     });
   }
 
-  // Build CharacterCardInContext with chapter-sensitive appearance
+  // Resolve effective participant list (M5 Spec 005):
+  // - explicit participantSlugs from caller → use directly (after validation)
+  // - undefined → fall back to chapter frontmatter `participants`
+  // - chapter frontmatter empty → fall back to all characters (M4 backward compat)
+  const chapterEntry = await readChapter(projectPath, chapterNumber);
+  if (!chapterEntry) {
+    throw Object.assign(new Error(`Chapter ${chapterNumber} not found`), {
+      code: "INVALID_CHAPTER",
+    });
+  }
+  let effectiveSlugs: string[];
+  if (participantSlugs !== undefined) {
+    effectiveSlugs = participantSlugs;
+  } else if (chapterEntry.participants.length > 0) {
+    effectiveSlugs = chapterEntry.participants;
+  } else {
+    effectiveSlugs = charList.map((c) => c.slug);
+  }
+
+  // Validate slugs exist
+  const knownSlugs = new Set(charList.map((c) => c.slug));
+  const missing = effectiveSlugs.filter((s) => !knownSlugs.has(s));
+  if (missing.length > 0) {
+    throw new InvalidParticipantError(missing);
+  }
+
+  // Build CharacterCardInContext for effective participants
   const characters: CharacterCardInContext[] = [];
-  for (const item of charList) {
-    const char = await readCharacter(projectPath, item.slug);
+  for (const slug of effectiveSlugs) {
+    const char = await readCharacter(projectPath, slug);
     if (!char) continue;
     characters.push({
       slug: char.slug,
@@ -67,19 +119,16 @@ export async function collectChapterContext(opts: CollectOptions): Promise<Chapt
     });
   }
 
-  // Outline from chapter outline file (if exists)
-  const chapters = await listChapters(projectPath);
-  const chapterEntry = chapters.find((c) => c.number === chapterNumber);
-  if (!chapterEntry) {
-    throw Object.assign(new Error(`Chapter ${chapterNumber} not found`), {
-      code: "INVALID_CHAPTER",
-    });
-  }
-
-  // Try to read an outline file (outline_NNNN.md or embedded in chapter prompt)
+  // Outline: prefer override > chapter frontmatter > legacy outline file
   const outlineN = String(chapterNumber).padStart(4, "0");
-  const currentOutline =
+  const legacyOutline =
     (await readFileSafe(join(projectPath, "outlines", `outline_${outlineN}.md`))) || null;
+  const currentOutline =
+    outlineOverride !== undefined ? outlineOverride : (chapterEntry.outline ?? legacyOutline);
+
+  // Requirements: prefer override > chapter frontmatter
+  const currentRequirements =
+    requirementsOverride !== undefined ? requirementsOverride : chapterEntry.requirements;
 
   // Previous chapter full text
   let previousChapterFullText: string | null = null;
@@ -129,7 +178,9 @@ export async function collectChapterContext(opts: CollectOptions): Promise<Chapt
         storyStatus,
         characterStatuses,
         characters: finalCharacters.map((c) => ({ slug: c.slug, appearance: c.currentAppearance })),
+        participantSlugs: effectiveSlugs,
         currentOutline,
+        currentRequirements,
         previousChapterFullText: finalPrevChapter,
       }),
     )
@@ -142,7 +193,9 @@ export async function collectChapterContext(opts: CollectOptions): Promise<Chapt
     storyStatus,
     characterStatuses,
     characters: finalCharacters,
+    participantSlugs: effectiveSlugs,
     currentOutline: currentOutline || null,
+    currentRequirements,
     previousChapterFullText: finalPrevChapter,
     contextHash,
   };

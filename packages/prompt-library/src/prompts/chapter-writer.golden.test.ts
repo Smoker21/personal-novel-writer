@@ -46,7 +46,9 @@ const FIXTURE_CONTEXT: ChapterContext = {
       currentAppearance: "黑色長髮，平日綁低馬尾。雙眼皮，眼尾微下垂。中等偏瘦。鵝蛋臉，膚色偏白。",
     },
   ],
+  participantSlugs: ["蘇晴"],
   currentOutline: null,
+  currentRequirements: null,
   previousChapterFullText: null,
   contextHash: "abc123fixture",
 };

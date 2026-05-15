@@ -48,7 +48,11 @@ export interface ChapterContext {
   storyStatus: string;
   characterStatuses: Record<string, string>;
   characters: CharacterCardInContext[];
+  /** M5 (spec 005): the participants list that produced this context (for audit / PromptSnapshot) */
+  participantSlugs: string[];
   currentOutline: string | null;
+  /** M5 (spec 005): 本章寫作需求 — Spec 003 chapter front-matter 或 build-prompt request */
+  currentRequirements: string | null;
   previousChapterFullText: string | null;
   contextHash: string;
 }
