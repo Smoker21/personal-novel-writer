@@ -1,6 +1,12 @@
 import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { countChars } from "@novel-writer/shared-types";
+import {
+  applyFrontmatterPatch,
+  buildChapter,
+  emptyFrontmatter,
+  parseChapter,
+} from "./chapter-frontmatter.js";
 import { sanitizeSlug } from "./sanitize.js";
 
 const CHAPTER_PATTERN = /^chapter_(\d{4})_(.+)\.md$/;
@@ -9,9 +15,15 @@ export interface ChapterFile {
   number: number;
   title: string;
   path: string;
+  /** body only — frontmatter 已剝離 */
   content: string;
   mtime: string;
   size: number;
+  // M5 (spec 003): parsed frontmatter
+  participants: string[];
+  outline: string | null;
+  requirements: string | null;
+  hasFrontmatter: boolean;
 }
 
 export interface ChapterListEntry {
@@ -59,15 +71,21 @@ async function findChapterFile(
 export async function readChapter(projectPath: string, n: number): Promise<ChapterFile | null> {
   const loc = await findChapterFile(projectPath, n);
   if (!loc) return null;
-  const content = await readFile(loc.fullPath, "utf-8");
+  const raw = await readFile(loc.fullPath, "utf-8");
   const s = await stat(loc.fullPath);
+  // M5: parse frontmatter; .content is body-only
+  const { frontmatter, body, hasFrontmatter } = parseChapter(raw);
   return {
     number: loc.number,
     title: loc.title,
     path: loc.fullPath,
-    content,
+    content: body,
     mtime: s.mtime.toISOString(),
     size: s.size,
+    participants: frontmatter.participants,
+    outline: frontmatter.outline,
+    requirements: frontmatter.requirements,
+    hasFrontmatter,
   };
 }
 
@@ -121,6 +139,10 @@ export async function createChapter(projectPath: string, title?: string): Promis
     content: "",
     mtime: s.mtime.toISOString(),
     size: 0,
+    participants: [],
+    outline: null,
+    requirements: null,
+    hasFrontmatter: false,
   };
 }
 
@@ -130,10 +152,24 @@ export interface SaveChapterParams {
   content: string;
   title: string;
   expectedMtime?: string;
+  // M5 (spec 003): optional frontmatter patch
+  participants?: string[];
+  outline?: string | null;
+  requirements?: string | null;
 }
 
 export type SaveChapterResult =
-  | { ok: true; path: string; mtime: string; size: number; renamed: boolean }
+  | {
+      ok: true;
+      path: string;
+      mtime: string;
+      size: number;
+      renamed: boolean;
+      // M5 echo back parsed frontmatter
+      participants: string[];
+      outline: string | null;
+      requirements: string | null;
+    }
   | { ok: false; code: "MTIME_MISMATCH" | "RENAME_CONFLICT" | "INVALID_TITLE"; message: string };
 
 export async function saveChapter(params: SaveChapterParams): Promise<SaveChapterResult> {
@@ -162,6 +198,17 @@ export async function saveChapter(params: SaveChapterParams): Promise<SaveChapte
     }
   }
 
+  // M5: merge frontmatter patch onto existing
+  const existingRaw = await readFile(loc.fullPath, "utf-8").catch(() => "");
+  const existing = parseChapter(existingRaw);
+  const nextFm = applyFrontmatterPatch(existing.frontmatter, {
+    ...(params.participants !== undefined ? { participants: params.participants } : {}),
+    ...(params.outline !== undefined ? { outline: params.outline } : {}),
+    ...(params.requirements !== undefined ? { requirements: params.requirements } : {}),
+  });
+  // content from caller is body-only; we wrap with frontmatter if needed
+  const fileContent = buildChapter(nextFm, content);
+
   const numStr = String(chapterNumber).padStart(4, "0");
   const newFilename = `chapter_${numStr}_${slugged}.md`;
   const newPath = join(projectPath, "chapters", newFilename);
@@ -176,7 +223,7 @@ export async function saveChapter(params: SaveChapterParams): Promise<SaveChapte
     }
   }
 
-  await writeFile(newPath, content, "utf-8");
+  await writeFile(newPath, fileContent, "utf-8");
   if (renamed && newPath !== loc.fullPath) {
     await rm(loc.fullPath, { force: true });
   }
@@ -188,6 +235,9 @@ export async function saveChapter(params: SaveChapterParams): Promise<SaveChapte
     mtime: s.mtime.toISOString(),
     size: s.size,
     renamed,
+    participants: nextFm.participants,
+    outline: nextFm.outline,
+    requirements: nextFm.requirements,
   };
 }
 

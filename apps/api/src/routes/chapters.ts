@@ -23,6 +23,10 @@ const saveSchema = z.object({
   content: z.string(),
   title: z.string().trim().min(1),
   expectedMtime: z.string().optional(),
+  // M5 (Spec 003): optional frontmatter patch
+  participants: z.array(z.string()).optional(),
+  outline: z.string().nullable().optional(),
+  requirements: z.string().nullable().optional(),
 });
 
 const createSchema = z.object({ title: z.string().optional() });
@@ -90,6 +94,9 @@ export const chapters = new Hono()
       content: params.content,
       title: params.title,
       ...(params.expectedMtime !== undefined ? { expectedMtime: params.expectedMtime } : {}),
+      ...(params.participants !== undefined ? { participants: params.participants } : {}),
+      ...(params.outline !== undefined ? { outline: params.outline } : {}),
+      ...(params.requirements !== undefined ? { requirements: params.requirements } : {}),
     });
     if (!result.ok) {
       const status: 400 | 409 = result.code === "INVALID_TITLE" ? 400 : 409;
@@ -117,6 +124,9 @@ export const chapters = new Hono()
       size: result.size,
       commitSha,
       statusUpdateJobId,
+      participants: result.participants,
+      outline: result.outline,
+      requirements: result.requirements,
     };
     return c.json(body);
   })

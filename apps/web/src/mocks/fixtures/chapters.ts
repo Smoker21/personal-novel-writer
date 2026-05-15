@@ -23,6 +23,10 @@ export const mockChapterFile: ChapterFile = {
   content: "她推開書店木門時，雨剛好停了。",
   mtime: "2026-05-13T10:00:00Z",
   size: 42,
+  participants: [],
+  outline: null,
+  requirements: null,
+  hasFrontmatter: false,
 };
 
 export const mockSaveChapterResponse: SaveChapterResponse = {
@@ -31,6 +35,9 @@ export const mockSaveChapterResponse: SaveChapterResponse = {
   size: 100,
   commitSha: "abc123def",
   statusUpdateJobId: null,
+  participants: [],
+  outline: null,
+  requirements: null,
 };
 
 export const mockCreateChapterResponse: CreateChapterResponse = {
