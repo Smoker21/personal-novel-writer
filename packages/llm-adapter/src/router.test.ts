@@ -23,6 +23,7 @@ function makeProvider(
     origin: "cloud",
     capabilities: () => caps,
     ping: async () => ({ ok: true }),
+    listModels: async () => [],
     generate: async (req) => {
       let text = "";
       for await (const chunk of makeProvider(id, caps, behavior).stream(req)) {

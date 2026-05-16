@@ -58,6 +58,15 @@ app.post("/", zValidator("json", buildPromptSchema), async (c) => {
   const body = c.req.valid("json");
   const modelId = body.modelOverride ?? routingConf.primary;
 
+  // M5 (Spec 009): per-routing-slot systemPromptOverride is the default;
+  // per-chapter override in `body.systemPromptOverrideForChapter` takes precedence.
+  const settingsOverride =
+    routingConf.systemPromptOverride && routingConf.systemPromptOverride.trim().length > 0
+      ? routingConf.systemPromptOverride
+      : undefined;
+  const effectiveSystemPromptOverride =
+    body.systemPromptOverrideForChapter ?? settingsOverride;
+
   // Collect context with explicit participantSlugs / outline / requirements
   let context;
   try {
@@ -99,8 +108,8 @@ app.post("/", zValidator("json", buildPromptSchema), async (c) => {
       chapterNumber,
       chapterTitle: chapter.title,
       ...(body.userIntent !== undefined ? { userIntent: body.userIntent } : {}),
-      ...(body.systemPromptOverrideForChapter !== undefined
-        ? { systemPromptOverrideForChapter: body.systemPromptOverrideForChapter }
+      ...(effectiveSystemPromptOverride !== undefined
+        ? { systemPromptOverrideForChapter: effectiveSystemPromptOverride }
         : {}),
       ...(body.temperatureOverride !== undefined
         ? { temperatureOverride: body.temperatureOverride }

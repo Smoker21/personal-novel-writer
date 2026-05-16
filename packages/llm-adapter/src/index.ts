@@ -10,6 +10,7 @@ export type {
   ImageContent,
   ImageMimeType,
   ModelCapabilities,
+  ProviderModel,
   RoutingPolicy,
   StreamChunk,
   Usage,

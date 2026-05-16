@@ -8,6 +8,7 @@ import type {
   GenerateResponse,
   LLMProvider,
   ModelCapabilities,
+  ProviderModel,
   StreamChunk,
   Usage,
 } from "../types.js";
@@ -151,6 +152,47 @@ export class GoogleProvider implements LLMProvider {
     const idx = modelId.indexOf(":");
     const model = idx >= 0 ? modelId.slice(idx + 1) : modelId;
     return MODELS[model] ?? null;
+  }
+
+  async listModels(opts?: { signal?: AbortSignal }): Promise<ProviderModel[]> {
+    try {
+      // Gemini SDK has no native AbortSignal support on models.list — we
+      // race against signal externally.
+      const listPromise = this.client.models.list();
+      const result: ProviderModel[] = [];
+      const pager = await (opts?.signal !== undefined
+        ? Promise.race([
+            listPromise,
+            new Promise<never>((_, reject) => {
+              opts.signal?.addEventListener("abort", () =>
+                reject(new LLMError("network", "google", "aborted", false)),
+              );
+            }),
+          ])
+        : listPromise);
+      for await (const m of pager) {
+        // Names look like "models/gemini-2.5-flash" — strip the prefix
+        const fullName = m.name ?? "";
+        const id = fullName.startsWith("models/") ? fullName.slice("models/".length) : fullName;
+        if (!id) continue;
+        // Filter to gemini-* generateContent-capable models (skip embedding/tts)
+        if (!id.startsWith("gemini-")) continue;
+        const supports = m.supportedActions ?? [];
+        if (supports.length > 0 && !supports.includes("generateContent")) continue;
+
+        const item: ProviderModel = { id };
+        if (m.displayName) item.displayName = m.displayName;
+        if (m.inputTokenLimit !== undefined) item.contextWindow = m.inputTokenLimit;
+        const caps = MODELS[id];
+        if (caps !== undefined) item.supportsVision = caps.supportsVision;
+        result.push(item);
+      }
+      result.sort((a, b) => a.id.localeCompare(b.id));
+      return result;
+    } catch (err) {
+      if (err instanceof LLMError) throw err;
+      throw mapGoogleError(err, "");
+    }
   }
 
   async ping(): Promise<{ ok: boolean; latencyMs?: number }> {

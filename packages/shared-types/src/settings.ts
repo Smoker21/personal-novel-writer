@@ -32,6 +32,31 @@ export interface ProviderConfig {
 export interface RoutingPolicy {
   primary: string;
   fallbacks: string[];
+  /** M5：per-routing-slot 系統提示詞覆寫；null/空字串 = 不注入。structured-data Agent 強制忽略 */
+  systemPromptOverride?: string | null;
+  /** M5：per-routing-slot 預設溫度；null = 用 Agent 預設；Spec 005 「本章覆寫」可進一步覆蓋 */
+  temperature?: number | null;
+}
+
+/** M5：接受 systemPromptOverride 注入的 Agent 白名單。不在此列表 → structured-data Agent，強制忽略 override。 */
+export const SYSTEM_PROMPT_OVERRIDE_ENABLED_AGENTS = ["chapter-writer"] as const;
+
+export type SystemPromptOverrideEnabledAgent = (typeof SYSTEM_PROMPT_OVERRIDE_ENABLED_AGENTS)[number];
+
+/** M5：provider listModels 的回傳項。 */
+export interface ProviderModel {
+  id: string;
+  displayName?: string;
+  contextWindow?: number;
+  supportsVision?: boolean;
+}
+
+/** M5：GET /api/settings/provider-models/:providerId response 形狀 */
+export interface ListProviderModelsResponse {
+  providerId: LLMProviderId;
+  models: ProviderModel[];
+  fetchedAt: string;
+  fromCache: boolean;
 }
 
 export interface AppSettings {

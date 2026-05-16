@@ -8,7 +8,12 @@ import {
   XaiProvider,
 } from "@novel-writer/llm-adapter";
 import type { LLMProvider, RoutingPolicy as LLMRoutingPolicy } from "@novel-writer/llm-adapter";
-import type { AppSettings, RoutingPolicy } from "@novel-writer/shared-types";
+import type {
+  AppSettings,
+  LLMProviderId,
+  ProviderConfig,
+  RoutingPolicy,
+} from "@novel-writer/shared-types";
 
 /**
  * Build an LLMRouter from the current app settings.
@@ -52,4 +57,34 @@ export function toRouterPolicy(policy: RoutingPolicy): LLMRoutingPolicy {
     fallbacks: policy.fallbacks,
     retryPerModel: 1,
   };
+}
+
+/**
+ * M5: Build a single provider instance from a config (for listModels / test-provider).
+ * Returns null for providers that are disabled or lack required credentials.
+ */
+export function buildProviderForListing(
+  providerId: LLMProviderId,
+  config: ProviderConfig,
+): LLMProvider | null {
+  if (!config.enabled) return null;
+  switch (providerId) {
+    case "anthropic":
+      return config.apiKey ? new AnthropicProvider(config.apiKey) : null;
+    case "openai":
+      return config.apiKey ? new OpenAiProvider(config.apiKey) : null;
+    case "google":
+      return config.apiKey ? new GoogleProvider(config.apiKey) : null;
+    case "xai":
+      return config.apiKey ? new XaiProvider(config.apiKey) : null;
+    case "ollama":
+      return new OllamaProvider(config.endpoint ?? "http://localhost:11434");
+    case "lmstudio":
+      return new LmStudioProvider(config.endpoint ?? "http://localhost:1234");
+    case "rwkv-runner":
+      // OpenAI-compatible; piggy-back on LmStudioProvider's base + endpoint override
+      return new LmStudioProvider(config.endpoint ?? "http://localhost:8000");
+    default:
+      return null;
+  }
 }

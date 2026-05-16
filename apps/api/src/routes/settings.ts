@@ -1,9 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
-import type { AppSettings, LLMProviderId, ProviderConfig } from "@novel-writer/shared-types";
+import type {
+  AppSettings,
+  LLMProviderId,
+  ListProviderModelsResponse,
+  ProviderConfig,
+} from "@novel-writer/shared-types";
 import { ALL_PROVIDER_IDS, defaultSettings } from "@novel-writer/shared-types";
+import { LLMError } from "@novel-writer/llm-adapter";
 import { Hono } from "hono";
 import { z } from "zod";
+import {
+  readProviderModelsCache,
+  writeProviderModelsCache,
+} from "../services/provider-models-cache.js";
 import { testProvider } from "../services/provider-tester.js";
+import { buildProviderForListing } from "../services/router-factory.js";
 import { maskSettings, readSettings, writeSettings } from "../services/settings-store.js";
 
 const providerConfigSchema = z.object({
@@ -14,7 +25,13 @@ const providerConfigSchema = z.object({
 });
 
 const routingPolicySchema = z
-  .object({ primary: z.string(), fallbacks: z.array(z.string()) })
+  .object({
+    primary: z.string(),
+    fallbacks: z.array(z.string()),
+    // M5 (Spec 009): per-routing-slot system prompt override + temperature
+    systemPromptOverride: z.string().max(4096).nullable().optional(),
+    temperature: z.number().min(0).max(2).nullable().optional(),
+  })
   .optional();
 
 const settingsSchema = z.object({
@@ -108,4 +125,78 @@ export const settings = new Hono()
     }
     const s = await readSettings();
     return c.json({ apiKey: s.providers[provider]?.apiKey ?? "" });
+  })
+  .get("/provider-models/:providerId", async (c) => {
+    const providerId = c.req.param("providerId") as LLMProviderId;
+    if (!ALL_PROVIDER_IDS.includes(providerId)) {
+      return c.json({ code: "INVALID_PROVIDER", message: `Unknown provider "${providerId}"` }, 400);
+    }
+    const refresh = c.req.query("refresh") === "true";
+
+    const settings = await readSettings();
+    const config = settings.providers[providerId];
+    if (!config || !config.enabled) {
+      return c.json(
+        { code: "PROVIDER_DISABLED", message: `Provider "${providerId}" is not enabled` },
+        400,
+      );
+    }
+
+    // 1. cache lookup (unless refresh=true)
+    if (!refresh) {
+      const cached = await readProviderModelsCache(providerId, config);
+      if (cached !== null) {
+        const body: ListProviderModelsResponse = {
+          providerId,
+          models: cached.models,
+          fetchedAt: cached.fetchedAt,
+          fromCache: true,
+        };
+        return c.json(body);
+      }
+    }
+
+    // 2. cache miss → call provider.listModels()
+    const provider = buildProviderForListing(providerId, config);
+    if (provider === null) {
+      return c.json(
+        {
+          code: "PROVIDER_DISABLED",
+          message: `Provider "${providerId}" lacks required credentials`,
+        },
+        400,
+      );
+    }
+
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 8000); // 8s budget
+      const models = await provider.listModels({ signal: ctl.signal });
+      clearTimeout(t);
+      const fetchedAt = await writeProviderModelsCache(providerId, config, models);
+      const body: ListProviderModelsResponse = {
+        providerId,
+        models,
+        fetchedAt,
+        fromCache: false,
+      };
+      return c.json(body);
+    } catch (err) {
+      const errorCode =
+        err instanceof LLMError
+          ? err.code === "unauthorized"
+            ? "unauthorized"
+            : err.code === "network"
+              ? "network"
+              : "unknown"
+          : "unknown";
+      return c.json(
+        {
+          code: "LIST_MODELS_FAILED",
+          errorCode,
+          message: err instanceof Error ? err.message : String(err),
+        },
+        502,
+      );
+    }
   });

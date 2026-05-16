@@ -53,4 +53,9 @@ export class OpenAiProvider extends OpenAiCompatProvider {
     const model = idx >= 0 ? modelId.slice(idx + 1) : modelId;
     return MODELS[model] ?? null;
   }
+
+  /** Keep only chat-completion-capable models — `gpt-*` and `o*` series. */
+  protected override shouldIncludeModel(id: string): boolean {
+    return /^(gpt-|o\d)/.test(id);
+  }
 }

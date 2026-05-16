@@ -17,6 +17,7 @@ import type {
   GenerateResponse,
   LLMProvider,
   ModelCapabilities,
+  ProviderModel,
   StreamChunk,
   Usage,
 } from "../types.js";
@@ -383,6 +384,33 @@ export class AnthropicProvider implements LLMProvider {
       return { ok: true, latencyMs: Date.now() - start };
     } catch {
       return { ok: false };
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // listModels (M5 — Spec 009)
+  // -------------------------------------------------------------------------
+
+  async listModels(opts?: { signal?: AbortSignal }): Promise<ProviderModel[]> {
+    try {
+      const reqOpts: Anthropic.RequestOptions = {};
+      if (opts?.signal !== undefined) reqOpts.signal = opts.signal;
+      const result: ProviderModel[] = [];
+      // Anthropic models.list returns a paginator; M5 spec keeps it simple — first page is enough
+      const page = await this.client.models.list({ limit: 100 }, reqOpts);
+      for (const m of page.data) {
+        const caps = MODELS[m.id];
+        const item: ProviderModel = { id: m.id };
+        if (m.display_name) item.displayName = m.display_name;
+        if (caps !== undefined) {
+          item.contextWindow = caps.contextWindow;
+          item.supportsVision = caps.supportsVision;
+        }
+        result.push(item);
+      }
+      return result;
+    } catch (err) {
+      throw mapSdkError(err, "anthropic", "");
     }
   }
 }

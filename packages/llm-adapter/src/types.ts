@@ -71,6 +71,17 @@ export interface ModelCapabilities {
   costPer1kOutput?: number;
 }
 
+/**
+ * M5 (Spec 009)：listModels 回傳項。
+ * id 不含 provider 前綴；UI 拼接時 = `<providerId>:<id>`。
+ */
+export interface ProviderModel {
+  id: string;
+  displayName?: string;
+  contextWindow?: number;
+  supportsVision?: boolean;
+}
+
 export interface LLMProvider {
   readonly id: string;
   readonly origin: "cloud" | "local";
@@ -79,6 +90,12 @@ export interface LLMProvider {
   stream(request: GenerateRequest): AsyncIterable<StreamChunk>;
   capabilities(modelId: string): ModelCapabilities | null;
   ping(): Promise<{ ok: boolean; latencyMs?: number }>;
+  /**
+   * M5：列出此 provider 當前可用的模型 id 清單。
+   * 不快取（呼叫端負責 cache）；可被 abort（建議 5s timeout）。
+   * 失敗時 throw LLMError with code in {"unauthorized","network","timeout","unknown"}。
+   */
+  listModels(opts?: { signal?: AbortSignal }): Promise<ProviderModel[]>;
 }
 
 export interface RoutingPolicy {

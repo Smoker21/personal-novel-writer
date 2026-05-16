@@ -8,6 +8,7 @@ import type {
   LLMProvider,
   Message,
   ModelCapabilities,
+  ProviderModel,
   StreamChunk,
   Usage,
 } from "../types.js";
@@ -152,6 +153,40 @@ export abstract class OpenAiCompatProvider implements LLMProvider {
     } catch {
       return { ok: false };
     }
+  }
+
+  /**
+   * M5 (Spec 009)：列出 provider 模型清單。
+   * Subclass 可 override shouldIncludeModel 來過濾 model id（e.g. OpenAI 過濾 gpt- 與 o 系列）。
+   */
+  async listModels(opts?: { signal?: AbortSignal }): Promise<ProviderModel[]> {
+    try {
+      const reqOpts: OpenAI.RequestOptions = {};
+      if (opts?.signal !== undefined) reqOpts.signal = opts.signal;
+      const page = await this.client.models.list(reqOpts);
+      const items: ProviderModel[] = [];
+      for (const m of page.data) {
+        if (this.shouldIncludeModel(m.id)) {
+          const caps = this.capabilities(`${this.id}:${m.id}`);
+          const item: ProviderModel = { id: m.id };
+          if (caps !== null) {
+            item.contextWindow = caps.contextWindow;
+            item.supportsVision = caps.supportsVision;
+          }
+          items.push(item);
+        }
+      }
+      // Stable sort by id ASC
+      items.sort((a, b) => a.id.localeCompare(b.id));
+      return items;
+    } catch (err) {
+      throw mapOpenAiError(err, this.id, "");
+    }
+  }
+
+  /** Override in subclass to filter model list. Default: keep all. */
+  protected shouldIncludeModel(_id: string): boolean {
+    return true;
   }
 
   async *stream(request: GenerateRequest): AsyncIterable<StreamChunk> {
