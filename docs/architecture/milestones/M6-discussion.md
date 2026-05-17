@@ -200,47 +200,33 @@ M5 dev 中我遇到兩個 spec 沒寫的決策、自己做了（事後在 v0.2.0
 
 ---
 
-## 統整：建議組合
+## 統整：PM 拍板結果（2026-05-17）
 
-| 議題 | dev 推薦 | 理由 |
+| 議題 | dev 推薦 | **PM 拍板** | 差異說明 |
+|---|---|---|---|
+| D1 scope | B（品質 + S1）| **A（純品質）** | S1 推 M7；M6 改含 P1 xiaohuangwen |
+| D2 feedback | A（正式開 issue）| **B（不開，直接開 session）** | 使用者=PM 自己，流程越輕越真實 |
+| D3 status-updater | B（P1, W2~3）| **A（P0, W1）** | 採用核心流程必修，root cause 已知 |
+| D4 UI 元件 spec | B（`_components/`）| **B** | — |
+| D5 dev 自治邊界 | C（明文準則）| **C** | — |
+
+### M6 確定 scope（依此起草 Handover-instruction.md）
+
+| 優先 | 任務 | 時間 |
 |---|---|---|
-| D1 scope | **B**（品質 + S1）| FTS5 與 cache-db 同層、不衝、user 有亮點 |
-| D2 feedback | **A**（正式開 issue）| 系統化收集，後續可追溯 |
-| D3 status-updater | **B**（P1）| 資料安全 OK，BDD 之後一起測 |
-| D4 UI 元件 spec | **B**（`_components/` 子目錄）| 4+ 元件值得分目錄 |
-| D5 dev 自治邊界 | **C**（中、明文準則）| 平衡速度與決策追溯 |
+| P0 | **M6-C status-updater 三層修復**（L1/L2/L3）| W1 |
+| P0 | **M6-A BDD step defs**（7 份 .feature 全跑通）| W1 起手，W2 完成 |
+| P1 | **M6-B 共用元件單元測試** | W2~3 |
+| P1 | **M6-D 拋光**（TD-4 design token + TD-5~8）| W3~4 |
+| P1 | **P1 xiaohuangwen provider**（章節寫作專用）| W3~5 |
+| 流程 | **D4 `_components/` 子目錄**（spec-architect 起）| W1 配合 spec 修訂 |
+| 流程 | **D5 dev 自治邊界**（補進 CLAUDE.md 或 milestone brief）| W1 |
 
-**若 PM + spec-architect 全部採用 dev 推薦**，M6-Handover-instruction.md 預估 1-2 天起草完成，scope 含：
-
-1. M6-A BDD step defs（7 份 .feature 全跑通）
-2. M6-B 共用元件單元測試
-3. M6-C status-updater P1（W2~3）
-4. M6-D TD-4 design token + TD-5~8 拋光
-5. M6-E v0.2.0 user feedback issue 持續處理
-6. S1 全文搜尋（FTS5）— spec → dev
-7. 流程改造：`_components/` 子目錄 + dev 自治邊界明文化
-
-**若任一議題拍板與推薦不同**，dev 會在 M6-Handover-instruction.md 標明對應 scope 調整。
-
----
-
-## 對 PM 的快速 reply 範本
-
-> ```
-> D1: A / B / C
-> D2: A / B
-> D3: A / B / C
-> D4: A / B / C
-> D5: A / B / C
->
-> 額外備註：
-> （若有任何議題的決策邊界不在三選項內，請寫在此）
-> ```
-
-回覆後 dev 起草 M6-Handover-instruction.md，PM 簽核後即可進 spec-architect。
+S1（FTS5 全文搜尋）/ S2（preset 庫）→ **M7**
 
 ---
 
 ## 變更紀錄
 
 - 2026-05-17：初版，等 PM + spec-architect 拍板
+- 2026-05-17：PM 拍板完成，D1~D5 全部確定，M6 scope 定案

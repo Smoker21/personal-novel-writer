@@ -65,6 +65,16 @@
 | `polish_input` | ✅ | 使用者修改指令 / Skill 指令 |
 | `version` | 選 | 同上 |
 
+### 使用範圍限制（PM 2026-05-17 確認）
+
+> **僅限章節寫作**。不可用於 character-consolidate（角色統整）、status-updater（狀態更新）或任何 structured-data routing slot。
+
+| 可用 | 不可用 |
+|---|---|
+| chapter-writer Agent → `/api/v1/generate` | character-consolidate |
+| polish-prose Skill（章節編輯器內）→ `/api/v1/polish` | status-updater |
+| — | 任何 structured-data slot |
+
 ### 整合方案（M6 動工前決定）
 
 **不走通用 messages array interface**（不是 OpenAI 相容）：
@@ -73,6 +83,7 @@
 - adapter 暴露兩個專屬方法：`generateNovel(params)` + `polishNovel(params)`
 - adapter 在 capabilities 標記 `hasStructuredNovelGenerate: true`
 - chapter-writer Agent 偵測此 flag → 改走 `/api/v1/generate` 而非 build-prompt-then-chat
+- spec 009 Settings UI：xiaohuangwen **只出現在「章節寫作」routing slot**，其他 slot 不顯示此 provider
 - `balance` endpoint 整合進 Settings 頁「餘額顯示」（類似 API key 驗證按鈕）
 - 需新 ADR 或擴 ADR-0004（LLM adapter 能力旗標設計）
 
@@ -95,3 +106,4 @@
 
 - `2026-05-16`：初版。S1 / S2 來自 xiaohuangwen schema 比較討論的 PM 拍板。
 - `2026-05-16`：補 P1 xiaohuangwen provider（PM 拍板延至 M6，API 文件已取得並分析）。
+- `2026-05-17`：P1 使用範圍確認：僅限章節寫作（/generate + /polish），不可用於 structured-data slot。spec 009 Settings 只在章節寫作 routing slot 顯示此 provider。
