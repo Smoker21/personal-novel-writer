@@ -2,7 +2,7 @@
 
 > Story: `docs/requirements/stories/009-settings-page.md`
 > BDD: `docs/requirements/features/009-settings-page.feature`
-> Status: `Ready`（PM 於 2026-05-15 拍板核准 M5 Round 3）
+> Status: `Ready`（PM Round 1 拍板 2026-05-18；xiaohuangwen + polish-prose slot + balance endpoint 修訂核准）
 > Owner: `spec-architect`
 > Last updated: `2026-05-15`
 > Depends on ADR: 0001（儲存策略）、0003（技術棧）、0004（LLM adapter）、0006（Tauri）、0008（前端架構）
@@ -52,6 +52,12 @@ providers:
     enabled: false
     endpoint: "http://localhost:27777/v1"
 
+  # M6 新增：小說寫作 API 分類（ADR-0010；origin: "novel-api"）
+  xiaohuangwen:
+    enabled: false
+    apiKey: ""
+    version: "latest"               # "latest" | "stable"；用於 routing.primary 拼接 "xiaohuangwen:latest"
+
 agents:
   chapter-writer:
     routing:
@@ -93,6 +99,14 @@ agents:
       systemPromptOverride: null
       temperature: null
 
+  polish-prose:                    # M6 新增（spec 012）
+    routing:
+      primary: "xiaohuangwen:latest"   # 預設 xiaohuangwen；可改任意 prose-capable provider
+      fallbacks: []                    # structured-only 無 fallback；messages-array provider 可填
+      retryPerModel: 1
+      systemPromptOverride: null
+      temperature: null
+
 recentProjects:                            # 由 Story 008 維護
   - hash: "a1b2c3d4e5f6"
     path: "D:/GoogleDrive/MyNovels/春日記事"
@@ -115,6 +129,7 @@ ui:                                        # P1 加（編輯器字型 / theme）
 - `systemPromptOverride`：選填字串。null / 空字串 = 不注入。長度上限 4 KB（zod 驗證），避免使用者誤把整個 system prompt 塞入此欄位
 - `temperature`：選填浮點數（0.0–2.0）。null = 用 Agent 預設值（在 `packages/prompt-library` 各 Agent 內定義）
 - 路徑 `~/.novel-writer/` 對應 Tauri 的 `app_data_dir`（跨 OS 平台不同實體路徑）
+- **M6 新增 routing slot 白名單規則**（ADR-0010）：`origin === "novel-api"` 的 provider 只可出現在 `chapter-writer` 與 `polish-prose` slot 的 `primary`；其他 slot 出現 → API 端 400 `INVALID_ROUTING_SLOT`
 
 ## API 合約
 
@@ -155,20 +170,48 @@ API key 在 response 中**遮蔽**為 `"sk-ant-...****1234"`（前綴 + 後 4 + 
 |--------|------|------|
 | 400 | `INVALID_ROUTING` | `agents.X.routing.primary` 指向未啟用的 provider；`fieldErrors` 指出哪個 agent |
 | 400 | `INVALID_MODEL_ID` | modelId 格式不對（非 `<provider>:<model>`） |
+| 400 | `INVALID_ROUTING_SLOT` | M6：novel-api provider 出現在 chapter-writer / polish-prose 以外的 slot |
 | 500 | `IO_ERROR` | settings.yaml 寫入失敗 |
+
+### GET /api/settings/balance/:providerId（M6 新增）
+
+查詢支援字數計費的 provider 餘額（目前僅 xiaohuangwen）。
+
+**Response 200:**
+```ts
+{
+  providerId: "xiaohuangwen";
+  remainingWords: number;
+  currency: "words";
+  fetchedAt: string;             // ISO 8601
+}
+```
+
+**Errors:**
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `PROVIDER_DISABLED` | `enabled: false` |
+| 400 | `BALANCE_NOT_SUPPORTED` | 該 provider 不支援餘額查詢（capability flag `hasStructuredNovelGenerate=false` 或 adapter 未實作）|
+| 401 | `UNAUTHORIZED` | API key 無效 |
+| 502 | `BALANCE_QUERY_FAILED` | 網路 / 上游錯誤 |
+
+**Cache 策略**：呼叫端負責 cache（前端 settings UI 30s 內不重打）。Server 不 cache。
 
 ### POST /api/settings/test-provider
 
 **Request:**
 ```ts
 {
-  providerId: "anthropic" | "openai" | "google" | "xai" | "ollama" | "lmstudio" | "rwkv-runner";
-  apiKey?: string;             // 雲端 provider 用
+  providerId: "anthropic" | "openai" | "google" | "xai" | "ollama" | "lmstudio" | "rwkv-runner" | "xiaohuangwen";
+  apiKey?: string;             // 雲端 provider / xiaohuangwen 用
   endpoint?: string;           // 地端 provider 用
 }
 ```
 
 注意：使用 **request body 中的** key / endpoint，不依賴 settings.yaml 已儲存的值——讓使用者在填寫表單時即時測試。
+
+**M6**：xiaohuangwen 的 test-connection 內部呼 `GET /api/v1/balance`（同 `GET /api/settings/balance/:providerId`），成功時 response 帶 `remainingWords` 給 UI 顯示。
 
 **Response 200:**
 ```ts
@@ -318,6 +361,7 @@ export interface ProviderModel {
 | Ollama | `GET <endpoint>/api/tags` | 回應的 `models[i].name` |
 | LM Studio | `GET <endpoint>/models` | OpenAI-compat |
 | RWKV-Runner | `GET <endpoint>/models` | OpenAI-compat |
+| xiaohuangwen（M6） | **不打 HTTP** — hardcode return `[{id:"latest"},{id:"stable"}]` | xiaohuangwen API 無 /models endpoint；spec 011 |
 
 **stale model 處理**：若 24h cache 中的 model 在新一輪 fetch 後消失（例 LM Studio 卸載 / 雲端 deprecate），而 settings.yaml 的某 `routing.primary` 指向此 model：
 
@@ -564,15 +608,36 @@ client (settings page)
 
 當這些 endpoint 偵測到 `settings.agents[<name>]` 不存在或 `routing.primary` 對應 provider 未 enabled，回 400 `ROUTING_NOT_CONFIGURED`，前端顯示「請先到設定頁設定 <Agent name> 的預設模型」+「前往設定頁」連結。
 
-## Shared UI components reference（M5 Round 2）
+## Provider 分類與 UI 顯示（M6 新增）
 
-本 spec UI 使用以下共用元件，canonical 規格見 [spec 002 §「Shared UI components」](./002-edit-character-card.md#shared-ui-components-m5-round-2--跨-spec-引用)：
+settings UI 三類分組顯示，依 `Provider.origin`：
+
+| 分類 | origin | 包含的 provider | 用途說明 |
+|---|---|---|---|
+| 雲端 | `cloud` | anthropic / openai / google / xai | 通用 LLM |
+| 地端 | `local` | ollama / lmstudio / rwkv-runner | 本機部署 |
+| **小說寫作 API** | `novel-api` | **xiaohuangwen**（M6 新增） | 小說專用結構化 API；僅限 chapter-writer / polish-prose slot |
+
+### AgentRoutingCard provider 下拉過濾規則
+
+| Agent slot | 可選 provider 的 `origin` |
+|---|---|
+| `chapter-writer` | `cloud` / `local` / `novel-api` |
+| `polish-prose`（M6 新增）| `cloud` / `local` / `novel-api` |
+| `status-updater` / `character-card-consolidator` / `character-image-extractor` / `status-shortener` | `cloud` / `local`（**過濾掉 `novel-api`**）|
+
+UI 與 API 雙端驗證 — UI 端 dropdown 過濾；API 端 PUT /api/settings 違反白名單 → 400 `INVALID_ROUTING_SLOT`。
+
+## Shared UI components reference（M6 — 共用元件已搬到 `_components/`）
+
+詳見 [`_components/_index.md`](./_components/_index.md)。
 
 | 元件 / 慣例 | 本 spec 使用點 |
 |---|---|
-| `<ExpandableTextarea>` | `AgentRoutingCard.systemPromptOverride` textarea |
-| `<Spinner>` | provider test-connection（3~5s）/ provider listModels（1~3s） |
-| Error 三層呈現 | inline：`INVALID_MODEL_ID` / 必填欄；toast：`IO_ERROR` / `LIST_MODELS_FAILED`；modal：reset 二次確認、`ROUTING_NOT_CONFIGURED` 引導 |
+| [`<ExpandableTextarea>`](./_components/expandable-textarea.md) | `AgentRoutingCard.systemPromptOverride` textarea |
+| [`<Spinner>`](./_components/spinner.md) | provider test-connection（3~5s）/ provider listModels（1~3s）/ balance query（1~3s, M6） |
+| [`<ModelDropdown>`](./_components/model-dropdown.md) | ProviderCard 預設模型 / AgentRoutingCard primary / fallback；xiaohuangwen path 用 `hardcoded` prop |
+| [Error 三層](./_components/error-display.md) | inline：`INVALID_MODEL_ID` / `INVALID_ROUTING_SLOT` / 必填欄；toast：`IO_ERROR` / `LIST_MODELS_FAILED` / `BALANCE_QUERY_FAILED`；modal：reset 二次確認、`ROUTING_NOT_CONFIGURED` 引導、FirstLaunchWarning lock |
 
 ## 安全考量
 
@@ -603,6 +668,10 @@ client (settings page)
 - [ ] **be-4**: 整合 `LLMRouter`（依 ADR-0004）讀取 settings.yaml 的 agents.routing
 - [ ] **be-5（M5）**: `apps/api/src/services/provider-models-cache.ts` — 24h SQLite cache + invalidation on key/endpoint change
 - [ ] **be-6（M5）**: `packages/llm-adapter` 各 provider 補 `listModels()` 實作（7 個 provider）
+- [ ] **be-9（M6）**: `apps/api/src/routes/settings.ts` 加 `GET /api/settings/balance/:providerId` — 對 xiaohuangwen 包 `adapter.getBalance()`
+- [ ] **be-10（M6）**: `packages/llm-adapter/src/providers/xiaohuangwen.ts` — `XiaohuangwenAdapter`（詳見 spec 011）
+- [ ] **be-11（M6）**: PUT /api/settings 加 routing slot 白名單驗證（origin=novel-api 只可在 chapter-writer / polish-prose）→ `INVALID_ROUTING_SLOT`
+- [ ] **be-12（M6）**: settings-store schema migration — 補 `providers.xiaohuangwen` 與 `agents.polish-prose`（舊 yaml 缺欄位 → 補預設值）
 - [ ] **be-7（M5）**: prompt-library 整合 systemPromptOverride 注入邏輯 + structured-data Agent 白名單檢查
 - [ ] **be-8（M5）**: PUT /api/settings 加 model id 驗證（比對 listModels cache）
 - [ ] **fe-1**: `apps/web/src/features/settings/SettingsPage.tsx` 主頁
@@ -613,6 +682,10 @@ client (settings page)
 - [ ] **fe-6**: 「離開頁面但 form dirty」警告 hook
 - [ ] **fe-7**: 005 / 002 / 007 偵測到 routing 未設定的引導 UI（顯示對話框 +「前往設定頁」連結）
 - [ ] **fe-8（M5）**: `ModelDropdown` 元件 — 從 `/provider-models/:id` 拉清單 + 24h cache 提示 + 手動 refresh 按鈕
+- [ ] **fe-10（M6）**: ProviderCard 三類分組顯示（cloud / local / novel-api）
+- [ ] **fe-11（M6）**: AgentRoutingCard provider 下拉依 slot 過濾（origin=novel-api 只在 chapter-writer / polish-prose 顯示）
+- [ ] **fe-12（M6）**: XiaohuangwenProviderCard 特殊欄位 — `version` 下拉（latest / stable）+ 餘額查詢按鈕（顯示 `remainingWords`）
+- [ ] **fe-13（M6）**: AgentRoutingCard for `polish-prose` 卡片渲染（與既有 4 個 slot 並列）
 - [ ] **fe-9（TD-9）**: `FirstLaunchWarningDialog` lock modality — ESC 攔截 + backdrop noop + focus trap + Playwright 測試
 - [ ] **qa-1**: cucumber-js step definitions for `009.feature`
 - [ ] **qa-2**: 設定載入 / 儲存 / 重設的端對端測試
@@ -646,6 +719,14 @@ Story 032 首次警語的「不再顯示」狀態存在 `meta.firstLaunchWarning
 
 ## 變更紀錄
 
+- `2026-05-17`（M6 SA-2，待 PM Round 1 拍板轉 Ready）：
+  - 新增 `xiaohuangwen` provider（ADR-0010；`origin: "novel-api"`）與 `version` 欄位
+  - 新增 `agents.polish-prose` routing slot（spec 012）
+  - 新增 `GET /api/settings/balance/:providerId`（餘額查詢）
+  - 新增 routing slot 白名單規則（`INVALID_ROUTING_SLOT`）+ UI dropdown 過濾
+  - listModels 表補 xiaohuangwen（hardcode return）
+  - test-provider 補 xiaohuangwen path（內部呼 balance）
+  - 共用元件 reference 改指向 `_components/`
 - `2026-05-12`: 初版 Ready
 - `2026-05-15`: M5 修訂（待 PM 簽核轉 Ready）：
   - 新增 `RoutingPolicy.systemPromptOverride`（per-routing-slot 系統提示詞覆寫）；structured-data Agent 強制忽略

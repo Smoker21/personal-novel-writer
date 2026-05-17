@@ -2,7 +2,7 @@
 
 > Story: `docs/requirements/stories/005-ai-write-chapter.md`
 > BDD: `docs/requirements/features/005-ai-write-chapter.feature`
-> Status: `Ready`（PM 於 2026-05-15 拍板核准 M5 Round 3）
+> Status: `Ready`（PM Round 1 拍板 2026-05-18；M6 structured generate 分支修訂核准）
 > Owner: `spec-architect`
 > Last updated: `2026-05-15`
 > Depends on ADR: 0001（儲存）、0002（命名）、0003（技術棧）、0004（LLM adapter）
@@ -46,22 +46,47 @@
 }
 ```
 
-**Response 200:**
+**Response 200**（M6 改 discriminated union — 依 routing primary 的 capability flag 分支）：
+
 ```ts
-{
-  promptText: string;               // 完整 prompt（system + user 段合併，使用 markdown 分隔符）— 給使用者編輯
-  systemPrompt: string;             // 純 system 段（debug/preview）
-  userPrompt: string;               // 純 user 段（debug/preview）
-  contextHash: string;              // 對應 ChapterContext.contextHash
-  estimatedTokens: number;          // js-tiktoken 估算
-  modelId: string;                  // 解析後實際會用的 model id
-  participants: Array<{
-    slug: string;
-    name: string;
-    matched: boolean;               // false = 該 slug 在 characters/ 下沒找到對應檔（前端顯示警告）
-  }>;
-}
+type BuildPromptResponse =
+  | {
+      kind: "messages";                 // 既有 path：messages-array provider
+      promptText: string;               // 完整 prompt（system + user 段合併，使用 markdown 分隔符）— 給使用者編輯
+      systemPrompt: string;             // 純 system 段（debug/preview）
+      userPrompt: string;               // 純 user 段（debug/preview）
+      contextHash: string;
+      estimatedTokens: number;
+      modelId: string;
+      participants: Array<{ slug: string; name: string; matched: boolean }>;
+    }
+  | {
+      kind: "structured";               // M6 新增 path：structured provider（如 xiaohuangwen）
+      structuredInputs: {
+        plot: string;
+        background: string;
+        requirements: string;
+        pre_summary: string;
+        prev_segment: string;
+      };
+      contextHash: string;
+      modelId: string;
+      participants: Array<{ slug: string; name: string; matched: boolean }>;
+      // 註：structured path 不估 tokens（API 端內建，無 contextWindow 概念）
+    };
 ```
+
+**分支條件**：apps/api 端讀取 `routing.primary` 的 provider → 取 `capabilities(modelId)` → 依 `hasStructuredNovelGenerate` 決定回 `kind: "messages"` 或 `kind: "structured"`。
+
+**structured path 欄位來源**（context-collector 組裝，詳見 [spec 011](./011-xiaohuangwen-provider.md)）：
+
+| 欄位 | 來源 |
+|---|---|
+| `plot` | chapter front-matter `outline`（缺省則為空字串，使用者要在前端填）|
+| `background` | 選定 characters 的 `## 角色描述（手動）` + `## AI 統整敘述` 拼接 + `story_status` 摘要 |
+| `requirements` | chapter front-matter `requirements` |
+| `pre_summary` | `story_status.md` 的 `## 故事摘要` |
+| `prev_segment` | 前章 .md 末段（取最後 2000 codepoint） |
 
 **Errors:**
 
@@ -70,8 +95,9 @@
 | 400 | `MISSING_CONTEXT` | synopsis 為空 |
 | 400 | `INVALID_CHAPTER` | chapterNumber 不存在 |
 | 400 | `INVALID_PARTICIPANT` | participantSlugs 中至少有一個對應檔不存在；錯誤中含「找不到的 slug 列表」 |
-| 400 | `CONTEXT_TOO_LARGE` | 估算 tokens > model.contextWindow * 0.75 |
+| 400 | `CONTEXT_TOO_LARGE` | (messages path) 估算 tokens > model.contextWindow * 0.75；structured path 不檢查 |
 | 400 | `ROUTING_NOT_CONFIGURED` | chapter-writer routing 未設定 |
+| 400 | `KIND_MISMATCH` | (M6 generate only) request.kind 與 routing primary 的 capability 不匹配 |
 | 404 | `PROJECT_NOT_FOUND` |
 
 **注意**：此 endpoint **無副作用**（不寫檔、不呼 LLM、不動 frontmatter）。等同「dry-run preview」。前端可呼叫多次（例：使用者改參數後重 build）。
@@ -84,19 +110,38 @@
 - `projectHash` — 由 client 從 project path 計算（sha256 前 16 字，依 Spec 008 M5 修訂），server 透過 `~/.novel-writer/settings.yaml` 的 `recentProjects` 反查實際路徑
 - `chapterNumber` — 1-based
 
-**Request（M5 變更）：**
+**Request（M6 改 discriminated union）：**
 ```ts
-{
-  promptText: string;               // M5 必填：使用者編輯過的 prompt（從 build-prompt 來，可能改過）
-  modelOverride?: string;           // optional
-  temperatureOverride?: number;     // optional
-  contextHash: string;              // M5 必填：對應 build-prompt 的 contextHash；Spec 006 採用時驗證 staleness 用
-  // M5：以下三欄記錄當次 generate 的「真實參數」，存進 PromptSnapshot（不重新跑 build-prompt 邏輯）
-  participants: string[];
-  outline: string | null;
-  requirements: string | null;
-}
+type GenerateRequest =
+  | {
+      kind: "messages";              // 既有 path
+      promptText: string;            // 使用者編輯過的 prompt（從 build-prompt 來）
+      contextHash: string;
+      participants: string[];
+      outline: string | null;
+      requirements: string | null;
+      modelOverride?: string;
+      temperatureOverride?: number;
+    }
+  | {
+      kind: "structured";            // M6 新增 path
+      structuredInputs: {
+        plot: string;
+        background: string;
+        requirements: string;
+        pre_summary: string;
+        prev_segment: string;
+      };
+      contextHash: string;
+      participants: string[];        // 仍記錄（PromptSnapshot 用）
+      outline: string | null;
+      requirements: string | null;
+      modelOverride?: string;
+      temperatureOverride?: number;
+    };
 ```
+
+**分支驗證**：server 收到 request 後比對 `kind` 與 `routing.primary` 的 capability flag — 不匹配回 400 `KIND_MISMATCH`（例：messages-array provider 收到 `kind: "structured"`）。
 
 **M5 移除欄位**：`agentName`（永遠 chapter-writer，不需傳）、`userIntent`（已併入 prompt build 階段）。
 
@@ -285,12 +330,22 @@ export interface PromptSnapshot {
   agentName: string;
   agentVersion: string;          // 從 docs/agents/<name>.md frontmatter 讀
   modelId: string;
-  // M5：systemPrompt / userPrompt 為「實際送出 LLM 的版本」— 可能是 build-prompt 自動產的，也可能是使用者編輯後的
-  systemPrompt: string;
-  userPrompt: string;
-  // M5：原始 build-prompt 自動產出版本（給「對比使用者編輯了什麼」用，與 systemPrompt/userPrompt 可能不同）
-  autoGeneratedPromptText: string;
-  userEdited: boolean;           // M5：promptText 是否被使用者編輯（autoGeneratedPromptText !== final promptText）
+  kind: "messages" | "structured";  // M6：標識本次走的 path
+
+  // ---- kind === "messages" 時填以下 4 欄；structured 時為 null ----
+  systemPrompt: string | null;
+  userPrompt: string | null;
+  autoGeneratedPromptText: string | null;
+  userEdited: boolean | null;    // promptText 是否被使用者編輯
+
+  // ---- kind === "structured" 時填以下；messages 時為 null ----
+  structuredInputs: {
+    plot: string;
+    background: string;
+    requirements: string;
+    pre_summary: string;
+    prev_segment: string;
+  } | null;
   context: {
     synopsisHash: string;
     storyStatusHash: string;
@@ -436,22 +491,54 @@ client                 apps/api                  ContextCollector  LLMRouter   C
 
 ## LLM adapter 合約
 
-- 觸發的產品內 Agent：`docs/agents/chapter-writer.md`（待 ai-agent-designer 撰寫，TBD）
+- 觸發的產品內 Agent：`docs/agents/chapter-writer.md`
 - 上層需提供的上下文：見「上下文蒐集」段
 - 串流：是（強制）
-- Routing policy：從 `settings.yaml.defaults.routing` 讀，`request.modelOverride` 可覆寫 `primary`
-- 失敗處置：依 ADR-0004 降級規則
+- Routing policy：從 `settings.yaml.agents.chapter-writer.routing` 讀，`request.modelOverride` 可覆寫 `primary`
+- **Dispatch（M6）**：依 `routing.primary` 的 `capabilities(modelId).hasStructuredNovelGenerate`
+  - `true` → `LLMRouter.generateNovel(structuredInputs, policy)`（無自動 fallback；ADR-0010）
+  - `false` → `LLMRouter.stream(messagesReq, policy)`（依 ADR-0004 降級規則）
 - 不在此層做提示詞拼接——交給 `packages/prompt-library/prompts/chapter-writer.ts`
 
-## Shared UI components reference（M5 Round 2）
+## Shared UI components reference（M6 — 共用元件已搬到 `_components/`）
 
-本 spec 涉及的 UI（PromptPreviewModal、generate 進度、錯誤呈現）使用 spec 002 canonical 定義的共用元件：
+詳見 [`_components/_index.md`](./_components/_index.md)。
 
 | 元件 / 慣例 | 使用點 |
 |---|---|
-| `<ExpandableTextarea>` | PromptPreviewModal 內 promptText 編輯區（讓使用者編輯 build-prompt 結果） |
-| `<Spinner>` | generate 首 chunk 等待（1~3s 行內 spinner）；build-prompt 計算（< 200ms 不顯示）|
-| Error 三層 | inline：`INVALID_PARTICIPANT`（角色挑選器旁紅字）；toast：generate 串流中斷後可重試；modal：`MISSING_CONTEXT` / `CONTEXT_TOO_LARGE` / `ROUTING_NOT_CONFIGURED`（含「前往設定頁」連結） |
+| [`<ExpandableTextarea>`](./_components/expandable-textarea.md) | (messages path) PromptPreviewModal 內 promptText 編輯區 / (structured path) 五欄結構化編輯（plot / background / requirements / pre_summary / prev_segment 各一個） |
+| [`<Spinner>`](./_components/spinner.md) | generate 首 chunk 等待（1~3s）；build-prompt < 200ms 不顯示 |
+| [Error 三層](./_components/error-display.md) | inline：`INVALID_PARTICIPANT` / `KIND_MISMATCH`；toast：generate 中斷後可重試 / `QUOTA_EXHAUSTED`（xiaohuangwen 餘額不足）；modal：`MISSING_CONTEXT` / `CONTEXT_TOO_LARGE` / `ROUTING_NOT_CONFIGURED` |
+
+### structured path UI 分支（M6）
+
+當 build-prompt 回 `kind: "structured"`，UI 改顯示五欄結構化編輯（取代既有 PromptPreviewModal 的單一 promptText `<ExpandableTextarea>`）：
+
+```
+┌── 結構化 generate 編輯 ────────────────────────────────┐
+│ ℹ️ 此 provider 使用結構化欄位生成，與一般 LLM prompt 不同 │
+│                                                          │
+│ 劇情大綱 (plot) *                                        │
+│ ┌────────────────────────────┐ ⛶                          │
+│ │ ...                        │                            │
+│ └────────────────────────────┘                            │
+│                                                          │
+│ 背景 (background)                                        │
+│ ┌────────────────────────────┐ ⛶                          │
+│ │ ...                        │                            │
+│ └────────────────────────────┘                            │
+│                                                          │
+│ 寫作需求 (requirements)                                  │
+│ ┌────────────────────────────┐ ⛶                          │
+│                                                          │
+│ 前情提要 (pre_summary)                                   │
+│ 前章末段 (prev_segment)                                  │
+│                                                          │
+│              [取消]  [送出生成]                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+五欄各用一個 `<ExpandableTextarea>`。送出時組成 `kind: "structured"` request。
 
 ## 非功能性
 
@@ -493,6 +580,13 @@ client                 apps/api                  ContextCollector  LLMRouter   C
 
 ## 變更紀錄
 
+- `2026-05-17`（M6 SA-2，待 PM Round 1 拍板轉 Ready）：
+  - build-prompt response / generate request 改 discriminated union（`kind: "messages" | "structured"`）
+  - PromptSnapshot 加 `kind` 與 `structuredInputs`；messages 對應欄位改 nullable
+  - dispatch 依 capability flag（ADR-0010 `hasStructuredNovelGenerate`）
+  - structured path UI：五欄結構化編輯（取代 single promptText `<ExpandableTextarea>`）
+  - 共用元件 reference 改指向 `_components/`
+  - 新增 error code `KIND_MISMATCH`
 - `2026-05-10`: 初版 Ready
 - `2026-05-13`: ChapterContext 對齊 Story 005/007 修訂版 + Spec 002b 升 MVP：
   - 加 `writingStyle: string`（讀 `<project>/style.md`；依 style.md 邊界規則）

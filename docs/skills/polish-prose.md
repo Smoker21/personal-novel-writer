@@ -10,7 +10,7 @@ description: 對選定段落進行潤稿；修正用詞、節奏、流暢度；�
 > **何時用**：使用者在章節編輯器內選取一段文字 → 按「✨ 潤稿」按鈕 → 對話框輸入潤稿指令。
 > **不做什麼**：不增刪情節事件、不改角色名 / 視角 / 時序、不擴展為新章節。
 
-> Status: `Draft`（待 PM 拍板 spec 012 Q-P1~5 後 promote）
+> Status: `Ready`（PM Round 1 拍板 2026-05-18）
 > Owner spec: `docs/architecture/specs/012-polish-prose-flow.md`（流程 / UI / API）
 > Owner prompt: `packages/prompt-library/prompts/skills/polish-prose.ts`（普通 LLM provider path）
 > Adapter spec: `docs/architecture/specs/011-xiaohuangwen-provider.md`（xiaohuangwen path）

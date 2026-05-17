@@ -18,15 +18,68 @@ M6 **不加其他新功能**；FTS5 全文搜尋（S1）/ preset 庫（S2）已�
 ## 你是誰（spec-architect）
 
 新 session 的角色 = **spec-architect**。
-你的工作有三件：
+
+### M6 PM Round 0 拍板（2026-05-17 — spec-architect 預審後修訂）
+
+spec-architect 完成 M5 後檢視 M6 handover，回報 4 個跨切面問題請 PM 拍板：
+
+| Q | 問題 | dev 推薦 | **PM 拍板** |
+|---|---|---|---|
+| **Q1** | polish-prose 是否做 | (a) 不做，等未來起 | **建立 Polish Novel — 統一修訂規格，主要為潤稿使用；增加 Feedback for PM 段** |
+| **Q2** | LLM adapter 介面擴張 | R1（`streamStructured` opt-in + 新 ADR-0010）| 同意 R1 |
+| **Q3** | spec 005 / 006 修訂納入 SA-2 範圍 | 是 | 同意 |
+| **Q4** | XiaohuangwenAdapter 放新 spec 011（不放 `_components/`）| 是 | 同意 |
+
+### 工作清單（PM Q1~Q4 拍板後修訂）
 
 | 件 | 內容 | 產出 |
 |---|---|---|
-| **SA-1** | 建立 `docs/architecture/specs/_components/` 子目錄，把現有跨 spec 共用 UI 元件規格從 spec 002 遷移出來，各自獨立成文件 | `_components/*.md` |
-| **SA-2** | 修訂 spec 009（Settings）：新增 xiaohuangwen 為第 5 個 provider，**限制只出現在章節寫作 routing slot** | `spec 009` 增量修訂 + `009.feature` 新 scenario |
-| **SA-3** | 寫 `docs/architecture/specs/_components/xiaohuangwen-adapter.md`（或擴 ADR-0004）：定義 XiaohuangwenAdapter 的能力旗標、streaming 解析、章節寫作 routing 用法 | 新元件 spec + 可能的 ADR 修訂 |
+| **SA-1** | 建 `docs/architecture/specs/_components/` 子目錄 + 5 個元件規格 + 7 份 spec 反向 cross-reference 更新 | `_components/_index.md` + 5 元件檔 + spec 002/003/005/006/007/009 reference 更新 |
+| **SA-2.a** | 新增獨立 spec 011 `xiaohuangwen-provider.md`（adapter 規格） | `specs/011-xiaohuangwen-provider.md` |
+| **SA-2.b** | 新增獨立 spec 012 `polish-prose-flow.md`（含 Feedback for PM 段，5 個 Q-P 待 Round 1 拍板）| `specs/012-polish-prose-flow.md` |
+| **SA-2.c** | 新增 `docs/skills/polish-prose.md`（Skill 本體規格）| `docs/skills/polish-prose.md` |
+| **SA-2.d** | 修訂 spec 005（structured generate 分支：build-prompt response / generate request / PromptSnapshot / UI 五欄編輯） | `specs/005-ai-write-chapter.md` 增量修訂 |
+| **SA-2.e** | 修訂 spec 006（prompt.md 渲染兩 path / frontmatter `kind`）| `specs/006-adopt-chapter-draft.md` 增量修訂 |
+| **SA-2.f** | 修訂 spec 009（xiaohuangwen provider / `agents.polish-prose` slot / balance endpoint / dropdown 過濾 / 共用元件 reference 改指 `_components/`）| `specs/009-settings-page.md` 增量修訂 |
+| **SA-3** | 新增 ADR-0010「LLM adapter 結構化生成擴充」（`streamStructured` opt-in / `StructuredNovelProvider` / `hasStructuredNovelGenerate` capability / `quota_exhausted` error / `origin: "novel-api"`） | `adr/0010-llm-adapter-structured-generation.md` |
+| **同步** | CLAUDE.md 補 D4 流程 + D5 自治邊界；本檔補 PM Q1~Q4 紀錄 | CLAUDE.md / 本檔 |
 
-完成的工件交回 PM 簽核才能轉 `status=Ready`，dev 才動工。
+### M6 SA 階段交付狀態（2026-05-18 — PM Round 1 拍板完成）
+
+| 工件 | 狀態 |
+|---|---|
+| `_components/` 6 檔（含 _index）| ✅ Ready |
+| ADR-0010 | ✅ Accepted |
+| spec 011 xiaohuangwen-provider | ✅ **Ready**（PM Round 1 拍板 2026-05-18）|
+| spec 012 polish-prose-flow | ✅ **Ready**（PM Round 1 Q-P1~5 全拍板 + PolishPanel UI 設計確認 2026-05-18）|
+| `docs/skills/polish-prose.md` | ✅ **Ready**（同 spec 012）|
+| spec 005 / 006 / 009 增量修訂 | ✅ **Ready**（PM Round 1 拍板 2026-05-18）|
+| spec 002 / 003 / 007 cross-reference 反向更新 | ✅ 完成 |
+| CLAUDE.md（D4 流程 + D5 自治邊界）| ✅ 完成 |
+
+### PM Round 1 拍板結果（2026-05-18）
+
+**spec 012 Q-P1~5 全拍板**：
+
+| Q-P | 拍板結果 |
+|---|---|
+| Q-P1 觸發入口 | 框選文字後浮動工具列（CM6 SelectionMenu plugin）|
+| Q-P2 潤稿範圍 | 選段為主，無選取則不出現按鈕 |
+| Q-P3 接受流程 | **PM 直接設計 PolishPanel（取代 DiffView）** — 右側 panel，三段式：選取文字（可收合 read-only）/ 潤飾提示詞（可放大）/ 潤飾結果（可放大可編輯）+ 三按鈕（潤飾 / 重新產生 / 採用）|
+| Q-P4 routing slot | 獨立 `polish-prose` slot |
+| Q-P5 dirty draft | 不進 spec 006 採用流程，直接覆寫編輯器 |
+
+**spec-architect 注意**：
+- `jsdiff` 套件**不引入**（PolishPanel 設計移除 DiffView）
+- 新增 `ReadOnlyCollapsible` 元件（spec-local，非 _components/）
+- spec 012 dev 任務已更新至 commit `361a526`
+
+**SA 階段收尾項**（spec-architect 執行）：
+- [ ] 把 spec 011 / 012 / 005 / 006 / 009 + `docs/skills/polish-prose.md` 的 `Status: Draft` 全改為 `Status: Ready`
+- [ ] 在每份 spec 變更紀錄段補「PM Round 1 拍板 2026-05-18」
+
+**PM 待補（不阻 dev 動工，但 QA 跑 BDD 前要有）**：
+- `docs/requirements/features/012-polish-prose.feature`（PM 是 .feature 唯一 author）
 
 ---
 
@@ -214,3 +267,10 @@ streaming 回傳 plain text（不是 SSE JSON event），需獨立解析。
 ## 變更紀錄
 
 - 2026-05-17：初版，PM 拍板 M6 D1~D5 + P1 定案後起草
+- 2026-05-17（spec-architect 接手 + PM Round 0 拍板）：
+  - spec-architect 預審 handover 回報 4 個 Q1~Q4 問題；PM 拍板：
+    - Q1 = 建立 polish-prose Skill（含 Feedback for PM）
+    - Q2 = R1 介面擴張（新 ADR-0010）
+    - Q3 = spec 005 / 006 / 009 三份增量修訂
+    - Q4 = 新 spec 011 + 移除「_components/xiaohuangwen-adapter.md」方案
+  - SA-1 / SA-2 / SA-3 全部完成（待 PM Round 1 核准）；spec 005 / 006 / 009 status 暫退 Draft

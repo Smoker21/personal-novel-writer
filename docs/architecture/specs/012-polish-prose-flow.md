@@ -3,7 +3,7 @@
 > Story: 無對應 user story — M6 P1 引入（PM Q1 拍板「建立 Polish Novel」）
 > Skill spec: [`docs/skills/polish-prose.md`](../../skills/polish-prose.md)
 > Related: [011](./011-xiaohuangwen-provider.md) / [005](./005-ai-write-chapter.md) / [009](./009-settings-page.md) / ADR-0010
-> Status: `Draft`
+> Status: `Ready`（PM Round 1 拍板 2026-05-18；PolishPanel UI 設計確認）
 > Owner: `spec-architect`
 > Last updated: `2026-05-17`
 
