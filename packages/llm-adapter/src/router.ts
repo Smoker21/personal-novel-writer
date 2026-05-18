@@ -3,8 +3,12 @@ import type {
   GenerateRequest,
   GenerateResponse,
   LLMProvider,
+  ProviderBalance,
   RoutingPolicy,
   StreamChunk,
+  StructuredNovelGenerateParams,
+  StructuredNovelPolishParams,
+  StructuredNovelProvider,
 } from "./types.js";
 import { hasImageContent, parseModelId } from "./types.js";
 
@@ -145,5 +149,103 @@ export class LLMRouter {
       finishReason,
       modelId: resolvedModelId,
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // M6 (ADR-0010 / spec 011) — 結構化生成路徑
+  //
+  // 與 messages-array path 不同：不自動降級到 fallbacks[]，因 structured params
+  // 通常與 messages-array policy 不相容（spec 011 / ADR-0010 line 131-136）。
+  // 上層 service 自行處理錯誤後決定 UI 引導。
+  // -------------------------------------------------------------------------
+
+  /**
+   * 取出 primary provider 並驗證 `hasStructuredNovelGenerate=true`。
+   * 失敗 throw `LLMError`。
+   */
+  private resolveStructuredProvider(primaryModelId: string): {
+    provider: LLMProvider & StructuredNovelProvider;
+    modelId: string;
+  } {
+    const { provider: providerId, model } = parseModelId(primaryModelId);
+    const provider = this.providers.get(providerId);
+    if (provider === undefined) {
+      throw new LLMError(
+        "model_not_found",
+        providerId,
+        `Provider "${providerId}" not registered`,
+        false,
+      );
+    }
+    const caps = provider.capabilities(primaryModelId);
+    if (caps === null || caps.hasStructuredNovelGenerate !== true) {
+      throw new LLMError(
+        "operation_not_supported",
+        providerId,
+        `Provider "${providerId}" (model "${model}") does not support structured novel generation`,
+        false,
+      );
+    }
+    // capability flag 為真即代表同時實作 StructuredNovelProvider
+    return {
+      provider: provider as LLMProvider & StructuredNovelProvider,
+      modelId: primaryModelId,
+    };
+  }
+
+  /**
+   * 結構化章節生成（chapter-writer Agent path）。
+   *
+   * `policy.primary` 必須對應有 `hasStructuredNovelGenerate=true` 的 provider；
+   * 否則 throw `LLMError("operation_not_supported", ...)`。
+   *
+   * **不**在 `fallbacks[]` 之間自動切換 — structured params 與 messages-array
+   * policy 不相容。上層 service 自行重試 / 引導使用者切 routing。
+   */
+  async *generateNovel(
+    params: StructuredNovelGenerateParams,
+    policy: { primary: string; retryPerModel?: number },
+  ): AsyncIterable<StreamChunk> {
+    const { provider } = this.resolveStructuredProvider(policy.primary);
+    yield* provider.generateNovel(params);
+  }
+
+  /**
+   * 結構化潤稿（polish-prose Skill path）。
+   *
+   * 規則同 `generateNovel()`。
+   */
+  async *polishNovel(
+    params: StructuredNovelPolishParams,
+    policy: { primary: string; retryPerModel?: number },
+  ): AsyncIterable<StreamChunk> {
+    const { provider } = this.resolveStructuredProvider(policy.primary);
+    yield* provider.polishNovel(params);
+  }
+
+  /**
+   * 餘額查詢。providerId 不含 model 部份。
+   * Provider 須實作 `StructuredNovelProvider`，否則 throw `operation_not_supported`。
+   */
+  async getBalance(providerId: string): Promise<ProviderBalance> {
+    const provider = this.providers.get(providerId);
+    if (provider === undefined) {
+      throw new LLMError(
+        "model_not_found",
+        providerId,
+        `Provider "${providerId}" not registered`,
+        false,
+      );
+    }
+    const maybe = provider as LLMProvider & Partial<StructuredNovelProvider>;
+    if (typeof maybe.getBalance !== "function") {
+      throw new LLMError(
+        "operation_not_supported",
+        providerId,
+        `Provider "${providerId}" does not expose getBalance()`,
+        false,
+      );
+    }
+    return await maybe.getBalance();
   }
 }

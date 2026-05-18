@@ -69,6 +69,12 @@ export interface ModelCapabilities {
   supportsVision: boolean;
   costPer1kInput?: number;
   costPer1kOutput?: number;
+  /**
+   * M6 (ADR-0010 / spec 011)：true = provider 同時實作 `StructuredNovelProvider`，
+   * 用結構化欄位呼叫 `generateNovel()` / `polishNovel()`；messages-array 一般 provider 一律 false。
+   * 上層 service 依此 flag dispatch chapter-writer / polish-prose path。
+   */
+  hasStructuredNovelGenerate: boolean;
 }
 
 /**
@@ -84,9 +90,17 @@ export interface ProviderModel {
 
 export interface LLMProvider {
   readonly id: string;
-  readonly origin: "cloud" | "local";
+  /**
+   * M6 (ADR-0010)：擴 `"novel-api"` 分類，給結構化專用 provider（如 xiaohuangwen）用。
+   * UI 端依此分類分組顯示 / 過濾 routing slot 候選。
+   */
+  readonly origin: "cloud" | "local" | "novel-api";
 
   generate(request: GenerateRequest): Promise<GenerateResponse>;
+  /**
+   * M6 (ADR-0010)：純 structured-only provider 可 throw
+   * `LLMError("operation_not_supported", ...)`；messages-array provider 一律實作。
+   */
   stream(request: GenerateRequest): AsyncIterable<StreamChunk>;
   capabilities(modelId: string): ModelCapabilities | null;
   ping(): Promise<{ ok: boolean; latencyMs?: number }>;
@@ -96,6 +110,69 @@ export interface LLMProvider {
    * 失敗時 throw LLMError with code in {"unauthorized","network","timeout","unknown"}。
    */
   listModels(opts?: { signal?: AbortSignal }): Promise<ProviderModel[]>;
+}
+
+// ── Structured Novel Provider（M6 ADR-0010 / spec 011） ────────────────────
+
+/**
+ * 結構化章節生成欄位（chapter-writer Agent path）。
+ *
+ * 對應 spec 011 `POST /api/v1/generate` 請求 body。`background` / `requirements`
+ * / `pre_summary` / `prev_segment` 由 context-collector 在 apps/api 端組裝後傳入。
+ */
+export interface StructuredNovelGenerateParams {
+  /** 必填：本章劇情大綱（spec 003 chapter front-matter `outline`）。 */
+  plot: string;
+  /** 角色卡摘要 + story_status 拼接（context-collector 組）。 */
+  background?: string;
+  /** 本章寫作需求（spec 003 chapter front-matter `requirements`）。 */
+  requirements?: string;
+  /** 前情提要（story_status.md「## 故事摘要」段）。 */
+  pre_summary?: string;
+  /** 前章末段（context-collector 取最後 2000 codepoint）。 */
+  prev_segment?: string;
+  /** provider 特定版本字串。xiaohuangwen: "latest" | "stable"；預設 "latest"。 */
+  version?: string;
+  /** 用於外部取消的 AbortSignal。 */
+  abortSignal?: AbortSignal;
+}
+
+/**
+ * 結構化潤稿欄位（polish-prose Skill path）。
+ *
+ * 對應 spec 011 `POST /api/v1/polish` 請求 body。
+ */
+export interface StructuredNovelPolishParams {
+  /** 必填：當前章節 / 選段文字。 */
+  pre_output: string;
+  /** 必填：潤稿指令。 */
+  polish_input: string;
+  version?: string;
+  abortSignal?: AbortSignal;
+}
+
+/**
+ * 餘額查詢結果。currency 預設 "words"（xiaohuangwen 以字數計費）；其他 structured
+ * provider 可回 "credits"。
+ */
+export interface ProviderBalance {
+  remainingWords: number;
+  currency?: "words" | "credits";
+}
+
+/**
+ * M6 (ADR-0010)：結構化生成介面。與 `LLMProvider` 正交並存；adapter 可二擇一
+ * 或同時實作。capability flag `hasStructuredNovelGenerate=true` 即代表
+ * 此 adapter 同時實作了 `StructuredNovelProvider`。
+ */
+export interface StructuredNovelProvider {
+  generateNovel(params: StructuredNovelGenerateParams): AsyncIterable<StreamChunk>;
+  polishNovel(params: StructuredNovelPolishParams): AsyncIterable<StreamChunk>;
+  /**
+   * 結構化 provider 通常以字數 / credit 計費，需獨立 endpoint 查餘額。
+   * 失敗 throw `LLMError` (code: "unauthorized" / "network")。
+   */
+  getBalance(): Promise<ProviderBalance>;
 }
 
 export interface RoutingPolicy {

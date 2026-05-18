@@ -35,6 +35,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.015,
     costPer1kOutput: 0.075,
+    hasStructuredNovelGenerate: false,
   },
   "claude-sonnet-4-6": {
     contextWindow: 200_000,
@@ -44,6 +45,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.003,
     costPer1kOutput: 0.015,
+    hasStructuredNovelGenerate: false,
   },
   "claude-haiku-4-5": {
     contextWindow: 200_000,
@@ -53,6 +55,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.0008,
     costPer1kOutput: 0.004,
+    hasStructuredNovelGenerate: false,
   },
 };
 

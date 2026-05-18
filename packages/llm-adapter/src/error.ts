@@ -8,6 +8,10 @@ export type LLMErrorCode =
   | "model_lacks_capability"
   | "image_too_large"
   | "image_format_unsupported"
+  // M6 (ADR-0010)：純 structured provider 收到 unstructured 請求
+  | "operation_not_supported"
+  // M6 (ADR-0010)：以字數 / credit 計費的 provider 餘額不足
+  | "quota_exhausted"
   | "unknown";
 
 export class LLMError extends Error {

@@ -10,6 +10,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.002,
     costPer1kOutput: 0.008,
+    hasStructuredNovelGenerate: false,
   },
   "gpt-4.1-mini": {
     contextWindow: 128_000,
@@ -19,6 +20,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.0004,
     costPer1kOutput: 0.0016,
+    hasStructuredNovelGenerate: false,
   },
   "gpt-4o": {
     contextWindow: 128_000,
@@ -28,6 +30,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.0025,
     costPer1kOutput: 0.01,
+    hasStructuredNovelGenerate: false,
   },
   "gpt-4o-mini": {
     contextWindow: 128_000,
@@ -37,6 +40,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.00015,
     costPer1kOutput: 0.0006,
+    hasStructuredNovelGenerate: false,
   },
 };
 

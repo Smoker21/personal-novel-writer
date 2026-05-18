@@ -10,6 +10,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.002,
     costPer1kOutput: 0.01,
+    hasStructuredNovelGenerate: false,
   },
   "grok-2": {
     contextWindow: 131_072,
@@ -19,6 +20,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: false,
     costPer1kInput: 0.002,
     costPer1kOutput: 0.01,
+    hasStructuredNovelGenerate: false,
   },
   "grok-beta": {
     contextWindow: 131_072,
@@ -28,6 +30,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: false,
     costPer1kInput: 0.005,
     costPer1kOutput: 0.015,
+    hasStructuredNovelGenerate: false,
   },
 };
 

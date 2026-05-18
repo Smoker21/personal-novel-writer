@@ -27,6 +27,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.00125,
     costPer1kOutput: 0.01,
+    hasStructuredNovelGenerate: false,
   },
   "gemini-2.5-flash": {
     contextWindow: 1_048_576,
@@ -36,6 +37,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.0000375,
     costPer1kOutput: 0.00015,
+    hasStructuredNovelGenerate: false,
   },
   "gemini-2.0-flash": {
     contextWindow: 1_048_576,
@@ -45,6 +47,7 @@ const MODELS: Record<string, ModelCapabilities> = {
     supportsVision: true,
     costPer1kInput: 0.0000375,
     costPer1kOutput: 0.00015,
+    hasStructuredNovelGenerate: false,
   },
 };
 

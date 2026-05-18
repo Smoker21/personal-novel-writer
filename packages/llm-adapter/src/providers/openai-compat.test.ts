@@ -57,6 +57,7 @@ class TestProvider extends OpenAiCompatProvider {
         supportsStreaming: true,
         supportsToolCalls: false,
         supportsVision: true,
+        hasStructuredNovelGenerate: false,
       };
     }
     return {
@@ -65,6 +66,7 @@ class TestProvider extends OpenAiCompatProvider {
       supportsStreaming: true,
       supportsToolCalls: false,
       supportsVision: false,
+      hasStructuredNovelGenerate: false,
     };
   }
 }

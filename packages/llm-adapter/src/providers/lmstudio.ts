@@ -14,6 +14,7 @@ function inferCapabilities(modelId: string): ModelCapabilities {
     supportsStreaming: true,
     supportsToolCalls: false,
     supportsVision,
+    hasStructuredNovelGenerate: false,
   };
 }
 

@@ -7,6 +7,7 @@ export { OllamaProvider } from "./providers/ollama.js";
 export { OpenAiProvider } from "./providers/openai.js";
 export { OpenAiCompatProvider } from "./providers/openai-compat.js";
 export { XaiProvider } from "./providers/xai.js";
+export { XiaohuangwenAdapter } from "./providers/xiaohuangwen.js";
 export { LLMRouter } from "./router.js";
 export { countMessageTokens, countTokens } from "./token-counter.js";
 export type {
@@ -20,9 +21,13 @@ export type {
   LLMProvider,
   Message,
   ModelCapabilities,
+  ProviderBalance,
   ProviderModel,
   RoutingPolicy,
   StreamChunk,
+  StructuredNovelGenerateParams,
+  StructuredNovelPolishParams,
+  StructuredNovelProvider,
   TextContent,
   Usage,
 } from "./types.js";
