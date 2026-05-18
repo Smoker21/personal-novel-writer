@@ -42,7 +42,7 @@ export function scoreCase(run: TestCaseRun, res: ChatResponse, runIndex?: number
   // common red flags
   const dis = scanDisclaimers(out);
   if (dis.refusal) redFlags.push("拒絕回應 / 過度免責");
-  const englishWords = (out.match(/[A-Za-z]+(?:['\-][A-Za-z]+)*/g) ?? []).length;
+  const englishWords = (out.match(/[A-Za-z]+(?:['-][A-Za-z]+)*/g) ?? []).length;
   if (englishWords > 5 && countChineseChars(out) < englishWords * 3) {
     redFlags.push("回應大量英文（疑似切換語言）");
   }

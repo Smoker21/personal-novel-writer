@@ -2,9 +2,9 @@ import {
   type ChatMessage,
   type ChatRequest,
   type ChatResponse,
+  mapFinishReason,
   type Runtime,
   type RuntimeConfig,
-  mapFinishReason,
 } from "./runtime.js";
 
 interface OpenAIChatChoice {

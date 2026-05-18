@@ -71,6 +71,7 @@ export async function* subscribeJob(jobId: string): AsyncIterable<StatusJobEvent
   try {
     while (true) {
       if (queue.length > 0) {
+        // biome-ignore lint/style/noNonNullAssertion: queue.length > 0 guarantees shift() returns an element
         const ev = queue.shift()!;
         yield ev;
         if (ev.type === "completed" || ev.type === "failed") return;

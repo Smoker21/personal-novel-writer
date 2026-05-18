@@ -128,6 +128,7 @@ function fence(body: string): string {
   let len = 3;
   const inner = /`+/g;
   let m: RegExpExecArray | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: assignment-in-condition is idiomatic for loop termination
   while ((m = inner.exec(trimmed)) !== null) {
     if (m[0].length >= len) len = m[0].length + 1;
   }

@@ -7,8 +7,8 @@ vi.mock("./settings-store.js", () => ({
   writeSettings: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { defaultSettings } from "@novel-writer/shared-types";
 import type { AppSettings, RecentProject } from "@novel-writer/shared-types";
+import { defaultSettings } from "@novel-writer/shared-types";
 import { hashProjectPath, resolveProjectPath, touchProject } from "./project-resolver.js";
 import * as settingsStore from "./settings-store.js";
 

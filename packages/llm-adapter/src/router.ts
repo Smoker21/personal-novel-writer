@@ -1,5 +1,4 @@
 import { LLMError } from "./error.js";
-import { hasImageContent, parseModelId } from "./types.js";
 import type {
   GenerateRequest,
   GenerateResponse,
@@ -7,6 +6,7 @@ import type {
   RoutingPolicy,
   StreamChunk,
 } from "./types.js";
+import { hasImageContent, parseModelId } from "./types.js";
 
 export class LLMRouter {
   constructor(private readonly providers: Map<string, LLMProvider>) {}
@@ -59,7 +59,9 @@ export class LLMRouter {
     }
 
     for (let i = 0; i < candidates.length; i++) {
+      // biome-ignore lint/style/noNonNullAssertion: loop bounds guarantee candidates[i] exists
       const modelId = candidates[i]!;
+      // biome-ignore lint/style/noNonNullAssertion: getProvider always returns provider for valid modelId
       const provider = this.getProvider(modelId)!;
       const req: GenerateRequest = { ...request, modelId };
 
@@ -97,6 +99,7 @@ export class LLMRouter {
       if (!failed) {
         // Success — emit all buffered chunks
         if (i > 0) {
+          // biome-ignore lint/style/noNonNullAssertion: i > 0 guarantees candidates[i-1] exists
           yield { type: "degraded", fromModel: candidates[i - 1]!, toModel: modelId };
         }
         for (const chunk of buffered) {
@@ -108,6 +111,7 @@ export class LLMRouter {
       // Try next fallback
       const nextCandidate = candidates[i + 1];
       if (nextCandidate === undefined) {
+        // biome-ignore lint/style/noNonNullAssertion: failError is always set when failed is true
         throw failError!;
       }
     }

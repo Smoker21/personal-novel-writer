@@ -4,8 +4,8 @@ import type { ApiErrorBody, OpenProjectResponse } from "@novel-writer/shared-typ
 import { Hono } from "hono";
 import { z } from "zod";
 import { commitIfChanged } from "../services/commit-policy.js";
-import { parseStatus } from "../services/git-status-parser.js";
 import { git } from "../services/git.js";
+import { parseStatus } from "../services/git-status-parser.js";
 import { summarizeProject } from "../services/project-summary.js";
 import { validateProject } from "../services/project-validator.js";
 import {

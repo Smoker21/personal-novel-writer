@@ -6,9 +6,9 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { atomicWriteFile } from "../services/atomic-fs.js";
 import { commitIfChanged } from "../services/commit-policy.js";
+import { git as gitService } from "../services/git.js";
 import { parseGitLog } from "../services/git-log-parser.js";
 import { parseStatus } from "../services/git-status-parser.js";
-import { git as gitService } from "../services/git.js";
 import { resolveProjectPath } from "../services/project-resolver.js";
 
 function checkGitBinary(): GitBinaryInfo {

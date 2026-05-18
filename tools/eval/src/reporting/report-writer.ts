@@ -94,6 +94,7 @@ function applyCaseToMarkdown(md: string, c: CaseResult): string {
 
 function applySubtestToSection(section: string, c: CaseResult): string {
   // anchor on "#### 子測 4-1" style headings
+  // biome-ignore lint/style/noNonNullAssertion: function called only when c.subtest is defined
   const subAnchorRe = new RegExp(`^####\\s+子測\\s*${escapeReg(c.subtest!)}.*$`, "m");
   const subStart = section.search(subAnchorRe);
   if (subStart < 0) return section;
@@ -128,9 +129,11 @@ function applyOutputBlock(text: string, output: string): string {
   type Hit = { kind: "indented" | "fenced"; index: number; matchLen: number };
   const hits: Hit[] = [];
   for (const m of text.matchAll(new RegExp(INDENTED_PLACEHOLDER_RE.source, "gm"))) {
+    // biome-ignore lint/style/noNonNullAssertion: matchAll guarantees index is defined
     hits.push({ kind: "indented", index: m.index!, matchLen: m[0].length });
   }
   for (const m of text.matchAll(new RegExp(FENCED_PLACEHOLDER_RE.source, "gm"))) {
+    // biome-ignore lint/style/noNonNullAssertion: matchAll guarantees index is defined
     hits.push({ kind: "fenced", index: m.index!, matchLen: m[0].length });
   }
   if (hits.length === 0) return text;
@@ -256,6 +259,7 @@ function renderSuggestionsBlock(report: EvaluationReport): string {
 
   const groups: Record<string, typeof report.suggestions> = {};
   for (const s of report.suggestions) {
+    // biome-ignore lint/suspicious/noAssignInExpressions: nullish coalescing assignment is idiomatic for grouping
     (groups[s.area] ??= []).push(s);
   }
 

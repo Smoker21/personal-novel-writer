@@ -20,13 +20,37 @@ type Tab = "身分外貌" | "個性" | "對話" | "關係" | "性愛場景表現
 const TABS: Tab[] = ["身分外貌", "個性", "對話", "關係", "性愛場景表現"];
 
 const MBTI_OPTIONS = [
-  "INTJ", "INTP", "ENTJ", "ENTP", "INFJ", "INFP", "ENFJ", "ENFP",
-  "ISTJ", "ISFJ", "ESTJ", "ESFJ", "ISTP", "ISFP", "ESTP", "ESFP",
+  "INTJ",
+  "INTP",
+  "ENTJ",
+  "ENTP",
+  "INFJ",
+  "INFP",
+  "ENFJ",
+  "ENFP",
+  "ISTJ",
+  "ISFJ",
+  "ESTJ",
+  "ESFJ",
+  "ISTP",
+  "ISFP",
+  "ESTP",
+  "ESFP",
 ] as const;
 
 const ZODIAC_OPTIONS = [
-  "牡羊座", "金牛座", "雙子座", "巨蟹座", "獅子座", "處女座",
-  "天秤座", "天蠍座", "射手座", "摩羯座", "水瓶座", "雙魚座",
+  "牡羊座",
+  "金牛座",
+  "雙子座",
+  "巨蟹座",
+  "獅子座",
+  "處女座",
+  "天秤座",
+  "天蠍座",
+  "射手座",
+  "摩羯座",
+  "水瓶座",
+  "雙魚座",
 ] as const;
 
 function emptyFields(name = ""): CharacterFields {
@@ -85,7 +109,7 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
   const [consolidateError, setConsolidateError] = useState<string | null>(null);
   const [overwriteDialog, setOverwriteDialog] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [_refreshKey, setRefreshKey] = useState(0);
 
   const upd = (patch: Partial<CharacterFields>) => setFields((f) => ({ ...f, ...patch }));
 
@@ -97,11 +121,14 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
     let cancelled = false;
     setLoading(true);
     fetch(`/api/projects/${projectHash}/characters/${slug}`)
-      .then((r) => r.json() as Promise<{
-        fields: CharacterFields;
-        manualDescription: string;
-        aiSummary: string;
-      }>)
+      .then(
+        (r) =>
+          r.json() as Promise<{
+            fields: CharacterFields;
+            manualDescription: string;
+            aiSummary: string;
+          }>,
+      )
       .then((data) => {
         if (cancelled) return;
         setFields(data.fields);
@@ -114,7 +141,7 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
     return () => {
       cancelled = true;
     };
-  }, [projectHash, slug, isNew, refreshKey]);
+  }, [projectHash, slug, isNew]);
 
   const performConsolidate = async () => {
     if (!slug) return;
@@ -335,9 +362,7 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
                     <input
                       type="number"
                       value={fields.age ?? ""}
-                      onChange={(e) =>
-                        upd({ age: e.target.value ? Number(e.target.value) : null })
-                      }
+                      onChange={(e) => upd({ age: e.target.value ? Number(e.target.value) : null })}
                       placeholder="例：30"
                       className="input-base w-full"
                     />
@@ -544,7 +569,9 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
               value={fields.relations ?? ""}
               onChange={(e) => upd({ relations: e.target.value || null })}
               rows={10}
-              placeholder={"多行文字，可用 [[wiki-link]] 連結其他角色。例：\n與 [[林書言]] 從一場避雨開始認識，對他有具體好感但保持分寸。\n與 [[蕭母]] 是養育關係；母親早逝由祖母帶大，相依為命。"}
+              placeholder={
+                "多行文字，可用 [[wiki-link]] 連結其他角色。例：\n與 [[林書言]] 從一場避雨開始認識，對他有具體好感但保持分寸。\n與 [[蕭母]] 是養育關係；母親早逝由祖母帶大，相依為命。"
+              }
               className="textarea-base w-full"
             />
           </Field>
@@ -659,7 +686,8 @@ export function CharacterEditor({ projectHash, slug, onSave, onClose, onDelete }
           >
             <p className="mb-2 text-sm font-medium text-amber-300">⚠️ 覆蓋既有 AI 統整內容？</p>
             <p className="mb-3 text-sm text-neutral-300">
-              「AI 統整敘述」textarea 目前有 {aiSummary.length} 字內容。新的 AI 統整結果會覆蓋這些內容。
+              「AI 統整敘述」textarea 目前有 {aiSummary.length} 字內容。新的 AI
+              統整結果會覆蓋這些內容。
             </p>
             <p className="mb-3 text-xs text-neutral-400">
               若上一次的結果你想保留，可：

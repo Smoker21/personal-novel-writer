@@ -1,5 +1,8 @@
 import type { LLMProviderId, RoutingPolicy } from "@novel-writer/shared-types";
-import { ALL_PROVIDER_IDS, SYSTEM_PROMPT_OVERRIDE_ENABLED_AGENTS } from "@novel-writer/shared-types";
+import {
+  ALL_PROVIDER_IDS,
+  SYSTEM_PROMPT_OVERRIDE_ENABLED_AGENTS,
+} from "@novel-writer/shared-types";
 import { ExpandableTextarea } from "../../components/ExpandableTextarea";
 import { ModelDropdown } from "./ModelDropdown";
 
@@ -108,9 +111,7 @@ export function AgentRoutingCard({
 
       {/* temperature */}
       <div className="flex items-center gap-3">
-        <label className="text-xs text-neutral-400 whitespace-nowrap w-28">
-          temperature
-        </label>
+        <label className="text-xs text-neutral-400 whitespace-nowrap w-28">temperature</label>
         <input
           type="number"
           step={0.1}

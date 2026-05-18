@@ -11,10 +11,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { listChapters, readChapter } from "../services/chapter-fs.js";
 import { listCharacters } from "../services/character-fs.js";
-import {
-  InvalidParticipantError,
-  collectChapterContext,
-} from "../services/context-collector.js";
+import { collectChapterContext, InvalidParticipantError } from "../services/context-collector.js";
 import { resolveProjectPath } from "../services/project-resolver.js";
 import { readSettings } from "../services/settings-store.js";
 
@@ -40,10 +37,7 @@ app.post("/", zValidator("json", buildPromptSchema), async (c) => {
   const chapters = await listChapters(projectPath);
   const chapter = chapters.find((ch) => ch.number === chapterNumber);
   if (!chapter) {
-    return c.json(
-      { code: "INVALID_CHAPTER", message: `Chapter ${chapterNumber} not found` },
-      400,
-    );
+    return c.json({ code: "INVALID_CHAPTER", message: `Chapter ${chapterNumber} not found` }, 400);
   }
 
   const settings = await readSettings();
@@ -64,11 +58,10 @@ app.post("/", zValidator("json", buildPromptSchema), async (c) => {
     routingConf.systemPromptOverride && routingConf.systemPromptOverride.trim().length > 0
       ? routingConf.systemPromptOverride
       : undefined;
-  const effectiveSystemPromptOverride =
-    body.systemPromptOverrideForChapter ?? settingsOverride;
+  const effectiveSystemPromptOverride = body.systemPromptOverrideForChapter ?? settingsOverride;
 
   // Collect context with explicit participantSlugs / outline / requirements
-  let context;
+  let context: Awaited<ReturnType<typeof collectChapterContext>>;
   try {
     context = await collectChapterContext({
       projectPath,

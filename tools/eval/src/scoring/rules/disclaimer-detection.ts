@@ -16,7 +16,7 @@ const REFUSAL_PATTERNS = [
 
 const DISCLAIMER_PATTERNS = [
   /以下內容[^\n]{0,30}僅供[^\n]{0,30}/,
-  /^[\(（].{0,20}注[：:].{0,80}[\)）]/m,
+  /^[(（].{0,20}注[：:].{0,80}[)）]/m,
   /Author['’]s note/i,
   /^\s*##?\s*摘要/m,
   /^\s*##?\s*Author/m,

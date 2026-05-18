@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rename, rm, unlink } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import type { CharacterCard, CharacterFields, CharacterListItem } from "@novel-writer/shared-types";
 import { Document, parse as yamlParse, stringify as yamlStringify } from "yaml";
@@ -582,6 +582,7 @@ export function lookupAppearance(fields: CharacterFields, currentChapter: number
     .sort((a, b) => b - a);
 
   if (chapters.length > 0) {
+    // biome-ignore lint/style/noNonNullAssertion: chapters.length > 0 guarantees chapters[0] exists
     return fields.appearanceByChapter[chapters[0]!] ?? "";
   }
 

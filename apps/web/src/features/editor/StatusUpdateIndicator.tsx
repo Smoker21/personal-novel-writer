@@ -26,7 +26,7 @@ export function StatusUpdateIndicator({ projectHash }: Props) {
   // Bumping this re-runs the effect → re-subscribes to the same jobId.
   // Server bucket is kept 10min so replay works as long as the user clicks
   // 重試 in time.
-  const [retryNonce, setRetryNonce] = useState(0);
+  const [_retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     if (!statusJobId) return;
@@ -101,7 +101,7 @@ export function StatusUpdateIndicator({ projectHash }: Props) {
       clearTimeout(stallTimer);
       controller.abort();
     };
-  }, [statusJobId, projectHash, retryNonce]);
+  }, [statusJobId, projectHash]);
 
   if (phase === "idle") return null;
 

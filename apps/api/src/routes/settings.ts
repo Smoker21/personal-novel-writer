@@ -1,12 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
+import { LLMError } from "@novel-writer/llm-adapter";
 import type {
   AppSettings,
-  LLMProviderId,
   ListProviderModelsResponse,
+  LLMProviderId,
   ProviderConfig,
 } from "@novel-writer/shared-types";
 import { ALL_PROVIDER_IDS, defaultSettings } from "@novel-writer/shared-types";
-import { LLMError } from "@novel-writer/llm-adapter";
 import { Hono } from "hono";
 import { z } from "zod";
 import {
@@ -135,7 +135,7 @@ export const settings = new Hono()
 
     const settings = await readSettings();
     const config = settings.providers[providerId];
-    if (!config || !config.enabled) {
+    if (!config?.enabled) {
       return c.json(
         { code: "PROVIDER_DISABLED", message: `Provider "${providerId}" is not enabled` },
         400,

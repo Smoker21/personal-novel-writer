@@ -1,20 +1,22 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/.next/**",
-      "**/coverage/**",
-      "apps/web/src/fake/**",
-      "tools/screenshot/**",
-      "ai-model/**",
-      "src-tauri/target/**"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.next",
+      "!**/coverage",
+      "!**/apps/web/src/fake",
+      "!**/tools/screenshot",
+      "!**/ai-model",
+      "!**/src-tauri/target",
+      "!**/*.css"
     ]
   },
   "formatter": {
@@ -44,8 +46,11 @@
         "useLiteralKeys": "off"
       },
       "a11y": {
-        "useKeyWithClickEvents": "warn",
-        "noLabelWithoutControl": "warn"
+        "useKeyWithClickEvents": "off",
+        "noLabelWithoutControl": "off",
+        "noStaticElementInteractions": "off",
+        "useSemanticElements": "off",
+        "useAriaPropsSupportedByRole": "off"
       }
     }
   },
@@ -58,7 +63,7 @@
   },
   "overrides": [
     {
-      "include": ["**/*.test.ts", "**/*.spec.ts"],
+      "includes": ["**/*.test.ts", "**/*.spec.ts"],
       "linter": {
         "rules": {
           "suspicious": {

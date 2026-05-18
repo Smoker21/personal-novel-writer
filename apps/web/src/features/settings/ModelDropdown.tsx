@@ -1,4 +1,4 @@
-import type { LLMProviderId, ListProviderModelsResponse } from "@novel-writer/shared-types";
+import type { ListProviderModelsResponse, LLMProviderId } from "@novel-writer/shared-types";
 import { useCallback, useEffect, useState } from "react";
 
 interface Props {
@@ -122,11 +122,7 @@ export function ModelDropdown({
           data-testid={testId}
         >
           <option value="">{placeholder}</option>
-          {!hasCurrentValue && (
-            <option value={value}>
-              {value}（清單外，可能已下線）
-            </option>
-          )}
+          {!hasCurrentValue && <option value={value}>{value}（清單外，可能已下線）</option>}
           {models.map((m) => (
             <option key={m.id} value={m.id}>
               {m.displayName ? `${m.displayName}（${m.id}）` : m.id}

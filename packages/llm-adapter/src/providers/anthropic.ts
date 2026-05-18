@@ -1,15 +1,14 @@
 import { readFile } from "node:fs/promises";
 import Anthropic, {
-  AuthenticationError,
-  RateLimitError,
-  BadRequestError,
-  PermissionDeniedError,
-  NotFoundError,
   APIConnectionError,
+  AuthenticationError,
+  BadRequestError,
+  NotFoundError,
+  PermissionDeniedError,
+  RateLimitError,
 } from "@anthropic-ai/sdk";
 import type { MessageStreamEvent } from "@anthropic-ai/sdk/resources/messages.js";
 import { LLMError, redactSecrets } from "../error.js";
-import { parseModelId } from "../types.js";
 import type {
   Content,
   FinishReason,
@@ -21,6 +20,7 @@ import type {
   StreamChunk,
   Usage,
 } from "../types.js";
+import { parseModelId } from "../types.js";
 
 // ---------------------------------------------------------------------------
 // Model capability catalogue (M0 — Anthropic models only)

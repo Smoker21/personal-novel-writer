@@ -40,9 +40,7 @@ export async function touchProject(projectPath: string, title: string): Promise<
   const hash = hashProjectPath(canonical);
   const lastOpenedAt = new Date().toISOString();
 
-  const existingIdx = settings.recentProjects.findIndex(
-    (p) => hashProjectPath(p.path) === hash,
-  );
+  const existingIdx = settings.recentProjects.findIndex((p) => hashProjectPath(p.path) === hash);
 
   if (existingIdx >= 0) {
     const entry = settings.recentProjects[existingIdx];

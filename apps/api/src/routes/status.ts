@@ -78,10 +78,7 @@ app.post("/write", zValidator("json", writeSchema), async (c) => {
     try {
       const s = await stat(targetPath);
       if (s.mtime.toISOString() !== expectedMtime) {
-        return c.json(
-          { code: "MTIME_MISMATCH", message: "file modified externally" },
-          409,
-        );
+        return c.json({ code: "MTIME_MISMATCH", message: "file modified externally" }, 409);
       }
     } catch {
       // File doesn't exist yet — that's fine, no mtime to compare

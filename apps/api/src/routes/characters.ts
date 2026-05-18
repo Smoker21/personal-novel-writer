@@ -98,20 +98,23 @@ const consolidateSchema = z.object({
   modelOverride: z.string().optional(),
 });
 
-async function getProjectPath(c: { req: { param: (k: string) => string | undefined } }): Promise<
-  string | null
-> {
+async function getProjectPath(c: {
+  req: { param: (k: string) => string | undefined };
+}): Promise<string | null> {
   const hash = c.req.param("hash") ?? "";
   return resolveProjectPath(hash);
 }
 
-function responseFor(char: {
-  slug: string;
-  fields: CharacterFields;
-  body: string;
-  manualDescription: string;
-  aiSummary: string;
-}, _slugForPath?: string) {
+function responseFor(
+  char: {
+    slug: string;
+    fields: CharacterFields;
+    body: string;
+    manualDescription: string;
+    aiSummary: string;
+  },
+  _slugForPath?: string,
+) {
   const slugForPath = _slugForPath ?? char.slug;
   return {
     slug: char.slug,
@@ -168,7 +171,7 @@ app.post("/", zValidator("json", createSchema), async (c) => {
     manuallyEditedSections: { manualDescription: false, aiSummary: false },
   } as CharacterFields;
 
-  let manualDescription = body.manualDescription ?? "";
+  const manualDescription = body.manualDescription ?? "";
   let aiSummary = body.aiSummary ?? "";
   let oneLineSummary = fields.name;
 
@@ -287,7 +290,7 @@ app.put("/:slug", zValidator("json", updateSchema), async (c) => {
     };
   }
 
-  let newManualDescription =
+  const newManualDescription =
     body.manualDescription !== undefined ? body.manualDescription : existing.manualDescription;
   let newAiSummary = body.aiSummary !== undefined ? body.aiSummary : existing.aiSummary;
   let oneLineSummary: string | undefined;

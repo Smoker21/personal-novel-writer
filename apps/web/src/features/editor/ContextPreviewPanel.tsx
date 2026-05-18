@@ -144,7 +144,9 @@ function PrevChapterSection({
   return (
     <SectionShell
       title={
-        title ? `前一章：第 ${chapterNumber - 1} 章「${title}」` : `前一章（第 ${chapterNumber - 1} 章）`
+        title
+          ? `前一章：第 ${chapterNumber - 1} 章「${title}」`
+          : `前一章（第 ${chapterNumber - 1} 章）`
       }
       data={data}
       fallback={fallback}
@@ -174,13 +176,7 @@ function StoryStatusSection({ projectHash }: { projectHash: string }) {
   );
 }
 
-function CharacterStatusSection({
-  projectHash,
-  slug,
-}: {
-  projectHash: string;
-  slug: string;
-}) {
+function CharacterStatusSection({ projectHash, slug }: { projectHash: string; slug: string }) {
   const [data, setData] = useState<SectionData | null>(null);
   useEffect(() => {
     let cancelled = false;

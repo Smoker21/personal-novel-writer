@@ -121,16 +121,13 @@ describe("build-prompt route (M5 2b-3)", () => {
   });
 
   it("returns 400 INVALID_CHAPTER for non-existent chapter", async () => {
-    const res = await app().request(
-      "/api/projects/abcd1234/chapters/999/build-prompt",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          participantSlugs: ["春雨"],
-        }),
-      },
-    );
+    const res = await app().request("/api/projects/abcd1234/chapters/999/build-prompt", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        participantSlugs: ["春雨"],
+      }),
+    });
     expect(res.status).toBe(400);
     const body = (await res.json()) as { code: string };
     expect(body.code).toBe("INVALID_CHAPTER");

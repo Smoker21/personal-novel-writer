@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RwkvRunnerRuntime, formatRwkvCompletionsPrompt } from "../../src/runtimes/rwkv-runner.js";
+import { formatRwkvCompletionsPrompt, RwkvRunnerRuntime } from "../../src/runtimes/rwkv-runner.js";
 
 const ENDPOINT = "http://test.local/v1";
 

@@ -90,13 +90,12 @@ vi.mock("./commit-policy.js", () => ({
   commitIfChanged: vi.fn().mockResolvedValue(undefined),
 }));
 
+import type { StatusJobEvent } from "@novel-writer/shared-types";
 import { emitJobEvent } from "./job-event-bus.js";
-import { readSettings } from "./settings-store.js";
 import { buildRouter } from "./router-factory.js";
+import { readSettings } from "./settings-store.js";
 import { collectStatusContext } from "./status-context-collector.js";
 import { LLM_CALL_TIMEOUT_MS, triggerStatusUpdate } from "./status-updater-service.js";
-
-import type { StatusJobEvent } from "@novel-writer/shared-types";
 
 async function collectEvents(jobId: string, maxMs = 5000): Promise<StatusJobEvent[]> {
   const { subscribeJob } = await import("./job-event-bus.js");
@@ -174,9 +173,11 @@ describe("status-updater L1 timeout (M6-C)", () => {
 
   it("emits failed when router throws synchronously (LLM_FAILED path)", async () => {
     vi.mocked(buildRouter).mockReturnValue({
-      generate: vi.fn().mockRejectedValue(
-        Object.assign(new Error("upstream 500"), { code: "PROVIDER_ERROR", retryable: false }),
-      ),
+      generate: vi
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error("upstream 500"), { code: "PROVIDER_ERROR", retryable: false }),
+        ),
     } as unknown as ReturnType<typeof buildRouter>);
 
     const jobId = await triggerStatusUpdate("hash", "/p", 1, "auto-after-adopt");
@@ -206,7 +207,7 @@ describe("status-updater L1 timeout (M6-C)", () => {
     for await (const e of subscribeJob(jobId)) events.push(e);
 
     expect(events).toHaveLength(1);
-    expect(events[0]!.type).toBe("failed");
+    expect(events[0]?.type).toBe("failed");
   });
 });
 

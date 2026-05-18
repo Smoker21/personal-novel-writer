@@ -41,7 +41,8 @@ export interface RoutingPolicy {
 /** M5：接受 systemPromptOverride 注入的 Agent 白名單。不在此列表 → structured-data Agent，強制忽略 override。 */
 export const SYSTEM_PROMPT_OVERRIDE_ENABLED_AGENTS = ["chapter-writer"] as const;
 
-export type SystemPromptOverrideEnabledAgent = (typeof SYSTEM_PROMPT_OVERRIDE_ENABLED_AGENTS)[number];
+export type SystemPromptOverrideEnabledAgent =
+  (typeof SYSTEM_PROMPT_OVERRIDE_ENABLED_AGENTS)[number];
 
 /** M5：provider listModels 的回傳項。 */
 export interface ProviderModel {

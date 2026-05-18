@@ -24,8 +24,8 @@ vi.mock("./atomic-fs.js", () => ({
 }));
 
 import * as fsp from "node:fs/promises";
-import { defaultSettings } from "@novel-writer/shared-types";
 import type { AppSettings } from "@novel-writer/shared-types";
+import { defaultSettings } from "@novel-writer/shared-types";
 import * as yaml from "js-yaml";
 import {
   getApiKey,

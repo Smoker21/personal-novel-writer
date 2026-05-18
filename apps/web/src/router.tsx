@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { CharactersPage } from "./features/characters/CharactersPage";
 import { ChapterEditorPage } from "./features/editor/ChapterEditorPage";
 import { HomePage } from "./features/home/HomePage";

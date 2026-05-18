@@ -21,7 +21,7 @@
     "postinstall": "pnpm rebuild better-sqlite3 sharp"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.4.15",
     "@playwright/test": "^1.44.0",
     "concurrently": "^9.1.0"
   },

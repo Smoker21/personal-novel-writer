@@ -1,5 +1,4 @@
-import type { LLMRouter } from "@novel-writer/llm-adapter";
-import type { RoutingPolicy } from "@novel-writer/llm-adapter";
+import type { LLMRouter, RoutingPolicy } from "@novel-writer/llm-adapter";
 import { buildConsolidatorRequest } from "@novel-writer/prompt-library";
 import type { CharacterFields, ConsolidatorOutput } from "@novel-writer/shared-types";
 
@@ -36,8 +35,7 @@ export async function consolidateCharacter(opts: ConsolidateOptions): Promise<Co
     });
     retryReq.messages.push({
       role: "user",
-      content:
-        '請只回傳 JSON，格式：{"aiSummary":"...","oneLineSummary":"..."}，不要加任何說明。',
+      content: '請只回傳 JSON，格式：{"aiSummary":"...","oneLineSummary":"..."}，不要加任何說明。',
     });
     const retry = await router.generate(retryReq, policy);
     const retryText = retry.text

@@ -22,7 +22,7 @@ function CharactersPageInner({ projectHash }: { projectHash: string }) {
   const [mode, setMode] = useState<Mode>({ kind: "grid" });
   const [characters, setCharacters] = useState<CharacterListItem[] | null>(null);
   const [query, setQuery] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [_refreshKey, setRefreshKey] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ function CharactersPageInner({ projectHash }: { projectHash: string }) {
     return () => {
       cancelled = true;
     };
-  }, [projectHash, refreshKey]);
+  }, [projectHash]);
 
   const filtered = useMemo(() => {
     if (!characters) return [];
@@ -174,7 +174,8 @@ function CharactersPageInner({ projectHash }: { projectHash: string }) {
             onMouseDown={(e) => e.stopPropagation()}
           >
             <p className="mb-3 text-sm text-neutral-200">
-              確定刪除角色「{deleteConfirm}」？此操作會刪除 .md / _status.md / portrait 並 git commit。
+              確定刪除角色「{deleteConfirm}」？此操作會刪除 .md / _status.md / portrait 並 git
+              commit。
             </p>
             <div className="flex justify-end gap-2">
               <button

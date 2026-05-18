@@ -27,7 +27,7 @@ export function DraftPanel({ projectHash, chapterNumber }: Props) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [text]);
+  }, []);
 
   // Restore draft on mount (app restart recovery)
   useEffect(() => {

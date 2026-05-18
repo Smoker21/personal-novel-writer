@@ -1,12 +1,7 @@
-import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { countChars } from "@novel-writer/shared-types";
-import {
-  applyFrontmatterPatch,
-  buildChapter,
-  emptyFrontmatter,
-  parseChapter,
-} from "./chapter-frontmatter.js";
+import { applyFrontmatterPatch, buildChapter, parseChapter } from "./chapter-frontmatter.js";
 import { sanitizeSlug } from "./sanitize.js";
 
 const CHAPTER_PATTERN = /^chapter_(\d{4})_(.+)\.md$/;
@@ -101,7 +96,7 @@ export async function listChapters(projectPath: string): Promise<ChapterListEntr
   const seenNumbers = new Set<number>();
   for (const file of files) {
     const match = file.match(CHAPTER_PATTERN);
-    if (!match || !match[1] || match[2] === "prompt") continue;
+    if (!match?.[1] || match[2] === "prompt") continue;
     const num = Number.parseInt(match[1], 10);
     if (seenNumbers.has(num)) continue;
     seenNumbers.add(num);

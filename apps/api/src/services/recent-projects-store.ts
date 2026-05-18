@@ -13,7 +13,7 @@ function sortByLastOpened(list: RecentProject[]): RecentProject[] {
   return [...list].sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt));
 }
 
-export async function addRecentProject(hash: string, path: string, title: string): Promise<void> {
+export async function addRecentProject(_hash: string, path: string, title: string): Promise<void> {
   const settings = await readSettings();
   const now = new Date().toISOString();
   // M5 (TD-3): always store canonical path

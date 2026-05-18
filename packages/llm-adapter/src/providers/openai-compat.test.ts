@@ -88,6 +88,7 @@ function makeFakeStream(chunks: FakeChunk[]): AsyncIterable<FakeChunk> {
       return {
         next(): Promise<IteratorResult<FakeChunk>> {
           if (i < chunks.length) {
+            // biome-ignore lint/style/noNonNullAssertion: checked by i < chunks.length
             return Promise.resolve({ value: chunks[i++]!, done: false });
           }
           return Promise.resolve({ value: undefined as unknown as FakeChunk, done: true });

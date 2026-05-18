@@ -1,6 +1,6 @@
-import type { CharacterListItem, ChapterFile } from "@novel-writer/shared-types";
-import { Link } from "react-router-dom";
+import type { ChapterFile, CharacterListItem } from "@novel-writer/shared-types";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { PortraitCard, PortraitGrid } from "../../components";
 import { useEditorStore } from "../../stores/editor-store";
 
@@ -47,7 +47,14 @@ export function ParticipantPicker({ projectHash, chapterNumber }: Props) {
         .catch(() => undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectHash, chapterNumber]);
+  }, [
+    projectHash,
+    chapterNumber,
+    setParticipants,
+    participants.length,
+    baseParticipants?.length,
+    baseParticipants,
+  ]);
 
   const toggle = (slug: string) => {
     if (participants.includes(slug)) {
@@ -82,7 +89,9 @@ export function ParticipantPicker({ projectHash, chapterNumber }: Props) {
       <div className="flex items-center justify-between text-xs text-neutral-400">
         <span className="font-medium">本章角色</span>
         <span className="text-neutral-500">
-          {participants.length === 0 ? "（未選；只有列出的角色會塞進 prompt）" : `已選 ${participants.length} 位`}
+          {participants.length === 0
+            ? "（未選；只有列出的角色會塞進 prompt）"
+            : `已選 ${participants.length} 位`}
         </span>
       </div>
       <PortraitGrid>

@@ -109,7 +109,7 @@ function indentMultiline(s: string, spaces: number): string {
 
 function yamlStringSafe(s: string): string {
   // If contains special chars or starts with reserved tokens, quote it
-  if (/[:#@&*!|>'"%`?\-\[\]{}]|^[\s'"]|[\s'"]$|^(true|false|null|~|yes|no|on|off)$/i.test(s)) {
+  if (/[:#@&*!|>'"%`?\-[\]{}]|^[\s'"]|[\s'"]$|^(true|false|null|~|yes|no|on|off)$/i.test(s)) {
     return JSON.stringify(s);
   }
   return s;

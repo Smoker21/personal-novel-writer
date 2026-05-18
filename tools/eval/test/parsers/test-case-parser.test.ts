@@ -1,5 +1,4 @@
-import { resolve } from "node:path";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseAllTestCases } from "../../src/parsers/test-case-parser.js";
@@ -56,7 +55,9 @@ describe("parseAllTestCases", () => {
 
   it("applies sampling profiles per case (creative vs instruct)", async () => {
     const runs = await parseAllTestCases(TEST_CASES_DIR);
+    // biome-ignore lint/style/noNonNullAssertion: find result is guaranteed by test setup
     const tc01 = runs.find((r) => r.caseId === "TC-01")!;
+    // biome-ignore lint/style/noNonNullAssertion: find result is guaranteed by test setup
     const tc04 = runs.find((r) => r.caseId === "TC-04")!;
     expect(tc01.sampling.temperature).toBe(1.0);
     expect(tc04.sampling.temperature).toBe(0.5);

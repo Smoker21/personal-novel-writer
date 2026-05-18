@@ -75,6 +75,7 @@ app.post("/", async (c) => {
       ...fields,
       portrait: {
         ...fields.portrait,
+        // biome-ignore lint/style/noNonNullAssertion: scope==="chapter" guarantees chapterNumber is not null
         byChapter: { ...fields.portrait.byChapter, [chapterNumber!]: info.path },
       },
     };
@@ -177,6 +178,7 @@ app.delete("/", zValidator("json", deleteSchema), async (c) => {
     if (body.scope === "default") {
       return { ...fields, portrait: { ...fields.portrait, default: null } };
     }
+    // biome-ignore lint/style/noNonNullAssertion: body.scope === "chapter" guarantees chapterNumber is not null
     const n = body.chapterNumber!;
     const { [n]: _removedPortrait, ...restPortrait } = fields.portrait.byChapter;
     const { [n]: _removedApp, ...restApp } = fields.appearanceByChapter;

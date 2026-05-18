@@ -5,6 +5,7 @@
 export function countChineseChars(text: string): number {
   let n = 0;
   for (const ch of text) {
+    // biome-ignore lint/style/noNonNullAssertion: iterating over string guarantees codePointAt(0) is defined
     const cp = ch.codePointAt(0)!;
     if (
       (cp >= 0x4e00 && cp <= 0x9fff) ||
@@ -23,7 +24,7 @@ export function countChineseChars(text: string): number {
  */
 export function countMixedWords(text: string): number {
   const chinese = countChineseChars(text);
-  const englishWords = (text.match(/[A-Za-z][A-Za-z0-9'\-]*/g) ?? []).length;
+  const englishWords = (text.match(/[A-Za-z][A-Za-z0-9'-]*/g) ?? []).length;
   return chinese + englishWords;
 }
 

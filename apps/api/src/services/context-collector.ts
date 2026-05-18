@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { countMessageTokens } from "@novel-writer/llm-adapter";
 import type { ChapterContext, CharacterCardInContext } from "@novel-writer/shared-types";
-import { listChapters, readChapter } from "./chapter-fs.js";
+import { readChapter } from "./chapter-fs.js";
 import { listCharacters, lookupAppearance, readCharacter } from "./character-fs.js";
 
 async function readFileSafe(path: string): Promise<string> {

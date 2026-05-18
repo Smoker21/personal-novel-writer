@@ -59,10 +59,7 @@ describe("buildChapter (M5 Spec 003)", () => {
   });
 
   it("writes frontmatter when participants is non-empty", () => {
-    const out = buildChapter(
-      { participants: ["春雨"], outline: null, requirements: null },
-      "正文",
-    );
+    const out = buildChapter({ participants: ["春雨"], outline: null, requirements: null }, "正文");
     expect(out.startsWith("---\n")).toBe(true);
     expect(out).toContain("participants:");
     expect(out).toContain("  - 春雨");
@@ -97,10 +94,7 @@ describe("buildChapter (M5 Spec 003)", () => {
   });
 
   it("preserves field order: participants → outline → requirements", () => {
-    const out = buildChapter(
-      { participants: ["a"], outline: "o", requirements: "r" },
-      "body",
-    );
+    const out = buildChapter({ participants: ["a"], outline: "o", requirements: "r" }, "body");
     const pIdx = out.indexOf("participants:");
     const oIdx = out.indexOf("outline:");
     const rIdx = out.indexOf("requirements:");

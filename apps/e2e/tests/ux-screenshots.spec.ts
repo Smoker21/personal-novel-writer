@@ -28,7 +28,10 @@ test("A2b ChapterEditorPage — with chapter", async ({ page }) => {
   await page.goto(EDITOR);
   await page.waitForTimeout(1500);
   // Try to click first chapter or create one
-  const chapterBtn = page.locator('button').filter({ hasText: /章節|第\s*\d+|未命名/ }).first();
+  const chapterBtn = page
+    .locator("button")
+    .filter({ hasText: /章節|第\s*\d+|未命名/ })
+    .first();
   const newChapterBtn = page.getByText("+ 新章節").first();
   if (await chapterBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
     await chapterBtn.click();
@@ -36,7 +39,10 @@ test("A2b ChapterEditorPage — with chapter", async ({ page }) => {
     await newChapterBtn.click();
   }
   await page.waitForTimeout(2000);
-  await page.screenshot({ path: `${SCREENSHOTS}/A2b-ChapterEditorPage-withChapter.png`, fullPage: false });
+  await page.screenshot({
+    path: `${SCREENSHOTS}/A2b-ChapterEditorPage-withChapter.png`,
+    fullPage: false,
+  });
 });
 
 test("A3 CharactersPage", async ({ page }) => {
@@ -66,6 +72,7 @@ test("B1 ChapterList panel", async ({ page }) => {
   await page.goto(EDITOR);
   await page.waitForTimeout(2000);
   // Focus on left column (chapter list)
+  // biome-ignore lint/correctness/noUnusedVariables: selector exists for visual reference
   const leftCol = page.locator(".flex.flex-col.h-full").first();
   await page.screenshot({ path: `${SCREENSHOTS}/B1-ChapterList.png`, fullPage: false });
 });
@@ -129,7 +136,10 @@ test("B5b CharacterEditor — tabs", async ({ page }) => {
     await personalityTab.click();
     await page.waitForTimeout(300);
   }
-  await page.screenshot({ path: `${SCREENSHOTS}/B5b-CharacterEditor-personality-tab.png`, fullPage: false });
+  await page.screenshot({
+    path: `${SCREENSHOTS}/B5b-CharacterEditor-personality-tab.png`,
+    fullPage: false,
+  });
 });
 
 test("B6 HistoryPanel", async ({ page }) => {
@@ -187,7 +197,10 @@ test("C4 FirstLaunchWarningDialog", async ({ page }) => {
     // This dialog is controlled by settings API, not localStorage
     // Just screenshot current state
   });
-  await page.screenshot({ path: `${SCREENSHOTS}/C4-FirstLaunchWarning-state.png`, fullPage: false });
+  await page.screenshot({
+    path: `${SCREENSHOTS}/C4-FirstLaunchWarning-state.png`,
+    fullPage: false,
+  });
 });
 
 test("C6 LlmNotConfiguredModal", async ({ page }) => {
@@ -206,7 +219,10 @@ test("C6 LlmNotConfiguredModal", async ({ page }) => {
     await page.waitForTimeout(1000);
     await page.screenshot({ path: `${SCREENSHOTS}/C6-LlmNotConfiguredModal.png`, fullPage: false });
   } else {
-    await page.screenshot({ path: `${SCREENSHOTS}/C6-LlmNotConfiguredModal-not-triggered.png`, fullPage: false });
+    await page.screenshot({
+      path: `${SCREENSHOTS}/C6-LlmNotConfiguredModal-not-triggered.png`,
+      fullPage: false,
+    });
   }
 });
 

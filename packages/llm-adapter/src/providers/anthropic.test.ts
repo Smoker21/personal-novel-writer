@@ -114,6 +114,7 @@ function makeMockStream(events: MessageStreamEvent[]): AsyncIterable<MessageStre
       return {
         next(): Promise<IteratorResult<MessageStreamEvent>> {
           if (i < events.length) {
+            // biome-ignore lint/style/noNonNullAssertion: checked by i < events.length
             return Promise.resolve({ value: events[i++]!, done: false });
           }
           return Promise.resolve({ value: undefined as unknown as MessageStreamEvent, done: true });
@@ -512,6 +513,7 @@ describe("AnthropicProvider", () => {
                 controller.abort();
               }
               if (eventIndex < events.length) {
+                // biome-ignore lint/style/noNonNullAssertion: checked by eventIndex < events.length
                 const value = events[eventIndex++]!;
                 return Promise.resolve({ value, done: false });
               }

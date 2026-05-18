@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { buildStatusUpdaterRequest, statusUpdaterOutputSchema } from "@novel-writer/prompt-library";
 import type { GenerateRequest, GenerateResponse } from "@novel-writer/llm-adapter";
+import { buildStatusUpdaterRequest, statusUpdaterOutputSchema } from "@novel-writer/prompt-library";
 import type { UpdateReason } from "@novel-writer/shared-types";
 import { atomicWriteFile } from "./atomic-fs.js";
 import { commitIfChanged } from "./commit-policy.js";

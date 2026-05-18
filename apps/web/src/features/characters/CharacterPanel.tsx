@@ -9,6 +9,7 @@ interface Props {
   refreshKey?: number;
 }
 
+// biome-ignore lint/correctness/noUnusedFunctionParameters: refreshKey triggers useEffect re-fetch on manual refresh
 export function CharacterPanel({ projectHash, selectedSlug, onSelect, onNew, refreshKey }: Props) {
   const [characters, setCharacters] = useState<CharacterListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +23,7 @@ export function CharacterPanel({ projectHash, selectedSlug, onSelect, onNew, ref
       )
       .catch(() => setCharacters([]))
       .finally(() => setLoading(false));
-  }, [projectHash, refreshKey]);
+  }, [projectHash]);
 
   if (loading) {
     return <div className="p-4 text-neutral-400 text-sm">載入中…</div>;

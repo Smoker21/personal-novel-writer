@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import type { LLMRouter, RoutingPolicy } from "@novel-writer/llm-adapter";
-import { buildImageExtractorRequest } from "@novel-writer/prompt-library";
 import type { ImageExtractorInput } from "@novel-writer/prompt-library";
+import { buildImageExtractorRequest } from "@novel-writer/prompt-library";
 import type { CharacterFields, ExtractorOutput, PortraitScope } from "@novel-writer/shared-types";
 import { readCharacter, updatePortraitFields } from "./character-fs.js";
 
@@ -93,6 +93,7 @@ export async function extractPortraitAppearance(opts: ExtractOptions): Promise<{
         clothing: extracted.clothing,
       };
     }
+    // biome-ignore lint/style/noNonNullAssertion: scope==="chapter" guarantees chapterNumber is not null
     const n = chapterNumber!;
     const parts = [
       `${extracted.hairAndColor}。${extracted.eyes}。${extracted.bodyType}。${extracted.otherFeatures}`,
@@ -108,6 +109,7 @@ export async function extractPortraitAppearance(opts: ExtractOptions): Promise<{
 
   return {
     extracted,
+    // biome-ignore lint/style/noNonNullAssertion: scope==="chapter" guarantees chapterNumber is not null
     writtenTo: scope === "default" ? "fields.appearance" : { chapterNumber: chapterNumber! },
   };
 }

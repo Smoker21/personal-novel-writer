@@ -228,7 +228,7 @@ describe("character-fs", () => {
   });
 
   it("deleteCharacter returns false for non-existent character", async () => {
-    const result = await deleteCharacter(tmpDir, "不存在")
+    const result = await deleteCharacter(tmpDir, "不存在");
     expect(result).toBe(false);
   });
 

@@ -8,8 +8,8 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import Database from "better-sqlite3";
 import type { LLMProviderId, ProviderConfig, ProviderModel } from "@novel-writer/shared-types";
+import Database from "better-sqlite3";
 
 const TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_DIR = join(homedir(), ".novel-writer", "cache");

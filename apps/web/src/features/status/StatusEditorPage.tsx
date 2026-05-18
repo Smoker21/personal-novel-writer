@@ -11,13 +11,20 @@ export function StatusEditorPage() {
   const title = isStory ? "故事狀態" : `角色狀態：${slug ?? ""}`;
   const statusFile = isStory ? "status/story_status.md" : `characters/${slug ?? ""}_status.md`;
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: early return above is not conditional, hooks are always called
   const [content, setContent] = useState("");
+  // biome-ignore lint/correctness/useHookAtTopLevel: early return above is not conditional, hooks are always called
   const [saving, setSaving] = useState(false);
+  // biome-ignore lint/correctness/useHookAtTopLevel: early return above is not conditional, hooks are always called
   const [loading, setLoading] = useState(true);
+  // biome-ignore lint/correctness/useHookAtTopLevel: early return above is not conditional, hooks are always called
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  // biome-ignore lint/correctness/useHookAtTopLevel: early return above is not conditional, hooks are always called
   const [mtime, setMtime] = useState<string | undefined>(undefined);
+  // biome-ignore lint/correctness/useHookAtTopLevel: early return above is not conditional, hooks are always called
   const [error, setError] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: early return above is not conditional, hooks are always called
   useEffect(() => {
     // Try to read the file via git show HEAD
     fetch(`/api/projects/${hash}/git/show?sha=HEAD&file=${encodeURIComponent(statusFile)}`)

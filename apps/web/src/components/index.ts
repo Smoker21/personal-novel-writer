@@ -1,9 +1,9 @@
+export { ExpandableTextarea, type ExpandableTextareaProps } from "./ExpandableTextarea";
 export {
   AddPortraitCard,
   PortraitCard,
-  PortraitGrid,
   type PortraitCardData,
   type PortraitCardProps,
+  PortraitGrid,
 } from "./PortraitGrid";
-export { ExpandableTextarea, type ExpandableTextareaProps } from "./ExpandableTextarea";
 export { Spinner, type SpinnerProps } from "./Spinner";

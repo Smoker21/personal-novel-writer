@@ -583,6 +583,7 @@ export function detectExtraCharacterNames(text: string, opts: DetectOpts = {}): 
 
   const candidates: string[] = [];
   let m: RegExpExecArray | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: assignment-in-condition is idiomatic for loop termination
   while ((m = surnamePattern.exec(text)) !== null) {
     let name = m[0];
     const idx = m.index;

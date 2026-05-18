@@ -193,7 +193,8 @@ function ChapterEditorPageInner({ projectHash }: { projectHash: string }) {
     if (currentChapter !== null && editorReady) {
       void recheckMtime(currentChapter);
     }
-  }, [currentChapter, editorReady]); // eslint-disable-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: recheckMtime is intentionally stable across renders
+  }, [currentChapter, editorReady, recheckMtime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useWindowFocusEffect(handleWindowFocus);
 
@@ -330,7 +331,21 @@ function ChapterEditorPageInner({ projectHash }: { projectHash: string }) {
     }, 1500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participants, outline, requirements, chapter?.baseMtime, currentChapter, editorReady]);
+  }, [
+    participants,
+    outline,
+    requirements,
+    chapter?.baseMtime,
+    currentChapter,
+    editorReady,
+    chapter?.baseRequirements,
+    store.markDirty,
+    chapter?.baseParticipants,
+    chapter?.baseOutline,
+    chapter?.title,
+    projectHash,
+    chapter,
+  ]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-950 text-neutral-100">
@@ -404,7 +419,10 @@ function ChapterEditorPageInner({ projectHash }: { projectHash: string }) {
                 </button>
               </div>
               {workbenchOpen && (
-                <div className="space-y-3 px-4 pb-3" style={{ maxHeight: "55vh", overflowY: "auto" }}>
+                <div
+                  className="space-y-3 px-4 pb-3"
+                  style={{ maxHeight: "55vh", overflowY: "auto" }}
+                >
                   <ContextPreviewPanel
                     projectHash={projectHash}
                     chapterNumber={currentChapter}
@@ -415,10 +433,7 @@ function ChapterEditorPageInner({ projectHash }: { projectHash: string }) {
                     <OutlineInput />
                     <RequirementsInput />
                   </div>
-                  <ParticipantPicker
-                    projectHash={projectHash}
-                    chapterNumber={currentChapter}
-                  />
+                  <ParticipantPicker projectHash={projectHash} chapterNumber={currentChapter} />
                 </div>
               )}
             </div>

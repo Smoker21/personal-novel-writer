@@ -6,7 +6,7 @@ import type { AutoScore } from "../../types.js";
  */
 export function findEnglishWords(text: string): string[] {
   // 1+ alphabetic characters (and the typical word punctuation in the middle)
-  const matches = text.match(/[A-Za-z]+(?:['\-][A-Za-z]+)*/g) ?? [];
+  const matches = text.match(/[A-Za-z]+(?:['-][A-Za-z]+)*/g) ?? [];
   return matches;
 }
 

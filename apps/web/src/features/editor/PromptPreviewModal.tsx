@@ -96,7 +96,18 @@ export function PromptPreviewModal({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [
+    open,
+    temperatureOverride,
+    requirements,
+    systemPromptOverride.trim,
+    participants,
+    chapterNumber,
+    projectHash,
+    systemPromptOverride,
+    outline,
+    modelOverride,
+  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -155,9 +166,7 @@ export function PromptPreviewModal({
 
         {state.kind === "error" && (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-sm">
-            <span className="font-medium text-red-400">
-              建構失敗：{state.code}
-            </span>
+            <span className="font-medium text-red-400">建構失敗：{state.code}</span>
             <span className="text-neutral-400">{state.message}</span>
             {state.code === "INVALID_PARTICIPANT" && (
               <span className="text-xs text-neutral-500">
@@ -194,7 +203,9 @@ export function PromptPreviewModal({
                       .map((p) => (p.matched ? p.name : `${p.name}(未找到)`))
                       .join("、")}
               </span>
-              <span className="ml-auto text-neutral-500">contextHash: {state.data.contextHash}</span>
+              <span className="ml-auto text-neutral-500">
+                contextHash: {state.data.contextHash}
+              </span>
             </div>
             <textarea
               value={edited}
