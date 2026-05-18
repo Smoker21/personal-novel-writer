@@ -56,6 +56,13 @@ const ENDPOINTS: Record<LLMProviderId, ProviderEndpoint> = {
     parseCount: (j) => (j as { data?: unknown[] }).data?.length,
     requires: "endpoint",
   },
+  // M6 (spec 009 / spec 011): xiaohuangwen test-connection 內部呼 GET /api/v1/balance
+  xiaohuangwen: {
+    url: () => "https://www.xiaohuangwen.com/api/v1/balance",
+    headers: (c) => ({ Authorization: `Bearer ${c.apiKey ?? ""}` }),
+    parseCount: (j) => (j as { remaining_words?: number }).remaining_words,
+    requires: "apiKey",
+  },
 };
 
 export async function testProvider(
@@ -138,6 +145,7 @@ function providerLabel(id: LLMProviderId): string {
     ollama: "Ollama",
     lmstudio: "LM Studio",
     "rwkv-runner": "RWKV Runner",
+    xiaohuangwen: "小黃文 API",
   };
   return names[id];
 }

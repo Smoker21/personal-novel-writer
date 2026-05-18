@@ -198,3 +198,89 @@ describe("writeSettings", () => {
     await expect(writeSettings(settings)).resolves.toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// M6 schema migration（spec 009 M6 修訂）
+// ---------------------------------------------------------------------------
+
+describe("M6 schema migration via deepMerge", () => {
+  it("backfills xiaohuangwen provider when old yaml lacks it", async () => {
+    // 模擬一份舊 settings.yaml，沒有 xiaohuangwen
+    const oldYaml: Partial<AppSettings> = {
+      schemaVersion: 1,
+      providers: {
+        anthropic: { enabled: true, apiKey: "sk-ant-old" },
+        openai: { enabled: false },
+        google: { enabled: false },
+        xai: { enabled: false },
+        ollama: { enabled: false, endpoint: "http://localhost:11434" },
+        lmstudio: { enabled: false, endpoint: "http://localhost:1234" },
+        "rwkv-runner": { enabled: false, endpoint: "http://localhost:8000" },
+        // 舊版沒有 xiaohuangwen
+      } as AppSettings["providers"],
+      routing: {},
+      recentProjects: [],
+      meta: { firstLaunchWarningAcknowledged: false },
+    };
+
+    readFile.mockResolvedValue("yaml-content" as unknown as string);
+    yamlLoad.mockReturnValue(oldYaml);
+
+    const settings = await readSettings();
+
+    // deepMerge(defaultSettings(), oldYaml) 應補上 xiaohuangwen
+    expect(settings.providers["xiaohuangwen"]).toBeDefined();
+    expect(settings.providers["xiaohuangwen"].enabled).toBe(false);
+  });
+
+  it("backfills polishProse routing slot when old yaml lacks it", async () => {
+    const oldYaml: Partial<AppSettings> = {
+      schemaVersion: 1,
+      providers: defaultSettings().providers,
+      routing: {
+        chapterWriter: {
+          primary: "anthropic:claude-haiku-4-5",
+          fallbacks: [],
+        },
+        // 舊版沒有 polishProse
+      },
+      recentProjects: [],
+      meta: { firstLaunchWarningAcknowledged: false },
+    };
+
+    readFile.mockResolvedValue("yaml-content" as unknown as string);
+    yamlLoad.mockReturnValue(oldYaml);
+
+    const settings = await readSettings();
+
+    // polishProse 不存在是正常的（optional slot）；chapterWriter 應保留
+    expect(settings.routing.chapterWriter).toEqual({
+      primary: "anthropic:claude-haiku-4-5",
+      fallbacks: [],
+    });
+    // polishProse 沒有預設值，所以 deepMerge 不會注入（optional）
+    expect(settings.routing.polishProse).toBeUndefined();
+  });
+
+  it("preserves xiaohuangwen config when old yaml has it", async () => {
+    const oldYaml: Partial<AppSettings> = {
+      schemaVersion: 1,
+      providers: {
+        ...defaultSettings().providers,
+        xiaohuangwen: { enabled: true, apiKey: "xhw-test-key", version: "stable" },
+      },
+      routing: {},
+      recentProjects: [],
+      meta: { firstLaunchWarningAcknowledged: false },
+    };
+
+    readFile.mockResolvedValue("yaml-content" as unknown as string);
+    yamlLoad.mockReturnValue(oldYaml);
+
+    const settings = await readSettings();
+
+    expect(settings.providers["xiaohuangwen"].enabled).toBe(true);
+    expect(settings.providers["xiaohuangwen"].apiKey).toBe("xhw-test-key");
+    expect(settings.providers["xiaohuangwen"].version).toBe("stable");
+  });
+});

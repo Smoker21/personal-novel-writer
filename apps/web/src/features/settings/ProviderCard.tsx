@@ -18,6 +18,8 @@ const LABELS: Record<LLMProviderId, string> = {
   ollama: "Ollama（地端）",
   lmstudio: "LM Studio（地端）",
   "rwkv-runner": "RWKV Runner（地端）",
+  // M6: novel-api provider（完整 UI 由 C1 PR 的 XiaohuangwenProviderCard 負責）
+  xiaohuangwen: "小黃文 API（小說寫作）",
 };
 
 const ENDPOINT_PLACEHOLDERS: Partial<Record<LLMProviderId, string>> = {

@@ -7,6 +7,7 @@ import {
   OllamaProvider,
   OpenAiProvider,
   XaiProvider,
+  XiaohuangwenAdapter,
 } from "@novel-writer/llm-adapter";
 import type {
   AppSettings,
@@ -43,6 +44,10 @@ export function buildRouter(settings: AppSettings): LLMRouter {
   if (provConf["lmstudio"]?.enabled) {
     const endpoint = provConf["lmstudio"].endpoint ?? "http://localhost:1234";
     providers.set("lmstudio", new LmStudioProvider(endpoint));
+  }
+  // M6 (spec 011 / ADR-0010): novel-api provider
+  if (provConf["xiaohuangwen"]?.enabled && provConf["xiaohuangwen"]?.apiKey) {
+    providers.set("xiaohuangwen", new XiaohuangwenAdapter(provConf["xiaohuangwen"].apiKey));
   }
 
   return new LLMRouter(providers);
@@ -84,6 +89,9 @@ export function buildProviderForListing(
     case "rwkv-runner":
       // OpenAI-compatible; piggy-back on LmStudioProvider's base + endpoint override
       return new LmStudioProvider(config.endpoint ?? "http://localhost:8000");
+    case "xiaohuangwen":
+      // M6 (spec 011): novel-api structured provider; no endpoint override needed
+      return config.apiKey ? new XiaohuangwenAdapter(config.apiKey) : null;
     default:
       return null;
   }

@@ -7,7 +7,8 @@ export type LLMProviderId =
   | "xai"
   | "ollama"
   | "lmstudio"
-  | "rwkv-runner";
+  | "rwkv-runner"
+  | "xiaohuangwen";
 
 export const ALL_PROVIDER_IDS: LLMProviderId[] = [
   "anthropic",
@@ -17,16 +18,29 @@ export const ALL_PROVIDER_IDS: LLMProviderId[] = [
   "ollama",
   "lmstudio",
   "rwkv-runner",
+  "xiaohuangwen",
 ];
 
 export const CLOUD_PROVIDERS: LLMProviderId[] = ["anthropic", "openai", "google", "xai"];
 export const LOCAL_PROVIDERS: LLMProviderId[] = ["ollama", "lmstudio", "rwkv-runner"];
+
+/** M6 (spec 009 / ADR-0010)：origin = "novel-api" 的 provider（僅供 chapter-writer / polish-prose slot）。 */
+export const NOVEL_API_PROVIDERS: LLMProviderId[] = ["xiaohuangwen"];
+
+/**
+ * M6：origin = "novel-api" 的 provider 允許出現的 routing slot（camelCase）。
+ * 出現在其他 slot → API 端回 400 INVALID_ROUTING_SLOT。
+ */
+export const STRUCTURED_NOVEL_ALLOWED_SLOTS = ["chapterWriter", "polishProse"] as const;
+export type StructuredNovelAllowedSlot = (typeof STRUCTURED_NOVEL_ALLOWED_SLOTS)[number];
 
 export interface ProviderConfig {
   enabled: boolean;
   apiKey?: string;
   endpoint?: string;
   defaultModel?: string;
+  /** M6：xiaohuangwen 的版本選擇；其他 provider 忽略。 */
+  version?: "latest" | "stable";
 }
 
 export interface RoutingPolicy {
@@ -69,11 +83,21 @@ export interface AppSettings {
     characterImageExtractor?: RoutingPolicy;
     statusUpdater?: RoutingPolicy;
     statusShortener?: RoutingPolicy;
+    /** M6 (spec 012)：polish-prose Skill routing slot。 */
+    polishProse?: RoutingPolicy;
   };
   recentProjects: RecentProject[];
   meta: {
     firstLaunchWarningAcknowledged: boolean;
   };
+}
+
+/** M6：GET /api/settings/balance/:providerId response 形狀 */
+export interface ProviderBalanceResponse {
+  providerId: LLMProviderId;
+  remainingWords: number;
+  currency: "words";
+  fetchedAt: string;
 }
 
 export type ProviderTestResult =
@@ -92,6 +116,8 @@ export function defaultSettings(): AppSettings {
       ollama: { ...emptyConfig, endpoint: "http://localhost:11434" },
       lmstudio: { ...emptyConfig, endpoint: "http://localhost:1234" },
       "rwkv-runner": { ...emptyConfig, endpoint: "http://localhost:8000" },
+      // M6 (spec 009)：novel-api provider；version 預設 "latest"
+      xiaohuangwen: { ...emptyConfig, version: "latest" },
     },
     routing: {},
     recentProjects: [],
