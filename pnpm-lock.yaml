@@ -82,7 +82,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.0
-        version: 2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
+        version: 2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
 
   apps/desktop:
     dependencies:
@@ -103,20 +103,20 @@ importers:
   apps/web:
     dependencies:
       '@codemirror/commands':
-        specifier: ^6.7.0
+        specifier: ^6.10.3
         version: 6.10.3
       '@codemirror/lang-markdown':
-        specifier: ^6.3.0
+        specifier: ^6.5.0
         version: 6.5.0
       '@codemirror/language':
-        specifier: ^6.10.0
+        specifier: ^6.12.3
         version: 6.12.3
       '@codemirror/state':
-        specifier: ^6.5.0
+        specifier: ^6.6.0
         version: 6.6.0
       '@codemirror/view':
-        specifier: ^6.34.0
-        version: 6.42.1
+        specifier: ^6.43.0
+        version: 6.43.0
       '@novel-writer/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -124,17 +124,17 @@ importers:
         specifier: ^2.2.0
         version: 2.11.0
       codemirror:
-        specifier: ^6.0.1
+        specifier: ^6.0.2
         version: 6.0.2
       dexie:
-        specifier: ^4.0.10
+        specifier: ^4.4.2
         version: 4.4.2
       hono:
         specifier: ^4.6.0
         version: 4.12.18
       lucide-react:
-        specifier: ^0.479.0
-        version: 0.479.0(react@18.3.1)
+        specifier: ^0.577.0
+        version: 0.577.0(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -142,14 +142,14 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       react-router-dom:
-        specifier: ^6.28.0
+        specifier: ^6.30.3
         version: 6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zustand:
         specifier: ^4.5.6
         version: 4.5.7(@types/react@18.3.28)(react@18.3.1)
     devDependencies:
       '@tailwindcss/vite':
-        specifier: ^4.0.0
+        specifier: ^4.3.0
         version: 4.3.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
       '@testing-library/jest-dom':
         specifier: ^6.6.0
@@ -176,13 +176,13 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4
       jsdom:
-        specifier: ^25.0.0
-        version: 25.0.1
+        specifier: ^26.1.0
+        version: 26.1.0
       msw:
-        specifier: ^2.6.0
+        specifier: ^2.14.6
         version: 2.14.6(@types/node@22.19.19)(typescript@5.9.3)
       tailwindcss:
-        specifier: ^4.0.0
+        specifier: ^4.3.0
         version: 4.3.0
       typescript:
         specifier: ^5.8.0
@@ -192,7 +192,7 @@ importers:
         version: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0)
       vitest:
         specifier: ^3.0.0
-        version: 3.2.4(@types/node@22.19.19)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.9.0)
+        version: 3.2.4(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.9.0)
 
   packages/llm-adapter:
     dependencies:
@@ -220,7 +220,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.0
-        version: 2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
+        version: 2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
 
   packages/prompt-library:
     dependencies:
@@ -239,7 +239,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.0
-        version: 2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
+        version: 2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
 
   packages/shared-types:
     devDependencies:
@@ -248,7 +248,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.0
-        version: 2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
+        version: 2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
 
   tools/eval:
     dependencies:
@@ -279,7 +279,7 @@ importers:
         version: 22.19.19
       '@vitest/coverage-v8':
         specifier: ^2.1.2
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3)))
+        version: 2.1.9(vitest@2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3)))
       tsx:
         specifier: ^4.19.1
         version: 4.21.0
@@ -288,7 +288,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.2
-        version: 2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
+        version: 2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
 
   tools/screenshot:
     dependencies:
@@ -484,8 +484,8 @@ packages:
   '@codemirror/state@6.6.0':
     resolution: {integrity: sha512-4nbvra5R5EtiCzr9BTHiTLc+MLXK2QGiAVYMyi8PkQd3SR+6ixar/Q/01Fa21TBIDOZXgeWV4WppsQolSreAPQ==}
 
-  '@codemirror/view@6.42.1':
-    resolution: {integrity: sha512-ToN3oFc0nsxNUYVF5P0ztLgbC4UPPjPtA9aKYhkOKQaZASpOUo6ISXyQLP66ctVwlDc+j6Jv0uK5IFALkiXztg==}
+  '@codemirror/view@6.43.0':
+    resolution: {integrity: sha512-V7ZCLQO3Jus9hzh2jVCCPW3mO4IBMr43O37PqSUYautJSnnJF41YlgLw21x0fLJTYvJ+Vkm6Gp+qKGH9pltgXA==}
 
   '@csstools/color-helpers@5.1.0':
     resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
@@ -2338,11 +2338,11 @@ packages:
     resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
     hasBin: true
 
-  jsdom@25.0.1:
-    resolution: {integrity: sha512-8i7LzZj7BF8uplX+ZyOlIz86V6TAsSs+np6m1kpW9u0JWi4z/1t+FzcK1aek+ybTnAC4KhBL4uXCNT0wcUIeCw==}
+  jsdom@26.1.0:
+    resolution: {integrity: sha512-Cvc9WUhxSMEo4McES3P7oK3QaXldCfNWp7pl2NNeiIFlCoLr3kfq9kb1fxftiwk1FLV7CvpvDfonxtzUDeSOPg==}
     engines: {node: '>=18'}
     peerDependencies:
-      canvas: ^2.11.2
+      canvas: ^3.0.0
     peerDependenciesMeta:
       canvas:
         optional: true
@@ -2460,8 +2460,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.479.0:
-    resolution: {integrity: sha512-aBhNnveRhorBOK7uA4gDjgaf+YlHMdMhQ/3cupk6exM10hWlEU+2QtWYOfhXhjAsmdb6LeKR+NZnow4UxRRiTQ==}
+  lucide-react@0.577.0:
+    resolution: {integrity: sha512-4LjoFv2eEPwYDPg/CUdBJQSDfPyzXCRrVW1X7jrx/trgxnxkHFjnVZINbzvzxjN70dxychOfg+FTYwBiS3pQ5A==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -2744,9 +2744,6 @@ packages:
     resolution: {integrity: sha512-pAQK9HalE84QSm4Po3EmWIZPd3FnjkShVkiMlz1iligWYkWQ7wHYd1PF/T7QZ5TVSD6uSTon5gBVMSM4JfBV+A==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
-
-  rrweb-cssom@0.7.1:
-    resolution: {integrity: sha512-TrEMa7JGdVm0UThDJSx7ddw5nVm3UJS9o9CCIZ72B1vSyEZoziDqBYP3XIoi/12lKrJR8rE3jeFHMok2F/Mnsg==}
 
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
@@ -3453,14 +3450,14 @@ snapshots:
     dependencies:
       '@codemirror/language': 6.12.3
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       '@lezer/common': 1.5.2
 
   '@codemirror/commands@6.10.3':
     dependencies:
       '@codemirror/language': 6.12.3
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       '@lezer/common': 1.5.2
 
   '@codemirror/lang-css@6.3.1':
@@ -3478,7 +3475,7 @@ snapshots:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/language': 6.12.3
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       '@lezer/common': 1.5.2
       '@lezer/css': 1.3.3
       '@lezer/html': 1.3.13
@@ -3489,7 +3486,7 @@ snapshots:
       '@codemirror/language': 6.12.3
       '@codemirror/lint': 6.9.6
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       '@lezer/common': 1.5.2
       '@lezer/javascript': 1.5.4
 
@@ -3499,14 +3496,14 @@ snapshots:
       '@codemirror/lang-html': 6.4.11
       '@codemirror/language': 6.12.3
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       '@lezer/common': 1.5.2
       '@lezer/markdown': 1.6.3
 
   '@codemirror/language@6.12.3':
     dependencies:
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.10
@@ -3515,20 +3512,20 @@ snapshots:
   '@codemirror/lint@6.9.6':
     dependencies:
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       crelt: 1.0.6
 
   '@codemirror/search@6.7.0':
     dependencies:
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       crelt: 1.0.6
 
   '@codemirror/state@6.6.0':
     dependencies:
       '@marijn/find-cluster-break': 1.0.2
 
-  '@codemirror/view@6.42.1':
+  '@codemirror/view@6.43.0':
     dependencies:
       '@codemirror/state': 6.6.0
       crelt: 1.0.6
@@ -4361,7 +4358,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3)))':
+  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3)))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3
@@ -4375,7 +4372,7 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.2
       tinyrainbow: 1.2.0
-      vitest: 2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
+      vitest: 2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))
     transitivePeerDependencies:
       - supports-color
 
@@ -4603,7 +4600,7 @@ snapshots:
       '@codemirror/lint': 6.9.6
       '@codemirror/search': 6.7.0
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
 
   color-convert@2.0.1:
     dependencies:
@@ -5093,19 +5090,18 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  jsdom@25.0.1:
+  jsdom@26.1.0:
     dependencies:
       cssstyle: 4.6.0
       data-urls: 5.0.0
       decimal.js: 10.6.0
-      form-data: 4.0.5
       html-encoding-sniffer: 4.0.0
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       is-potential-custom-element-name: 1.0.1
       nwsapi: 2.2.23
       parse5: 7.3.0
-      rrweb-cssom: 0.7.1
+      rrweb-cssom: 0.8.0
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 5.1.2
@@ -5210,7 +5206,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.479.0(react@18.3.1):
+  lucide-react@0.577.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
@@ -5529,8 +5525,6 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.60.3
       '@rollup/rollup-win32-x64-msvc': 4.60.3
       fsevents: 2.3.3
-
-  rrweb-cssom@0.7.1: {}
 
   rrweb-cssom@0.8.0: {}
 
@@ -5856,7 +5850,7 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.9.0
 
-  vitest@2.1.9(@types/node@22.19.19)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3)):
+  vitest@2.1.9(@types/node@22.19.19)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3)):
     dependencies:
       '@vitest/expect': 2.1.9
       '@vitest/mocker': 2.1.9(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.19)(lightningcss@1.32.0))
@@ -5880,7 +5874,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.19.19
-      jsdom: 25.0.1
+      jsdom: 26.1.0
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -5892,7 +5886,7 @@ snapshots:
       - supports-color
       - terser
 
-  vitest@3.2.4(@types/node@22.19.19)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.9.0):
+  vitest@3.2.4(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.9.0):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
@@ -5919,7 +5913,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.19.19
-      jsdom: 25.0.1
+      jsdom: 26.1.0
     transitivePeerDependencies:
       - jiti
       - less
