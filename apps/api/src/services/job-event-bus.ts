@@ -8,6 +8,21 @@ interface JobBucket {
 
 const BUCKETS = new Map<string, JobBucket>();
 
+/**
+ * M6-C L3: SSE idle timeout for `subscribeJob`.
+ *
+ * Old value (30s) was shorter than the worst-case LLM call time for the
+ * status-updater (now hard-capped at 90s, see status-updater-service.ts),
+ * which caused the iterator to yield `null` and close the SSE while the
+ * job was still running. The client then sat on phase=running forever.
+ *
+ * 5 minutes covers any realistic single-LLM-call duration plus its
+ * one-shot parse-retry. If the LLM stalls longer than that, the L1 90s
+ * timeout will have already emitted `failed` and the iterator will exit
+ * via the terminal-event branch instead.
+ */
+export const SSE_IDLE_TIMEOUT_MS = 300_000;
+
 export function createJob(jobId: string): void {
   BUCKETS.set(jobId, { events: [], done: false, listeners: [] });
   // Auto-cleanup after 10 minutes
@@ -17,6 +32,11 @@ export function createJob(jobId: string): void {
 export function emitJobEvent(jobId: string, event: StatusJobEvent): void {
   const bucket = BUCKETS.get(jobId);
   if (!bucket) return;
+  // M6-C: idempotency guard. Once a terminal event (`completed` / `failed`)
+  // has been emitted, drop subsequent events. Without this, a dangling
+  // LLM promise that resolves AFTER the 90s timeout would re-emit
+  // `completed` (or duplicate `failed`) and confuse the client.
+  if (bucket.done) return;
   bucket.events.push(event);
   for (const listener of bucket.listeners) listener(event);
   if (event.type === "completed" || event.type === "failed") bucket.done = true;
@@ -62,7 +82,7 @@ export async function* subscribeJob(jobId: string): AsyncIterable<StatusJobEvent
               resolve = null;
               res(null);
             }
-          }, 30_000);
+          }, SSE_IDLE_TIMEOUT_MS);
         });
         if (ev === null) return; // timeout
         yield ev;
