@@ -8,9 +8,16 @@
   },
   "scripts": {
     "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "test:bdd": "cucumber-js --config cucumber.config.cjs",
+    "test:bdd:032": "cucumber-js --require-module tsx/cjs --require support/world.ts --require support/hooks.ts --require step-definitions/032-first-launch-warning.steps.ts ../../docs/requirements/features/032-first-launch-warning.feature",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0"
+    "@cucumber/cucumber": "^11.3.0",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.0"
   }
 }
