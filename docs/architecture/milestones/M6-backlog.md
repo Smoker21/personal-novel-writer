@@ -140,11 +140,24 @@
 | 預估 | 2-3 PR（toolchain 鎖 + tauri minor 升 + 三平台驗）|
 | 依賴 | 與其他 Y 項無關；可獨立做 |
 
+### M7-Y5. PromptSnapshot wiring + prompt history schema 翻新
+
+| 項 | 內容 |
+|---|---|
+| 動機 | spec 005 PromptSnapshot.kind / structuredInputs 已就緒，但 `generate.ts` complete handler 從未寫 `current.prompt.json`（M5 prior gap）；xiaohuangwen 採用後 prompt.md 「## 結構化生成欄位」段空白 |
+| 來源 | M6 dev W3 feedback S-5；PM Round 2 拍板 SA-R2-5 推 M7（2026-05-18）|
+| 範圍 | (i) `generate.ts` complete handler 寫 PromptSnapshot.json（含 kind / structuredInputs / participants / outline / requirements / temperature 等）/ (ii) `adopt.ts` 讀 snapshot.kind 傳給 prompt-md / (iii) prompt history schema 翻新：從 append-mode 改為「一檔一 snapshot」於 `chapters/_prompts/chapter_NNNN_<timestamp>.md` / (iv) round-trip 測試 |
+| 影響 spec | spec 005（generate complete handler）/ spec 006（adopt 讀 snapshot）/ 可能補 ADR「prompt history 儲存策略」|
+| 風險 | 中 — adopt 流程改 schema；舊 prompt.md 要 migration（或 fallback 兩種 schema 並存）|
+| 預估 | 3-4 PR |
+| 依賴 | 與 Y1~Y4 無關；建議排 W2~W3（早於 React 19 / Router 7，避免 UI 大變動同期）|
+
 ### M7 排序建議
 
 ```
-W1~W2  S1 FTS5 全文搜尋（M7 主軸）
-W3     Y4 Tauri Rust toolchain（獨立）
+W1     S1 FTS5 全文搜尋（M7 主軸）起手
+W2~W3  Y5 PromptSnapshot wiring + prompt history schema
+W3~W4  S1 收尾 + Y4 Tauri Rust toolchain（獨立）
 W4~W5  Y1 React 19 + Y2 Router 7（同期）
 W5~W6  Y3 Zustand 5
 W6+    M7 收尾 + v0.4.0 release
@@ -165,3 +178,4 @@ W6+    M7 收尾 + v0.4.0 release
 - `2026-05-16`：補 P1 xiaohuangwen provider（PM 拍板延至 M6，API 文件已取得並分析）。
 - `2026-05-17`：P1 使用範圍確認：僅限章節寫作（/generate + /polish），不可用於 structured-data slot。spec 009 Settings 只在章節寫作 routing slot 顯示此 provider。
 - `2026-05-18`：M6 PM Round 1 拍板 M6-X 技術翻新 scope = B + D 拆 M7；本檔新增 M7-Y1~Y4 段（React 19 / Router 7 / Zustand 5 / Tauri Rust）。
+- `2026-05-18`：M6 dev W1-W3 feedback SA-R2-5 拍板 — PromptSnapshot wiring 推 M7；本檔新增 **M7-Y5** 段 + 排序建議插入 W2~W3。

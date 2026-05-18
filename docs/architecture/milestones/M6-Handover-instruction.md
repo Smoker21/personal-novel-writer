@@ -321,6 +321,14 @@ streaming 回傳 plain text（不是 SSE JSON event），需獨立解析。
   - dev W1-W3 完成（M6-X scope B 全 9 子項 ✅ / M6-C status-updater ✅ / BDD 環境就緒 + 1/7 跑通 / xiaohuangwen adapter + dispatch + settings ✅）
   - dev 揭露 5 個 spec/ADR gap（S-1~S-4 + S-5）＋ 3 個 BDD mismatch（MISMATCH-1/2 / PARSE-ERROR）
   - spec-architect Round 2 工作項列於本文件最後段
+- 2026-05-18（同日 — spec-architect Round 2 全完成 + PM B-3 / B-5 拍板）：
+  - **SA-R2-1** spec 011 type 路徑改 `packages/llm-adapter/src/types.ts` + 補 Type 分層原則段
+  - **SA-R2-2** ADR-0010 `retryPerModel?: number`（structured path optional / unused）
+  - **SA-R2-3** spec 011 餘額不足偵測：寬鬆 + HTTP status guard 規則寫進錯誤映射表（PM B-3 拍板）
+  - **SA-R2-4** ADR-0010 `LLMErrorCode` 加 `"invalid_argument"`；spec 011 錯誤映射表同步
+  - **SA-R2-5** PromptSnapshot wiring 推 M7（PM B-5 拍板）；M6-backlog 加 **M7-Y5** 段 + spec 005 變更紀錄補 release 已知問題
+  - **流程改進**：CLAUDE.md 補「起新 spec 前 checklist」（grep types / 介面參數 path 覆蓋 / error code 分類 / BDD dry-run）
+  - **🎉 SA Round 2 全部完成**；dev W4 可繼續
 
 ---
 

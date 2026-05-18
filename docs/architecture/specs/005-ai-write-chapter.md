@@ -587,6 +587,11 @@ client                 apps/api                  ContextCollector  LLMRouter   C
   - structured path UI：五欄結構化編輯（取代 single promptText `<ExpandableTextarea>`）
   - 共用元件 reference 改指向 `_components/`
   - 新增 error code `KIND_MISMATCH`
+- `2026-05-18`（M6 SA-R2-5 拍板 — PM 同意推 M7）：
+  - **已知 gap**：`generate.ts` complete handler 從未實際寫 `current.prompt.json`（M5 任務 `be-m5-5` 未完成；prior gap，非 M6 regression）
+  - **影響**：PromptSnapshot.kind / structuredInputs 已在 type 與 prompt-md 渲染端就緒（C5 commit `da31c10`），但呼叫端走 messages path 預設；xiaohuangwen 採用後 prompt.md 仍 generate，但「## 結構化生成欄位」段空白
+  - **不阻 v0.3.0 release** — release notes 標明已知問題
+  - **M7 處理**：與 prompt history schema 翻新（一檔一 snapshot）整合 → 詳見 `M6-backlog.md` **M7-Y5**
 - `2026-05-10`: 初版 Ready
 - `2026-05-13`: ChapterContext 對齊 Story 005/007 修訂版 + Spec 002b 升 MVP：
   - 加 `writingStyle: string`（讀 `<project>/style.md`；依 style.md 邊界規則）

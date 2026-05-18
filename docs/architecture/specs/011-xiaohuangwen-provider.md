@@ -205,14 +205,30 @@ async *generateNovel(params: StructuredNovelGenerateParams) {
 | HTTP / 情境 | LLMErrorCode | retryable |
 |---|---|---|
 | 401 / 403 | `unauthorized` | false |
-| 402 / response 含「餘額不足」/ `remaining_words < required` | `quota_exhausted` | false |
+| **402（無視 body）** | `quota_exhausted` | false |
+| **HTTP 400~499（402 以外）AND body 含 keyword**（見下）| `quota_exhausted` | false |
 | 429 | `rate_limit` | true |
 | 5xx | `network` | true |
 | connect timeout / network error | `network` | true |
+| caller-side validation 失敗（空 `plot` / 空 `pre_output` / 空 `polish_input`） | `invalid_argument` | false |
 | 任何 `LLMProvider.stream()` / `generate()` 呼叫 | `operation_not_supported` | false |
-| 4xx 其他 | `unknown` | false |
+| 4xx 其他（無 keyword）| `unknown` | false |
 
-`quota_exhausted` 為 ADR-0010 新增 code。
+### `quota_exhausted` keyword 偵測規則（SA-R2-3 拍板 2026-05-18）
+
+**HTTP 402** → 直接判 `quota_exhausted`（高信心，無視 body）。
+
+**HTTP 400~499（402 以外）** → 額外掃 response body，符合以下任一 → `quota_exhausted`：
+
+| keyword | 比對方式 |
+|---|---|
+| `餘額不足` | exact substring（UTF-8） |
+| `insufficient` | case-insensitive substring（ASCII lowercase）|
+| `quota` | case-insensitive substring（ASCII lowercase）|
+
+**HTTP 200 + body 含這些 keyword 不算** — HTTP status guard 排除誤判（例：200 response 描述上次扣費「remaining quota: N」）。
+
+`quota_exhausted` / `invalid_argument` / `operation_not_supported` 均為 ADR-0010 新增 code。
 
 ### Abort 行為
 
@@ -264,10 +280,15 @@ xiaohuangwen 整合**走既有 spec 005 / 012 endpoint**：
 
 ## 資料模型
 
+> **Type 分層原則**（SA-R2 釐清 2026-05-18）：
+> - **adapter 介面型別**（`LLMProvider` / `ModelCapabilities` / `StreamChunk` / `LLMErrorCode` / `StructuredNovelProvider` / `StructuredNovelGenerateParams` 等）→ `packages/llm-adapter/src/types.ts`
+> - **跨 workspace 共用型別**（前後端都 import，如 `PromptSnapshot` / `DraftMetadata` / `Settings`）→ `packages/shared-types/`
+> 判斷準則：只在 apps/web 也需要 import 時才放 `shared-types/`。adapter 介面型別只在 apps/api + packages/llm-adapter 內 import，留在 adapter package 即可。
+
 ### `ModelCapabilities` 擴張（ADR-0010）
 
 ```ts
-// packages/shared-types/src/llm-adapter.ts
+// packages/llm-adapter/src/types.ts
 export interface ModelCapabilities {
   // ...既有
   hasStructuredNovelGenerate: boolean;
@@ -353,7 +374,7 @@ client                apps/api                    LLMRouter            Xiaohuang
 
 ## 開發任務拆解
 
-- [ ] **types**: `packages/shared-types/src/llm-adapter.ts` — `ModelCapabilities.hasStructuredNovelGenerate` / `StructuredNovelProvider` / `StructuredNovelGenerateParams` / `StructuredNovelPolishParams` / `LLMErrorCode` 擴張 / `Provider.origin` 擴張
+- [ ] **types**: `packages/llm-adapter/src/types.ts` — `ModelCapabilities.hasStructuredNovelGenerate` / `StructuredNovelProvider` / `StructuredNovelGenerateParams` / `StructuredNovelPolishParams` / `LLMErrorCode` 擴張 / `Provider.origin` 擴張（依 SA-R2「Type 分層原則」— adapter 介面型別歸 adapter package）
 - [ ] **adapter-1**: `packages/llm-adapter/src/providers/xiaohuangwen.ts` — `XiaohuangwenAdapter` 實作（含 stream parser / error mapping / abort）
 - [ ] **adapter-2**: `packages/llm-adapter/src/router.ts` — `LLMRouter.generateNovel` / `polishNovel` 方法
 - [ ] **adapter-3**: 既有 6 個 provider adapter 補 `capabilities().hasStructuredNovelGenerate = false`

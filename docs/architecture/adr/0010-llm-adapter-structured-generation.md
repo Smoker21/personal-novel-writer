@@ -103,8 +103,17 @@ async *stream() {
 export type LLMErrorCode =
   | ...既有
   | "operation_not_supported"   // M6：純 structured provider 收到 unstructured 請求
-  | "quota_exhausted";          // M6：以字數 / credit 計費的 provider 餘額不足
+  | "quota_exhausted"           // M6：以字數 / credit 計費的 provider 餘額不足
+  | "invalid_argument";         // M6 SA-R2-4：adapter 端 caller-side 參數驗證失敗
+                                //   （空 plot / pre_output / polish_input 等必填欄位）
+                                //   retryable = false
 ```
+
+**`invalid_argument` 使用準則**（SA-R2-4 補充 2026-05-18）：
+
+- 觸發點：adapter / router 在發送 HTTP 前對輸入做 sanity check 失敗（必填欄位空、長度超限、type 不對）
+- 與 `operation_not_supported` 區分：後者是「介面用錯」（如 structured provider 收到 messages 請求）；`invalid_argument` 是「**參數本身**不合法」
+- 與 server-returned 4xx 區分：server 4xx 走對應的 `unauthorized` / `quota_exhausted` / `unknown` 分類；`invalid_argument` 只在 caller 端用
 
 ### `LLMRouter` 擴充
 
@@ -115,15 +124,18 @@ export class LLMRouter {
   /**
    * 結構化生成。policy.primary 必須對應有 hasStructuredNovelGenerate=true 的 provider。
    * 不在 fallbacks[] 之間自動切換（structured params 通常與 messages-array policy 不相容）。
+   * `retryPerModel` 在 structured path **optional / unused** — structured provider 不在 fallbacks
+   * 間切換，policy 也不收 fallbacks[] 陣列；保留欄位是為與 messages-array path 介面對稱。
+   * （SA-R2-2 釐清 2026-05-18）
    */
   generateNovel(
     params: StructuredNovelGenerateParams,
-    policy: { primary: string; retryPerModel: number },
+    policy: { primary: string; retryPerModel?: number },
   ): AsyncIterable<StreamChunk> { ... }
 
   polishNovel(
     params: StructuredNovelPolishParams,
-    policy: { primary: string; retryPerModel: number },
+    policy: { primary: string; retryPerModel?: number },
   ): AsyncIterable<StreamChunk> { ... }
 }
 ```

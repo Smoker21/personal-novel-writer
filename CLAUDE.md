@@ -35,6 +35,11 @@
    - 兩處 Scenario 文字逐字一致
 2. **規格**（`spec-architect`）— 為 status=`Ready` 的 story 產出 `docs/architecture/specs/<NNN>-<slug>.md`，含 API 合約、資料模型、跨元件協議、效能假設、開發任務拆解
    - **起新 spec 前必讀** [`docs/architecture/specs/_components/_index.md`](docs/architecture/specs/_components/_index.md)（跨 spec 共用 UI 元件 canonical 規格目錄；M6 D4 拍板）。識別新 UI 需求中哪些是共用、哪些是 spec-local — 共用元件寫進 `_components/<name>.md`，spec 主檔 cross-reference 即可。
+   - **起新 spec 前 checklist**（M6 dev feedback 5.2 拍板 2026-05-18）：
+     1. **grep 既有 types 檔**確認新 type 該放哪 — adapter 介面型別 → `packages/llm-adapter/src/types.ts`；跨 workspace 共用（前後端都 import）→ `packages/shared-types/`；不要憑感覺寫路徑
+     2. **每個介面參數**標 required vs optional；對每條 dispatch path（messages / structured 等）都標清楚「此參數在這條 path 是否有意義」— 避免 dev 拿到 required 卻沒語意的欄位
+     3. **error code 命名覆蓋**：server-returned 與 caller-side validation 各自分類；不要讓 dev 自決用 `"unknown"` 兜底
+     4. **BDD dry-run**：spec round 1 PM 拍板前，PM + qa-engineer 對 .feature 做紙上推演（不必寫 step defs），驗 Given/When/Then 對應實際元件 / API 是否一致 — 越早抓 mismatch 越省 round 數
 3. **實作**（`backend-developer` / `frontend-developer` / `llm-integrator`）— 動工前必讀對應 spec；spec 為 `Draft` 時禁止寫產品程式碼
 4. **測試**（`qa-engineer`）— 依 .feature 寫 cucumber-js step definitions，連到 unit / integration / e2e；AI 代理另加 golden test
 5. 重大跨切面決策一律寫 ADR（`docs/architecture/adr/`）
@@ -61,6 +66,13 @@ dev 遇到 spec 沒寫明的決策時：
 - API key 與地端 endpoint 設定**只**寫到 `~/.novel-writer/settings.yaml`，**絕不**進入專案資料夾或 git
 - 處理小說內容時注意：章節可能很長（數萬字），避免一次塞進 context；必要時分段或摘要
 - SQLite 是衍生 cache，可重建；任何「掉了會痛」的東西都該存進使用者 Drive 目錄
+
+## sub-agent 派工 race 預防
+
+- 同 workspace 的 package.json 修改 → 嚴格序列（單一 agent 連跑多 commit）
+- 不同 workspace 並行可
+- 同 workspace 不同 source 檔可並行，但 import 重疊處保險序列
+- dev coordinator 派工前 grep 各 PR 改動檔範圍，列入工作日誌
 
 ## 常用啟動指令
 
