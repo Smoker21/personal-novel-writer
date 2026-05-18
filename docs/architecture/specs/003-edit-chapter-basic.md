@@ -259,19 +259,19 @@ UI 為摺疊面板（accordion），預設摺疊。展開時顯示前 200 字摘
 |---|---|---|---|
 | Model | settings.agents.chapter-writer.routing.primary | 本章 build-prompt + generate 期間生效，不寫進 chapter front-matter（每次重新展開預設拉 settings） | 兩段下拉（provider → model）|
 | Temperature | settings.agents.chapter-writer.routing.temperature | 同上；空白 = null = 用 settings | number input + slider |
-| System prompt 本章覆寫 | （無） | 與 settings.systemPromptOverride 兩階段 concat（settings 先、本章後）；空白 = 不疊加 | `<ExpandableTextarea>`（spec 002）|
+| System prompt 本章覆寫 | （無） | 與 settings.systemPromptOverride 兩階段 concat（settings 先、本章後）；空白 = 不疊加 | [`<ExpandableTextarea>`](./_components/expandable-textarea.md) |
 
 「本章覆寫」是 ephemeral state — 切章 / reload 後消失。原因：使用者在嘗試不同寫法時不應污染 chapter front-matter；要持久化請改 settings。
 
 ### 3. 本章劇情大綱（持久化）
 
-- 用 `<ExpandableTextarea>` 共用元件（spec 細節見 [spec 002 §「Shared UI components」](./002-edit-character-card.md#shared-ui-components-m5-round-2--跨-spec-引用)）— inline 多行 + 右上 `⛶` 切 modal 全螢幕
+- 用 [`<ExpandableTextarea>`](./_components/expandable-textarea.md) 共用元件 — inline 多行 + 右上 `⛶` 切 modal 全螢幕
 - 寫入 `outline` frontmatter 欄位（PUT chapter）
 - placeholder grey text：`例：春雨在圖書館找到明哲，請他協助查詢《梅雨草稿》借閱歷史。明哲在館藏系統發現該書曾被列為「待處理」，留下伏筆。`
 
 ### 4. 本章寫作需求（持久化）
 
-- 用 `<ExpandableTextarea>` 共用元件
+- 用 [`<ExpandableTextarea>`](./_components/expandable-textarea.md) 共用元件
 - 寫入 `requirements` frontmatter 欄位
 - placeholder grey text：`例：約 1500 字。第三人稱有限視角（以春雨為主）。保留書卷氣的文藝風格；不要過度推進感情線。`
 

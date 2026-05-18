@@ -573,9 +573,19 @@ manuallyEditedSections:
 | Body 固定區 | 角色描述（手動）| `在這裡寫下此角色的完整描述。不用擔心結構 — 可以是個性、外貌、口吻、習慣、過去、價值觀等任何重要資訊。chapter-writer 寫小說時主要看這段。` |
 | Body 固定區 | AI 統整敘述 | （摺疊；展開時）`按上方「✨ AI 統整」會用結構化欄位 + 手動描述產生連貫敘述寫到這裡。可手動微調；下次 AI 統整不會蓋你的手動段。` |
 
-### Shared UI components（M5 Round 2 — 跨 spec 引用）
+### Shared UI components reference（M6 — 共用元件已搬到 `_components/`）
 
-> 以下三個元件 / 慣例由 spec 002 定義 canonical 規格；spec 003 / 007 / 009 直接 reference。實作放 `apps/web/src/components/`（共用元件目錄，不歸屬任一 feature folder）。
+> M6 SA-1：原本 spec 002 是 canonical 來源；現在 canonical 規格搬到 [`docs/architecture/specs/_components/`](./_components/_index.md)。
+> 以下段落保留為**本 spec 使用情境的摘要**（element / props / 行為等 canonical 內容請點連結至 `_components/<name>.md`）。
+
+| 元件 | canonical 連結 | 本 spec 使用點 |
+|---|---|---|
+| `<PortraitGrid>` | [`_components/portrait-grid.md`](./_components/portrait-grid.md) | CharactersPage 主視圖 |
+| `<ExpandableTextarea>` | [`_components/expandable-textarea.md`](./_components/expandable-textarea.md) | 核心區「角色描述（手動）」+「AI 統整敘述」 |
+| `<Spinner>` | [`_components/spinner.md`](./_components/spinner.md) | AI 統整 / portrait 上傳 / portrait 解析 |
+| Error 三層 | [`_components/error-display.md`](./_components/error-display.md) | inline（欄位驗證）/ toast（save / consolidate 失敗）|
+
+#### 原有摘要（為相容性保留）
 
 #### ExpandableTextarea（UX-1）
 
@@ -982,3 +992,4 @@ consolidator skill
 - `2026-05-15`（深夜 — PM Round 3 收尾）: PM Round 2 review 拍板四項：
   - **B**：AI 統整 dialog 語意修正 — dialog 觸發條件從「手動段被覆蓋」改為「aiSummary textarea 既有內容非空」；對應文案改寫。原 spec 002 line 95 舊條文（與 Q1=a 矛盾）已刪除。
   - **D**：補 UX-6 Error 三層 BDD scenarios（002 inline × 2 / 003 toast × 1 / 009 modal × 1）。
+- `2026-05-17`（M6 SA-1）: 共用元件 canonical 規格搬到 `_components/` 子目錄（D4 拍板）。本 spec 留「Shared UI components reference」摘要表 + cross-reference；原 canonical 細節為相容性保留但**不再是 source of truth**。

@@ -7,11 +7,12 @@
 
 ## 一句話定位
 
-M5 已 release v0.2.0。M6 分兩個維度：
+M5 已 release v0.2.0。M6 分**三個維度**：
 1. **品質補強** — BDD step defs、共用元件單元測試、status-updater P0 修復、拋光 TD-4~8
-2. **新 Provider** — 接入 [xiaohuangwen](https://www.xiaohuangwen.com)（小說專用 API，**僅限章節寫作 routing**）
+2. **新 Provider** — 接入 [xiaohuangwen](https://www.xiaohuangwen.com)（小說專用 API，限章節寫作 routing + polish-prose Skill）
+3. **技術翻新（M6-X）** — Node.js 升 LTS + 依賴 major 升級（PM 2026-05-18 拍板新增）；範圍與細節見 [`M6-X-tech-refresh.md`](./M6-X-tech-refresh.md)
 
-M6 **不加其他新功能**；FTS5 全文搜尋（S1）/ preset 庫（S2）已明確推 M7。
+M6 **不加其他產品功能**；FTS5 全文搜尋（S1）/ preset 庫（S2）/ 前端架構翻新（React 19 / Router 7 / Zustand 5）已明確推 M7。
 
 ---
 
@@ -83,11 +84,42 @@ spec-architect 完成 M5 後檢視 M6 handover，回報 4 個跨切面問題請 
 
 ---
 
+## M6-X 技術翻新軌道（2026-05-18 PM 新增）
+
+**獨立規劃文件**：[`M6-X-tech-refresh.md`](./M6-X-tech-refresh.md)
+
+### 一句話定位
+
+Node.js 升 LTS（22）+ 主要依賴升版，與既有 M6 任務**並行**。Scope 由 PM 拍板（A 最小 / B 中 / C 大 / D 全棧）。
+
+### SA-4 工作項（PM Round 1 Q-X1~5 全拍板 2026-05-18 — 全照 dev 推薦）
+
+| 件 | 內容 | 產出 | 狀態 |
+|---|---|---|---|
+| **SA-4.a** | 依 PM 拍板 scope = B + D 拆 M7 定案 M6-X 範圍 | `M6-X-tech-refresh.md` Status=Ready | ✅ |
+| **SA-4.b** | 寫 ADR-0011「技術棧升版策略 / LTS 對齊」 | `adr/0011-tech-stack-upgrade-policy.md` Accepted | ✅ |
+| **SA-4.c** | 把 D 範圍（React 19 / Router 7 / Zustand 5 / Tauri Rust）寫進 `M6-backlog.md` M7 段 | `M6-backlog.md` M7-Y1~Y4 段 | ✅ |
+| ~~SA-4.d~~ | 原計畫的「SDK 升版對 spec 011 影響」段 | 不需要 — X-9 不破壞 adapter 介面（ADR-0010 仍生效）| — |
+
+### 與既有 M6 任務的協調
+
+- M6-X 子項全部走**獨立小 PR**，每 PR 單一升級
+- M6-X **不**動產品功能 spec（005 / 006 / 009 / 011 / 012）— 只動 package.json / config / call site
+- 若 X-9（LLM SDK 升）與 xiaohuangwen adapter 同期，建議**同 dev 在同一週做**，減少 adapter 層 churn
+- M6-A BDD step defs 起手前**必須**先完成 X-5（Vitest 3）— 避免寫了 step def 後又要遷移
+
+### PM 待拍板（Q-X1~5）
+
+詳見 [`M6-X-tech-refresh.md` §9](./M6-X-tech-refresh.md#9-pm-待拍板)。dev 推薦 **B（中）+ D 拆 M7**。
+
+---
+
 ## 動工前必讀
 
 | 檔案 | 為何讀 |
 |---|---|
 | `docs/architecture/milestones/M6-discussion.md` | D1~D5 + P1 的拍板結果（PM 2026-05-17）|
+| `docs/architecture/milestones/M6-X-tech-refresh.md` | M6-X 技術翻新範圍與任務細節（PM 2026-05-18 新增）|
 | `docs/architecture/milestones/M6-backlog.md` | xiaohuangwen API 文件、欄位對應表、使用範圍限制 |
 | `docs/architecture/milestones/v0.2.0-pm-report.md` | M5 遺留、status-updater 根因分析（§2.3）、spec-architect 自決事項（§2.4）|
 | `docs/architecture/specs/002-edit-character-card.md` | 現行共用元件定義所在地（ExpandableTextarea / PortraitGrid / Error 三層等）|
@@ -260,6 +292,7 @@ streaming 回傳 plain text（不是 SSE JSON event），需獨立解析。
 - [ ] TD-4~8 拋光 PR 合進 main
 - [ ] xiaohuangwen provider 可在 Settings 設定、章節寫作時可選用
 - [ ] 餘額查詢按鈕可用
+- [ ] **M6-X 技術翻新**：依 PM 拍板 scope 完成（A/B/C/D 之一）；`engines.node` 升 22 LTS + `.nvmrc` + zod 統一 + ADR-0011 寫入
 - [ ] v0.3.0 release（GitHub Releases，Windows binary）
 
 ---
@@ -274,3 +307,13 @@ streaming 回傳 plain text（不是 SSE JSON event），需獨立解析。
     - Q3 = spec 005 / 006 / 009 三份增量修訂
     - Q4 = 新 spec 011 + 移除「_components/xiaohuangwen-adapter.md」方案
   - SA-1 / SA-2 / SA-3 全部完成（待 PM Round 1 核准）；spec 005 / 006 / 009 status 暫退 Draft
+- 2026-05-18（PM Round 1 拍板 + M6-X 新增）：
+  - PM 對 spec 012 Q-P1~5 全拍板（含 PolishPanel UI 自行設計）；5 份 spec / skill 全轉 Ready
+  - PM 拍板 M6 新增「技術翻新」軌道 → spec-architect 起 `M6-X-tech-refresh.md` 規劃文件；4 個 scope 選項待 PM 拍 Q-X1~5
+  - DoD 加「M6-X 技術翻新依拍板 scope 完成 + ADR-0011」項
+- 2026-05-18（同日 PM Q-X1~5 全拍板 — 全照 dev 推薦）：
+  - SA-4.a / .b / .c 全部完成
+  - `M6-X-tech-refresh.md` Status=Ready（scope = B：9 子項 / 9~10 PR）
+  - 新增 `ADR-0011 技術棧升版策略 / LTS 對齊`（Accepted）
+  - `M6-backlog.md` 補 M7-Y1~Y4 段（React 19 / Router 7 / Zustand 5 / Tauri Rust 推 M7 中段）
+  - **🎉 SA 階段全部完成**；dev 可進入 Phase 2

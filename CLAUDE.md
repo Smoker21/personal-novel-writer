@@ -34,12 +34,24 @@
    - `docs/requirements/features/<NNN>-<slug>.feature`（可執行 BDD 給機器跑）
    - 兩處 Scenario 文字逐字一致
 2. **規格**（`spec-architect`）— 為 status=`Ready` 的 story 產出 `docs/architecture/specs/<NNN>-<slug>.md`，含 API 合約、資料模型、跨元件協議、效能假設、開發任務拆解
+   - **起新 spec 前必讀** [`docs/architecture/specs/_components/_index.md`](docs/architecture/specs/_components/_index.md)（跨 spec 共用 UI 元件 canonical 規格目錄；M6 D4 拍板）。識別新 UI 需求中哪些是共用、哪些是 spec-local — 共用元件寫進 `_components/<name>.md`，spec 主檔 cross-reference 即可。
 3. **實作**（`backend-developer` / `frontend-developer` / `llm-integrator`）— 動工前必讀對應 spec；spec 為 `Draft` 時禁止寫產品程式碼
 4. **測試**（`qa-engineer`）— 依 .feature 寫 cucumber-js step definitions，連到 unit / integration / e2e；AI 代理另加 golden test
 5. 重大跨切面決策一律寫 ADR（`docs/architecture/adr/`）
 6. 跨前後端型別定義在 `packages/shared-types/`，不要兩邊各自寫
 
 退回機制：spec-architect 發現 story 矛盾 → spec status=`Draft`，story status 退回 `Draft`，PM 釐清後再走一遍。dev 不繞過此流程。
+
+## 實作決策自治邊界（D5 拍板）
+
+dev 遇到 spec 沒寫明的決策時：
+
+| 類型 | 處理 | 範例 |
+|---|---|---|
+| 純實作細節 | dev 自決，PR 描述帶過 | useEffect 依賴陣列、CSS class 命名、internal state 管理 |
+| 影響元件 props / API shape | 開 advisor 確認 → dev 自決 → PR 註明 | 加一個 optional prop |
+| 跨檔行為 / 觸發時機 | **回 spec-architect 補 spec 變更紀錄段 → 才動工** | 「settings 級 prompt 在哪個時間點注入」這類 |
+| 跨 spec 一致性 | **回 PM round review** | 「modal 行為定義在哪份 spec」這類 |
 
 ## 重點規範
 

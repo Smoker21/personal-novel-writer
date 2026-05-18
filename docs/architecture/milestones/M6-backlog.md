@@ -95,6 +95,63 @@
 
 ---
 
+## M7 推延項（M6 PM Round 1 拍板 2026-05-18）
+
+> 來源：M6-X 技術翻新規劃。PM 拍板 scope = B + D 拆 M7；下列前端框架類 P3 / Rust toolchain P4 推 M7 中段（S1 FTS5 全文搜尋之後）。
+> 規範 ADR：[ADR-0011](../adr/0011-tech-stack-upgrade-policy.md) — 技術棧升版策略
+
+### M7-Y1. React 18 → 19
+
+| 項 | 內容 |
+|---|---|
+| 動機 | actions / Suspense Boundary / `use` hook / ref 變動；長期維護必升 |
+| 影響 spec | spec 002 / 003 / 005 / 009 / 012 等所有有 React 元件的 spec — 需評估元件改寫範圍 |
+| 風險 | hooks behavior 微改；strict mode 雙呼叫變動；部分 third-party 套件相容性 |
+| 預估 | 3-5 PR（先 react / react-dom 升 + 跑全 web tests → 逐元件清 warning）|
+| 依賴 | M7 中段啟動（不與 FTS5 同期） |
+
+### M7-Y2. react-router-dom 6 → 7
+
+| 項 | 內容 |
+|---|---|
+| 動機 | Loader / action API 從「組件 prop」改為 type-safe 模組；router config 結構變 |
+| 影響 spec | 所有 page 級 spec（001 / 002 / 003 / 008 / 009 路由節點）|
+| 風險 | Route config 全面改寫；可能要 codemod |
+| 預估 | 2-3 PR |
+| 依賴 | 與 M7-Y1 同期或之後（React 19 + Router 7 經常綁同一升版週期）|
+
+### M7-Y3. Zustand 4 → 5
+
+| 項 | 內容 |
+|---|---|
+| 動機 | Store factory API 變（`create` → `createStore` 為 vanilla）|
+| 影響 | 所有 zustand store（chapter / character / settings 各一個）|
+| 風險 | 中等 — store 取用點 API 不變，factory 端要改 |
+| 預估 | 1-2 PR |
+| 依賴 | M7-Y1 之後或並行 |
+
+### M7-Y4. Tauri Cargo rust-version 1.77 → 1.85
+
+| 項 | 內容 |
+|---|---|
+| 動機 | Tauri 2.x 新 minor 要求 Rust 1.85+；rust-toolchain.toml 鎖定 |
+| 影響 | apps/desktop/src-tauri/Cargo.toml + 全平台 bundle 重建 |
+| 風險 | Windows / macOS / Linux 三平台 binary 全要 smoke |
+| 預估 | 2-3 PR（toolchain 鎖 + tauri minor 升 + 三平台驗）|
+| 依賴 | 與其他 Y 項無關；可獨立做 |
+
+### M7 排序建議
+
+```
+W1~W2  S1 FTS5 全文搜尋（M7 主軸）
+W3     Y4 Tauri Rust toolchain（獨立）
+W4~W5  Y1 React 19 + Y2 Router 7（同期）
+W5~W6  Y3 Zustand 5
+W6+    M7 收尾 + v0.4.0 release
+```
+
+---
+
 ## 待整理（未決）
 
 - xiaohuangwen 借鑑的「writing_mode preset」與「mimic_sample」是否值得進 spec 005 章節寫作流程（提供範本下拉）— 與 S2 綁
@@ -107,3 +164,4 @@
 - `2026-05-16`：初版。S1 / S2 來自 xiaohuangwen schema 比較討論的 PM 拍板。
 - `2026-05-16`：補 P1 xiaohuangwen provider（PM 拍板延至 M6，API 文件已取得並分析）。
 - `2026-05-17`：P1 使用範圍確認：僅限章節寫作（/generate + /polish），不可用於 structured-data slot。spec 009 Settings 只在章節寫作 routing slot 顯示此 provider。
+- `2026-05-18`：M6 PM Round 1 拍板 M6-X 技術翻新 scope = B + D 拆 M7；本檔新增 M7-Y1~Y4 段（React 19 / Router 7 / Zustand 5 / Tauri Rust）。
