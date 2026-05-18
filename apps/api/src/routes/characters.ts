@@ -27,7 +27,7 @@ const personalityTagsSchema = z.array(z.string());
 
 const portraitSchema = z.object({
   default: z.string().nullable().optional(),
-  byChapter: z.record(z.string()).optional(),
+  byChapter: z.record(z.string(), z.string()).optional(),
 });
 
 const sexualScenePerformanceSchema = z
@@ -63,7 +63,7 @@ const fieldsSchema = z.object({
   otherFeatures: z.string().nullable().optional(),
   clothing: z.string().nullable().optional(),
   portrait: portraitSchema.optional(),
-  appearanceByChapter: z.record(z.string()).optional(),
+  appearanceByChapter: z.record(z.string(), z.string()).optional(),
   dialoguePace: z.enum(["快", "穩", "慢"]).nullable().optional(),
   wordingPreference: z.string().nullable().optional(),
   writingAvoid: z.string().nullable().optional(),

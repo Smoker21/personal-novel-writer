@@ -36,7 +36,7 @@ const routingPolicySchema = z
 
 const settingsSchema = z.object({
   schemaVersion: z.literal(1),
-  providers: z.record(providerConfigSchema),
+  providers: z.record(z.string(), providerConfigSchema),
   routing: z.object({
     chapterWriter: routingPolicySchema,
     characterCardConsolidator: routingPolicySchema,

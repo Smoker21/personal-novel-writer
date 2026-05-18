@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
-    "@hono/zod-validator": "^0.4.2",
+    "@hono/zod-validator": "^0.8.0",
     "@novel-writer/llm-adapter": "workspace:^",
     "@novel-writer/prompt-library": "workspace:^",
     "@novel-writer/shared-types": "workspace:*",
@@ -25,9 +25,9 @@
     "hono": "^4.6.0",
     "js-yaml": "^4.1.0",
     "p-queue": "^8.0.1",
-    "sharp": "^0.32.6",
+    "sharp": "^0.34.0",
     "yaml": "^2.9.0",
-    "zod": "^3.24.0"
+    "zod": "^4"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
