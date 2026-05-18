@@ -20,7 +20,7 @@
     "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
+    "@anthropic-ai/sdk": "^0.96.0",
     "@google/genai": "^1.0.0",
     "gpt-tokenizer": "^2.1.0",
     "openai": "^4"
