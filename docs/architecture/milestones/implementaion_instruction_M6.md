@@ -32,7 +32,7 @@ M6 = **品質補強 + xiaohuangwen Provider + polish-prose Skill + 技術翻新*
 
 | # | 檔 | 為何 |
 |---|---|---|
-| 1 | `CLAUDE.md` | 工作流規範 + **D5 自治邊界**（dev 遇 spec 沒寫怎麼處理） |
+| 1 | `CLAUDE.md` | 工作流規範 + **D5 自治邊界** + **sub-agent 派工 race 預防**（新增段） |
 | 2 | `docs/architecture/adr/0011-tech-stack-upgrade-policy.md` | 升版策略（單 PR 單升 / 回滾 SOP / native module rebuild）|
 | 3 | `docs/architecture/milestones/M6-X-tech-refresh.md` | M6-X 9 個子項任務細節 + scope B 定案 |
 | 4 | `docs/architecture/adr/0010-llm-adapter-structured-generation.md` | StructuredNovelProvider 介面 + dispatch 規則 |
@@ -298,6 +298,32 @@ M6 = **品質補強 + xiaohuangwen Provider + polish-prose Skill + 技術翻新*
 
 ---
 
+## Sub-agent 派工 race 預防（CLAUDE.md 新增規範）
+
+> 派任何 PR 給子代理前，**先做這四步**：
+
+1. **grep 該 PR 改動檔範圍**（用 spec section 列的修改檔清單）
+2. **比對既有 in-flight PR 的改動檔**，看有無交集
+3. **分級派工**：
+   | 情境 | 規則 |
+   |---|---|
+   | 同 workspace 的 `package.json` 修改 | **嚴格序列**（單一 agent 連跑多 commit；禁止並行）|
+   | 不同 workspace（apps/api ⇄ apps/web ⇄ packages/llm-adapter 等） | 並行可 |
+   | 同 workspace 不同 source 檔（無 import 重疊） | 並行可 |
+   | 同 workspace 不同 source 檔但 import 重疊處 | 保險序列 |
+4. **列入工作日誌**：在每次派工前的訊息中記下「本批派出 X PR / 改動檔範圍 / 與其他 in-flight PR 無交集」
+
+### M6 PR 並行 / 序列定案
+
+| 階段 | 序列項 | 並行項 |
+|---|---|---|
+| W1 | PR 1 → PR 2 → PR 3（皆動 `apps/api/package.json` + root `package.json`，**嚴格序列**） | PR 4（動 apps/api source + apps/web source，可與 1~3 並行）|
+| W2 | PR 5 / 6 / 7 / 8 各動不同 workspace 或不同 config 檔（可並行）；PR 7+8 都動 `apps/api/package.json` → 7→8 **序列** | PR 9~12 各 workspace 不同 → 並行；PR 13 動 apps/e2e/package.json → 與其他並行；PR 14+ BDD 動 apps/e2e source → 並行 |
+| W3 | PR Ax / Ay / Az 都動 `packages/llm-adapter/package.json` → **嚴格序列**；PR B1 動 packages/llm-adapter source → 排在 Ax/Ay/Az 後 | PR B2（apps/api source）/ B3（apps/api source 但不重疊 B2）→ 並行 |
+| W4~5 | C1 / C2 動 apps/web 不同 feature folder → 並行；C3 / C5 動 apps/api source → 並行；C4 動 apps/web → 與 C1/C2 並行 | D1~5 unit test 各動不同 component → 並行；E1~5 拋光各動不同檔 → 並行 |
+
+---
+
 ## 跨 PR 依賴矩陣
 
 | PR | 依賴 | 並行允許 |
@@ -366,15 +392,17 @@ M6 = **品質補強 + xiaohuangwen Provider + polish-prose Skill + 技術翻新*
 ## 起手第一步
 
 1. 讀完上方「動工前必讀」7 項
-2. 派 `backend-developer` 起 **PR 1**（`chore: pin Node 22 LTS + TS 5.8`），等該 PR 合進 main
-3. 同時派另一個 `backend-developer` 起 **PR 4**（status-updater 三層修復，與 PR 1 並行）
-4. PR 1 合進 main 後派 **PR 2** zod v4
-5. 依序往下推進
+2. **派工前 grep 改動檔範圍**（依 CLAUDE.md 新增段「sub-agent 派工 race 預防」）— 確認 PR 1 與 PR 4 改動檔無交集
+3. 派 `backend-developer` 起 **PR 1**（`chore: pin Node 22 LTS + TS 5.8`），等該 PR 合進 main
+4. 同時派另一個 `backend-developer` 起 **PR 4**（status-updater 三層修復，與 PR 1 並行 — 改動 apps/api source，不動 package.json）
+5. PR 1 合進 main 後派 **PR 2** zod v4（序列：等 PR 1 完，因為都動 apps/api/package.json）
+6. 依序往下推進；每批派工前先做 race 預防四步驟
 
-⚠️ **不要** all-in-one 升級；**不要**改 spec（spec 變動回 spec-architect）；**不要**寫新 .feature（PM 唯一 author）。
+⚠️ **不要** all-in-one 升級；**不要**改 spec（spec 變動回 spec-architect）；**不要**寫新 .feature（PM 唯一 author）；**不要**並行兩個動同 workspace package.json 的 PR。
 
 ---
 
 ## 變更紀錄
 
 - 2026-05-18：初版（Dev coordinator handover，SA commit `291bfdd` 之後）。
+- 2026-05-18（同日）：補「sub-agent 派工 race 預防」段（同步 PM 在 CLAUDE.md 新增的規範）；W1~W5 PR 並行 / 序列細化到改動檔層級。
