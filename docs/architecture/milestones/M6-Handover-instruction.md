@@ -317,3 +317,87 @@ streaming 回傳 plain text（不是 SSE JSON event），需獨立解析。
   - 新增 `ADR-0011 技術棧升版策略 / LTS 對齊`（Accepted）
   - `M6-backlog.md` 補 M7-Y1~Y4 段（React 19 / Router 7 / Zustand 5 / Tauri Rust 推 M7 中段）
   - **🎉 SA 階段全部完成**；dev 可進入 Phase 2
+- 2026-05-18（dev W1-W3 完成 + spec-architect Round 2）：
+  - dev W1-W3 完成（M6-X scope B 全 9 子項 ✅ / M6-C status-updater ✅ / BDD 環境就緒 + 1/7 跑通 / xiaohuangwen adapter + dispatch + settings ✅）
+  - dev 揭露 5 個 spec/ADR gap（S-1~S-4 + S-5）＋ 3 個 BDD mismatch（MISMATCH-1/2 / PARSE-ERROR）
+  - spec-architect Round 2 工作項列於本文件最後段
+
+---
+
+## spec-architect Round 2 — dev W1-W3 揭露的 spec/ADR gap（2026-05-18）
+
+> 來源：`docs/architecture/milestones/M6-implementation-feedback.md`
+> 優先序：S-1 ~ S-4 為 🟧 強烈建議（不擋 W4 但 M7 前應補）；S-5 為 🟨 可選
+
+### SA-R2-1：spec 011 type 路徑錯誤
+
+**問題**：spec 011 line 356 寫 `packages/shared-types/src/llm-adapter.ts`，但 `ModelCapabilities` / `LLMProvider` / `StreamChunk` 等 type 實際在 `packages/llm-adapter/src/types.ts`。dev 已自決放 `packages/llm-adapter/src/types.ts`。
+
+**spec-architect 修正**：把 spec 011 開發任務段的 `types:` 項路徑改為 `packages/llm-adapter/src/types.ts`，並加註「型別放 adapter package 本身；shared-types 只放跨 workspace 共用 type」。
+
+### SA-R2-2：ADR-0010 `retryPerModel` structured path 語意
+
+**問題**：ADR-0010 line 121/124 寫 `retryPerModel: number`（required），但 structured path 不做 fallback / retry，傳此值無意義。dev 已自決設為 optional。
+
+**spec-architect 修正**：ADR-0010 `LLMRouter.generateNovel` / `polishNovel` signature 說明段加一句：「`retryPerModel` 在 structured path 為 optional / unused；structured provider 不在 fallbacks 間切換」。
+
+### SA-R2-3：xiaohuangwen 餘額不足偵測規則
+
+**問題**：spec 011 line 208 寫 HTTP 402 OR body 含 `"餘額不足"` → `quota_exhausted`，但未定義 case-sensitivity / 英文 alias。dev 已自決用寬鬆策略（HTTP 402 OR body lowercase 含 `"insufficient"` / `"quota"` / `"餘額不足"`）。
+
+**spec-architect 修正**：spec 011「錯誤映射」表加補充欄：
+```
+402 / body 含以下任一（case-insensitive）：
+  - "餘額不足"
+  - "insufficient"
+  - "quota"（partial match）
+→ quota_exhausted
+```
+或縮緊為「僅 HTTP 402 + body 含 "餘額不足"」— 擇一確認並寫進 spec。
+
+### SA-R2-4：ADR-0010 caller-side validation error code 未定義
+
+**問題**：ADR-0010 定義 server-returned error code，但**未定義 adapter 端 caller-side validation 失敗**（如空 `plot` / 空 `pre_output`）的 code。dev 暫用 `"unknown"`。
+
+**spec-architect 修正**：ADR-0010 `LLMErrorCode` 擴張段加 `"invalid_argument"`，說明「adapter 端 caller-side 參數驗證失敗；retryable = false」。同步更新 spec 011 錯誤映射表。
+
+### SA-R2-5（可選）：spec 005 PromptSnapshot 補完
+
+**問題**：spec 005 M5 line 334 有 `PromptSnapshot.kind` / `structuredInputs` 欄位定義，但既有 `generate.ts` 從未寫過 `current.prompt.json`（M5 任務 be-m5-5 未完成）。這是 M5 prior gap，非 M6 regression。
+
+**spec-architect / PM 決定**：
+- 補進 W4 範圍（建議）— dev 可在 polish-prose 後接著做
+- 或推 M7 / 標明 M6 release report 已知問題
+
+---
+
+## PM Round 2 待拍板項（2026-05-18 — dev 揭露）
+
+> 來源：`docs/architecture/milestones/M6-implementation-feedback.md`
+> 🟥 必處理（否則 M6-A BDD DoD 過不了）
+
+### MISMATCH-1：FirstLaunchWarningDialog 4 個區塊
+
+`.feature` 描述 4 個 emoji 命名區塊（📁/📝/🔐/📂），但實際元件渲染 4 個無 emoji 標題的純文字子彈點。
+
+**PM 拍板**：
+- **A** — 改 component 加 emoji section headers
+- **B** — 改 `032-first-launch-warning.feature` 描述實際 bullet 內容（PM 是 .feature 唯一 author）
+
+### MISMATCH-2：firstLaunchWarningAcknowledgedAt timestamp
+
+`.feature` 描述點確認後寫 `meta.firstLaunchWarningAcknowledgedAt: <ISO 8601>`，但實作只寫 `firstLaunchWarningAcknowledged: true`。
+
+**PM 拍板**：
+- **A** — 實作 timestamp 寫入（需改 shared-types + component + API zod schema）
+- **B** — 從 `.feature` 移除此 step（過度規格化實作細節）
+
+### PARSE-ERROR：002b + 010 .feature markdown 語法
+
+`002b-character-card-from-image.feature` / `010-git-version-control.feature` 內 step body 用 markdown 列表（`- item`），cucumber-js parser 拒絕。**PM 是 .feature 唯一 author**，需改語法（改用 doc string 或 data table）。
+
+### DESIGN-DECISION-1：Tauri 視窗關閉 BDD scenario
+
+032 feature scenario「強制關閉後重啟再顯示」在 cucumber + Tauri webview context 難以模擬。
+
+**PM / spec-architect 建議**：推 M7（與 Tauri Rust 升版一起），`032.feature` 該 scenario 暫標 `@pending`。
