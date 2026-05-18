@@ -15,14 +15,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.0",
+    "@hono/node-server": "^1.19.14",
     "@hono/zod-validator": "^0.8.0",
     "@novel-writer/llm-adapter": "workspace:^",
     "@novel-writer/prompt-library": "workspace:^",
     "@novel-writer/shared-types": "workspace:*",
     "better-sqlite3": "^12.10.0",
     "consola": "^3.3.0",
-    "hono": "^4.6.0",
+    "hono": "^4.12.19",
     "js-yaml": "^4.1.0",
     "p-queue": "^8.0.1",
     "sharp": "^0.34.0",
