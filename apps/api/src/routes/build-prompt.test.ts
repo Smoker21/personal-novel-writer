@@ -89,6 +89,7 @@ describe("build-prompt route (M5 2b-3)", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
+      kind: "messages" | "structured";
       promptText: string;
       systemPrompt: string;
       userPrompt: string;
@@ -96,6 +97,7 @@ describe("build-prompt route (M5 2b-3)", () => {
       modelId: string;
       participants: Array<{ slug: string; name: string; matched: boolean }>;
     };
+    expect(body.kind).toBe("messages");
     expect(body.promptText).toContain("System Prompt");
     expect(body.promptText).toContain("User Prompt");
     expect(body.userPrompt).toContain("春雨找明哲查詢借閱歷史。");
@@ -162,5 +164,90 @@ describe("build-prompt route (M5 2b-3)", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { code: string };
     expect(body.code).toBe("MISSING_CONTEXT");
+  });
+
+  // M6 (Spec 005 / ADR-0010): structured-path 分支
+  it("returns kind=structured + structuredInputs when routing primary is xiaohuangwen", async () => {
+    // Override routing to point to xiaohuangwen (structured-only provider)
+    vi.mocked(readSettings).mockResolvedValueOnce({
+      schemaVersion: 1,
+      providers: {
+        anthropic: { enabled: false },
+        openai: { enabled: false },
+        google: { enabled: false },
+        xai: { enabled: false },
+        ollama: { enabled: false, endpoint: "http://localhost:11434" },
+        lmstudio: { enabled: false, endpoint: "http://localhost:1234" },
+        "rwkv-runner": { enabled: false, endpoint: "http://localhost:8000" },
+      },
+      routing: {
+        chapterWriter: { primary: "xiaohuangwen:latest", fallbacks: [] },
+      },
+      recentProjects: [],
+      meta: { firstLaunchWarningAcknowledged: true },
+    } as never);
+
+    const res = await app().request(URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        participantSlugs: ["春雨"],
+        outline: "春雨找明哲查詢借閱歷史。",
+        requirements: "約 1500 字",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      kind: string;
+      structuredInputs: {
+        plot: string;
+        background: string;
+        requirements: string;
+        pre_summary: string;
+        prev_segment: string;
+      };
+      modelId: string;
+      contextHash: string;
+      participants: Array<{ slug: string; name: string; matched: boolean }>;
+    };
+    expect(body.kind).toBe("structured");
+    expect(body.modelId).toBe("xiaohuangwen:latest");
+    expect(body.structuredInputs.plot).toBe("春雨找明哲查詢借閱歷史。");
+    expect(body.structuredInputs.requirements).toBe("約 1500 字");
+    expect(body.structuredInputs.background).toContain("春雨");
+    expect(body.contextHash).toMatch(/^[a-f0-9]{12}$/);
+    expect(body.participants).toHaveLength(1);
+    // messages-only fields must not appear in structured response
+    expect((body as Record<string, unknown>)["promptText"]).toBeUndefined();
+    expect((body as Record<string, unknown>)["estimatedTokens"]).toBeUndefined();
+  });
+
+  it("structured path returns 400 INVALID_PARTICIPANT for unknown slug", async () => {
+    vi.mocked(readSettings).mockResolvedValueOnce({
+      schemaVersion: 1,
+      providers: {
+        anthropic: { enabled: false },
+        openai: { enabled: false },
+        google: { enabled: false },
+        xai: { enabled: false },
+        ollama: { enabled: false, endpoint: "http://localhost:11434" },
+        lmstudio: { enabled: false, endpoint: "http://localhost:1234" },
+        "rwkv-runner": { enabled: false, endpoint: "http://localhost:8000" },
+      },
+      routing: {
+        chapterWriter: { primary: "xiaohuangwen:latest", fallbacks: [] },
+      },
+      recentProjects: [],
+      meta: { firstLaunchWarningAcknowledged: true },
+    } as never);
+    const res = await app().request(URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ participantSlugs: ["不存在的角色"] }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { code: string; missingSlugs: string[] };
+    expect(body.code).toBe("INVALID_PARTICIPANT");
+    expect(body.missingSlugs).toContain("不存在的角色");
   });
 });

@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { countMessageTokens } from "@novel-writer/llm-adapter";
+import {
+  countMessageTokens,
+  type StructuredNovelGenerateParams,
+} from "@novel-writer/llm-adapter";
 import type { ChapterContext, CharacterCardInContext } from "@novel-writer/shared-types";
 import { readChapter } from "./chapter-fs.js";
 import { listCharacters, lookupAppearance, readCharacter } from "./character-fs.js";
@@ -199,4 +202,71 @@ export async function collectChapterContext(opts: CollectOptions): Promise<Chapt
     previousChapterFullText: finalPrevChapter,
     contextHash,
   };
+}
+
+// ---------------------------------------------------------------------------
+// M6 (Spec 005 / 011 / ADR-0010): structured-path input 蒐集。
+//
+// 對應 xiaohuangwen `POST /api/v1/generate` 5 欄；apps/api 端組裝（adapter 只負責呼 API）。
+// 欄位對應表（spec 011）：
+//   plot         ← chapter front-matter `outline`（缺則空字串）
+//   background   ← 選定 characters 的 body 拼接 + story_status 摘要
+//   requirements ← chapter front-matter `requirements`
+//   pre_summary  ← story_status.md「## 故事摘要」段
+//   prev_segment ← 前章 .md 末段（最後 2000 codepoint，與 text-count.ts 一致）
+// ---------------------------------------------------------------------------
+
+/** 從 story_status.md 抽出「## 故事摘要」段（不含 heading）；找不到回空字串。 */
+export function extractStorySummarySection(storyStatus: string): string {
+  if (!storyStatus) return "";
+  const heading = "## 故事摘要";
+  const idx = storyStatus.indexOf(heading);
+  if (idx === -1) return "";
+  const after = storyStatus.slice(idx + heading.length);
+  // 取到下一個 `## ` heading 為止；若無則到結尾
+  const nextHeadingMatch = after.match(/\n##\s/);
+  const body = nextHeadingMatch ? after.slice(0, nextHeadingMatch.index) : after;
+  return body.trim();
+}
+
+/** 取字串末尾 N 個 codepoint（與 text-count.ts 規則一致；不切 surrogate pair）。 */
+export function lastCodepoints(text: string, n: number): string {
+  const cps = [...text];
+  if (cps.length <= n) return text;
+  return cps.slice(cps.length - n).join("");
+}
+
+/** 把 characters 與 story_status 拼成 background 欄位。 */
+function buildBackground(context: ChapterContext): string {
+  const parts: string[] = [];
+  for (const c of context.characters) {
+    // body 已含「## 角色描述（手動）」+「## AI 統整敘述」兩段（見 character-fs.joinBody）
+    parts.push(`# ${c.name} (${c.slug})\n\n${c.body}\n\n外貌：${c.currentAppearance}`);
+  }
+  if (context.storyStatus.trim()) {
+    parts.push(`# 故事狀態\n\n${context.storyStatus}`);
+  }
+  return parts.join("\n\n---\n\n");
+}
+
+/**
+ * 蒐集結構化 path 的 5 欄輸入。內部呼叫 `collectChapterContext` 重用既有
+ * synopsis / characters / status / previous-chapter 載入邏輯。
+ */
+export async function collectStructuredInputs(
+  opts: CollectOptions,
+): Promise<{ inputs: StructuredNovelGenerateParams; contextHash: string }> {
+  const context = await collectChapterContext(opts);
+
+  const inputs: StructuredNovelGenerateParams = {
+    plot: context.currentOutline ?? "",
+    background: buildBackground(context),
+    requirements: context.currentRequirements ?? "",
+    pre_summary: extractStorySummarySection(context.storyStatus),
+    prev_segment: context.previousChapterFullText
+      ? lastCodepoints(context.previousChapterFullText, 2000)
+      : "",
+  };
+
+  return { inputs, contextHash: context.contextHash };
 }

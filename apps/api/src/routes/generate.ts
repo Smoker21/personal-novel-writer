@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import type { GenerateRequest } from "@novel-writer/llm-adapter";
+import { type GenerateRequest, parseModelId } from "@novel-writer/llm-adapter";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { listChapters } from "../services/chapter-fs.js";
+import { getModelKind } from "../services/chapter-writer-dispatch.js";
 import {
   abortDraft,
   appendDraftText,
@@ -18,8 +19,9 @@ import { buildRouter, toRouterPolicy } from "../services/router-factory.js";
 import { readSettings } from "../services/settings-store.js";
 import { safeWriteSSE } from "../services/sse-safe.js";
 
-// M5 (Spec 005): new request shape — user-edited prompt + audit metadata
-const generateSchema = z.object({
+// M5 (Spec 005) / M6 (ADR-0010): discriminated union request — kind 決定 path
+const messagesSchema = z.object({
+  kind: z.literal("messages"),
   promptText: z.string().min(1),
   contextHash: z.string(),
   participants: z.array(z.string()),
@@ -28,6 +30,27 @@ const generateSchema = z.object({
   modelOverride: z.string().optional(),
   temperatureOverride: z.number().min(0).max(2).optional(),
 });
+
+const structuredInputsSchema = z.object({
+  plot: z.string(),
+  background: z.string().optional().default(""),
+  requirements: z.string().optional().default(""),
+  pre_summary: z.string().optional().default(""),
+  prev_segment: z.string().optional().default(""),
+});
+
+const structuredSchema = z.object({
+  kind: z.literal("structured"),
+  structuredInputs: structuredInputsSchema,
+  contextHash: z.string(),
+  participants: z.array(z.string()),
+  outline: z.string().nullable(),
+  requirements: z.string().nullable(),
+  modelOverride: z.string().optional(),
+  temperatureOverride: z.number().min(0).max(2).optional(),
+});
+
+const generateSchema = z.discriminatedUnion("kind", [messagesSchema, structuredSchema]);
 
 /**
  * Split a build-prompt promptText back into systemPrompt + userPrompt.
@@ -77,6 +100,18 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
   const effectivePrimary = body.modelOverride ?? routingConf.primary;
   const policy = toRouterPolicy({ ...routingConf, primary: effectivePrimary });
 
+  // M6 KIND_MISMATCH validation：對比 request.kind 與 provider capability。
+  const providerKind = getModelKind(effectivePrimary);
+  if (providerKind !== body.kind) {
+    return c.json(
+      {
+        code: "KIND_MISMATCH",
+        message: `Request kind "${body.kind}" does not match provider capability (model "${effectivePrimary}" requires "${providerKind}")`,
+      },
+      400,
+    );
+  }
+
   // Check if there's already a running draft
   const existing = await readDraft(projectHash, chapterNumber);
   if (existing?.meta.status === "running") {
@@ -98,10 +133,6 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
         abortController.abort();
       });
 
-      // M5: context already collected in build-prompt stage; promptText is user-edited.
-      // We trust the client's contextHash + audit fields (participants/outline/requirements)
-      // as a record of what the prompt was based on.
-
       // 1. Create draft record
       await createDraft({
         draftId,
@@ -121,24 +152,45 @@ app.post("/", zValidator("json", generateSchema), async (c) => {
         data: JSON.stringify({ draftId, model: policy.primary, contextHash: body.contextHash }),
       });
 
-      // 2. Build LLM request from user-edited promptText
-      const { systemPrompt, userPrompt } = splitPromptText(body.promptText);
-      const req: GenerateRequest = {
-        modelId: policy.primary,
-        systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-        maxOutputTokens: 4096,
-        temperature: body.temperatureOverride ?? 0.7,
-        abortSignal: abortController.signal,
-      };
-
       const router = buildRouter(settings);
       let inputTokens = 0;
       let outputTokens = 0;
       let usedModel = policy.primary;
 
       try {
-        for await (const chunk of router.stream(req, policy)) {
+        // ── Dispatch by kind (M6 ADR-0010) ────────────────────────────────
+        const chunkIter =
+          body.kind === "structured"
+            ? router.generateNovel(
+                {
+                  plot: body.structuredInputs.plot,
+                  background: body.structuredInputs.background,
+                  requirements: body.structuredInputs.requirements,
+                  pre_summary: body.structuredInputs.pre_summary,
+                  prev_segment: body.structuredInputs.prev_segment,
+                  version: parseModelId(policy.primary).model,
+                  abortSignal: abortController.signal,
+                },
+                { primary: policy.primary, retryPerModel: policy.retryPerModel },
+              )
+            : router.stream(
+                ((): GenerateRequest => {
+                  // body.kind === "messages" — narrowed by discriminated union
+                  const messagesBody = body as Extract<typeof body, { kind: "messages" }>;
+                  const { systemPrompt, userPrompt } = splitPromptText(messagesBody.promptText);
+                  return {
+                    modelId: policy.primary,
+                    systemPrompt,
+                    messages: [{ role: "user", content: userPrompt }],
+                    maxOutputTokens: 4096,
+                    temperature: messagesBody.temperatureOverride ?? 0.7,
+                    abortSignal: abortController.signal,
+                  };
+                })(),
+                policy,
+              );
+
+        for await (const chunk of chunkIter) {
           // Client disconnected — abort upstream LLM and stop processing
           if (stream.aborted) {
             abortController.abort();
