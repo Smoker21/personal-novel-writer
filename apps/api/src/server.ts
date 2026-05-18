@@ -18,6 +18,7 @@ import { projects } from "./routes/projects.js";
 import { settings } from "./routes/settings.js";
 import { statusRouter } from "./routes/status.js";
 import { unadoptRouter } from "./routes/unadopt.js";
+import { polishRouter } from "./routes/polish.js";
 import { migrateRecentProjects } from "./services/recent-projects-store.js";
 
 const app = new Hono()
@@ -37,7 +38,8 @@ const app = new Hono()
   .route("/api/projects/:hash/file", projectFileRouter)
   .route("/api/projects/:hash/git", gitProjectRouter)
   .route("/api/projects/:hash/status", statusRouter)
-  .route("/api/projects/:hash/jobs", jobsRouter);
+  .route("/api/projects/:hash/jobs", jobsRouter)
+  .route("/api/projects/:hash/chapters/:chapterNumber/polish", polishRouter);
 
 export type AppType = typeof app;
 
