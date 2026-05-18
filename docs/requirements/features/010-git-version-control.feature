@@ -45,10 +45,11 @@ Feature: 章節與狀態的 git 版本控制
     Given 第一章經過：建立 → 手動儲存 5 次 → AI 採用 → 手動修了一段再儲存
     And `git log --oneline -- chapters/chapter_0001_*.md` 顯示 8 個 commit
     When 我在第一章編輯器點「歷史」按鈕
-    Then 歷史面板列出 8 個 commit，每個顯示：
-      - commit message（例「chapter: adopt AI draft for chapter 1 梅雨初晴」）
-      - 時間（相對時間「3 小時前」+ tooltip 完整時間）
-      - 字數變化（例「+420 字」）
+    Then 歷史面板列出 8 個 commit，每個顯示下列資訊：
+      | 欄位         | 範例                                               |
+      | commit message | chapter: adopt AI draft for chapter 1 梅雨初晴  |
+      | 時間           | 3 小時前（tooltip 顯示完整時間）                   |
+      | 字數變化       | +420 字                                            |
     And 最新的 commit 在最上方，標記「目前版本」
 
   Scenario: 預覽歷史 commit 的內容

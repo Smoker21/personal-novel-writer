@@ -44,11 +44,12 @@ Feature: 角色卡：上傳參考圖 → vision 解析外貌（含章節敏感�
     And git commit「character: edit 蘇晴」
 
   Scenario: chapter-writer 寫第 5 章時讀到對應版本的外貌
-    Given 角色「蘇晴」的 frontmatter 含：
-      - 扁平外貌欄位（從 default 圖解析來，描述基準外貌）
-      - portrait.default + portrait.byChapter[1] + portrait.byChapter[5]
-      - appearanceByChapter[1]「淺灰色棉麻長裙...」
-      - appearanceByChapter[5]「深藍色套裝...」
+    Given 角色「蘇晴」的 frontmatter 含下列欄位：
+      | 欄位                                              | 值                             |
+      | 扁平外貌欄位                                      | 從 default 圖解析來，描述基準外貌 |
+      | portrait.default / byChapter[1] / byChapter[5]   | 各章圖片路徑                    |
+      | appearanceByChapter[1]                            | 淺灰色棉麻長裙...               |
+      | appearanceByChapter[5]                            | 深藍色套裝...                   |
     When 我點「AI 撰寫本章」開始寫第 3 章
     Then ChapterContext 蒐集到的「蘇晴外貌」為 appearanceByChapter[1]（最近 ≤ 3 的章節）
     When 我寫第 7 章

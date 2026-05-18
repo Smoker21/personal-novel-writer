@@ -371,33 +371,12 @@ streaming 回傳 plain text（不是 SSE JSON event），需獨立解析。
 
 ---
 
-## PM Round 2 待拍板項（2026-05-18 — dev 揭露）
+## PM Round 2 拍板結果（2026-05-18）
 
-> 來源：`docs/architecture/milestones/M6-implementation-feedback.md`
-> 🟥 必處理（否則 M6-A BDD DoD 過不了）
-
-### MISMATCH-1：FirstLaunchWarningDialog 4 個區塊
-
-`.feature` 描述 4 個 emoji 命名區塊（📁/📝/🔐/📂），但實際元件渲染 4 個無 emoji 標題的純文字子彈點。
-
-**PM 拍板**：
-- **A** — 改 component 加 emoji section headers
-- **B** — 改 `032-first-launch-warning.feature` 描述實際 bullet 內容（PM 是 .feature 唯一 author）
-
-### MISMATCH-2：firstLaunchWarningAcknowledgedAt timestamp
-
-`.feature` 描述點確認後寫 `meta.firstLaunchWarningAcknowledgedAt: <ISO 8601>`，但實作只寫 `firstLaunchWarningAcknowledged: true`。
-
-**PM 拍板**：
-- **A** — 實作 timestamp 寫入（需改 shared-types + component + API zod schema）
-- **B** — 從 `.feature` 移除此 step（過度規格化實作細節）
-
-### PARSE-ERROR：002b + 010 .feature markdown 語法
-
-`002b-character-card-from-image.feature` / `010-git-version-control.feature` 內 step body 用 markdown 列表（`- item`），cucumber-js parser 拒絕。**PM 是 .feature 唯一 author**，需改語法（改用 doc string 或 data table）。
-
-### DESIGN-DECISION-1：Tauri 視窗關閉 BDD scenario
-
-032 feature scenario「強制關閉後重啟再顯示」在 cucumber + Tauri webview context 難以模擬。
-
-**PM / spec-architect 建議**：推 M7（與 Tauri Rust 升版一起），`032.feature` 該 scenario 暫標 `@pending`。
+| 項 | PM 拍板 | 說明 |
+|---|---|---|
+| **MISMATCH-1** | **A — 改 component** | FirstLaunchWarningDialog 加 emoji section headers（📁/📝/🔐/📂）；dev 實作 |
+| **MISMATCH-2** | **A — 實作 timestamp** | `firstLaunchWarningAcknowledgedAt: ISO 8601` 寫入；需改 shared-types + component + API zod schema；dev 實作 |
+| **PARSE-ERROR** | **已修（PM 2026-05-18）** | 002b / 010 .feature markdown list 改為 data table；commit `（見下）` |
+| **DESIGN-DECISION-1** | **A — 改 .feature** | 032 scenario「強制關閉重啟」改描述為「重新進入 settings ack state 持久化」；`@pending` 移除；dev 實作輕量驗證 |
+| **SA-R2-5 PromptSnapshot** | **交 spec-architect** | spec-architect 決定 M6 補完或推 M7 |
